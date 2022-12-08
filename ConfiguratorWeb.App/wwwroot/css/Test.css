@@ -1,0 +1,109 @@
+﻿
+.spec-ED {
+   color: #e61919
+}
+
+.spec-Draft, .spec-WD {
+    margin-left: -19px;
+   color: #e66e33
+}
+
+.spec-CR, .spec-RC {
+   color: #00978e
+}
+
+.spec-PR {
+   color: #72ac35
+}
+
+.spec-REC, .spec-RFC {
+   color: #309c40
+}
+
+.spec-Living, .spec-Standard {
+   color: #00539f
+}
+
+   .spec-CR:before, .spec-Draft:before, .spec-ED:before, .spec-Living:before, .spec-PR:before, .spec-RC:before, .spec-REC:before, .spec-RFC:before, .spec-Standard:before, .spec-WD:before {
+      font-weight: 700;
+      direction: ltr
+   }
+
+   .spec-CR:before, .spec-Draft:before, .spec-ED:before, .spec-Living:before, .spec-PR:before, .spec-RC:before, .spec-REC:before, .spec-RFC:before, .spec-Standard:before, .spec-WD:before {
+      margin: .2em .6em 0 0
+   }
+
+html[dir=rtl] .spec-CR:before, html[dir=rtl] .spec-Draft:before, html[dir=rtl] .spec-ED:before, html[dir=rtl] .spec-Living:before, html[dir=rtl] .spec-PR:before, html[dir=rtl] .spec-RC:before, html[dir=rtl] .spec-REC:before, html[dir=rtl] .spec-RFC:before, html[dir=rtl] .spec-Standard:before, html[dir=rtl] .spec-WD:before {
+   margin: .2em .6em 0
+}
+
+.spec-ED:before {
+   content: 'ED';
+   background: #f4c1c2
+}
+
+.spec-WD:before {
+   
+   content: ' ';
+   background: #f4d7c9
+}
+
+.spec-CR:before, .spec-RC:before {
+   content: 'CR';
+   background: #bae1e0
+}
+
+.spec-RC:before {
+   content: 'RC'
+}
+
+.spec-PR:before {
+   content: 'PR';
+   background: #d7e6c9
+}
+
+.spec-REC:before {
+   content: '*';
+   background: #c6e2cc
+}
+
+.spec-Living:before {
+   content: 'LS';
+   background: #bad0e4
+}
+
+.spec-RFC:before {
+   content: 'RFC';
+   background: #bad0e4
+}
+
+.spec-Standard:before {
+   content: 'ST';
+   background: #bad0e4
+}
+
+.spec-CR:before, .spec-Draft:before, .spec-ED:before, .spec-Living:before, .spec-PR:before, .spec-RC:before, .spec-REC:before, .spec-RFC:before, .spec-Standard:before, .spec-WD:before {
+   display: initial;
+   /*min-width: 20px;*/
+   
+   vertical-align: baseline;
+   border-radius: 2px;
+   padding: .45em .1em .3em .1em;
+   /*background-color: #eee;*/
+   font-family: Helvetica,arial,sans-serif;
+   font-size: 14px;
+   font-weight: 400;
+   line-height: normal
+}
+
+.spec-CR:before, .spec-Draft:before, .spec-ED:before, .spec-Living:before, .spec-PR:before, .spec-RC:before, .spec-REC:before, .spec-RFC:before, .spec-Standard:before, .spec-WD:before {
+   margin-left: 10px;
+   border-left: 4px solid
+}
+
+html[dir=rtl] .spec-CR:before, html[dir=rtl] .spec-Draft:before, html[dir=rtl] .spec-ED:before, html[dir=rtl] .spec-Living:before, html[dir=rtl] .spec-PR:before, html[dir=rtl] .spec-RC:before, html[dir=rtl] .spec-REC:before, html[dir=rtl] .spec-RFC:before, html[dir=rtl] .spec-Standard:before, html[dir=rtl] .spec-WD:before {
+   margin-left: 0;
+   margin-right: 10px;
+   border-left: none;
+   border-right: 4px solid
+}

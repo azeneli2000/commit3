@@ -1,0 +1,395 @@
+﻿@model ConfiguratorWeb.App.Models.OnLine.QueryParameterViewModel
+@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@using Microsoft.AspNetCore.Html
+
+@{
+   StringBuilder objSbDelete = new StringBuilder();
+   objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Item \"{0}\" with parameter label \"{1}\" "),
+       Model.QueryID, Model.ParameterLabel);
+   objSbDelete.Append("?");
+    Layout = null;
+    string keyID = Model.QueryID.ToString();
+    string keyEmptyValueID = "0";
+    string formId = "form_" + keyID;
+}
+@functions {
+    private IHtmlContent rawXlateJs(string text)
+    {
+
+        return Html.Raw(DicSvc.XLateJs(text));
+    }
+}
+<div class="h-100 ">
+    <div class="card h-90 m-0 p-0 border-bottom-0 text-left" id="divItemDetail">
+        <form asp-controller="OnlineValidation" id="@formId" asp-action="SaveQueryDetail"
+              data-ajax-failure="OnFailure" data-ajax-success="OnSuccess" 
+              data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+            
+            <input asp-for="QueryID" type="hidden" />
+
+            <div class="row mt-3">
+                <div class="col-2">
+                    <label asp-for="ParameterLabel" class=" field-required">@DicSvc.XLate("Parameter Label")</label>
+                </div>
+                <div class="col-5">
+                    <input asp-for="ParameterLabel" class="form-control control-required"  />
+                </div>
+                <div class="col-1">
+                    <label asp-for="UnitLabel" >@DicSvc.XLate("Unit Label")</label>
+                </div>
+                <div class="col-4">
+                    <input asp-for="UnitLabel" class="form-control control-required"  />
+                </div>
+            </div>
+            <div class="row">    
+                <div class="col-2">
+                    <label asp-for="Description" class="">@DicSvc.XLate("Description")</label>
+                </div>
+                <div class="col-10">
+                    <input asp-for="Description" class="form-control w-100"  />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-2">
+                    <label asp-for="SQLQuery" class=" field-required">@DicSvc.XLate("Sql Statement")</label>
+                </div>
+                <div class="col">
+                    <textarea asp-for="SQLQuery" class="form-control " style="display: none;" ></textarea>
+                   <div id="aceEditor" style="width: 100%; height: 250px;" class="border"></div>
+                   <div style="display: flex;flex-flow: wrap;max-height: 132px;overflow-y: auto;">
+                    <div>@DicSvc.XLate("The query MUST RETURN the following fields (case sensitive):")<ul>
+                        <li><b>PointValue</b>: @DicSvc.XLate("the value of point")</li>
+                        <li><b>PointDateTimeUtc</b>: @DicSvc.XLate("UTC date and time of the point. It must be an SQL DateTime type")</li>
+                        <li><b>PointAlarm</b>: @DicSvc.XLate("Numeric -> 0 - no Alarm; 1- Alarm is present")</li>
+                    </ul></div>
+                      <div>@DicSvc.XLate("The query MUST CONTAIN the following parameters in the WHERE condition (case sensitive):")<ul>
+                         <li><b>@@PatientId</b>: @DicSvc.XLate("Patient identifier. It must be the DigistatID of patient (field ID of table Patient)")</li>
+                         <li><b>@@DateFrom</b>: @DicSvc.XLate("UTC Datetime range start (SQL DateTime)")</li>
+                         <li><b>@@DateTo</b>: @DicSvc.XLate("UTC Datetime  range end (SQL DateTime)")</li>
+                      </ul></div>
+                   </div>
+                </div>
+            </div>
+        </form>
+
+    </div>
+    <div class="card-footer h-10 p-0 m-0 border-top bg-white">
+
+       @{
+            string postId = ""; //use in case of multi toolbar
+        }
+        @(Html.Kendo().ToolBar()
+              .Name("toolbarDetail")
+              .UmsDefaultErrors(DicSvc, "errors")
+              .Items(items =>
+              {
+                  items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("view-mode").Hidden(true);
+                  //items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode").Hidden(true);
+              })
+              .UmsDefaultSettings(DicSvc, postId)
+        )
+    </div>
+</div>
+<script src="~/lib/ace/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/mode-sql.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/ext-language_tools.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+
+<script type="text/javascript">
+   var consolelog = false;
+   var actualmode=0;
+   var divName = '#divItemDetail';
+   var dialog = $(popUpWindowName).data("kendoWindow");
+   var grid = $('#' + gridIdName).data("kendoGrid");
+   function changeToEditMode() {
+      actualmode = 2;
+      $(".modify-mode").show();
+      $(".view-mode").hide();
+      umsHideAllEditSaveButton();
+      toolBarShowButtonByClass("modify-mode");
+
+      $(divName + ' :input').attr('disabled', false);
+      $(divName + ' :input').each(function () {
+         //var cb = $(this).data("kendoDropDownList");
+         //if (cb) {
+         //    cb.enable(true);
+         //}
+         //cb = $(this).data("kendoNumericTextBox");
+         //if (cb) {
+         //    cb.enable(true);
+         //}
+      });
+
+      if (editor) {
+         editor.setOptions({ readOnly: false });
+      }
+   }
+
+   function changeToViewMode() {
+      actualmode = 1;
+      $(".view-mode").show();
+      $(".modify-mode").hide();
+      umsHideAllEditSaveButton();
+      toolBarShowButtonByClass("view-mode");
+
+      $(divName + ' :input').attr('disabled', true);
+      $(divName + ' :input').each(function () {
+         //var cb = $(this).data("kendoDropDownList");
+         //if (cb) {
+         //    cb.enable(false);
+         //}
+         //cb = $(this).data("kendoNumericTextBox");
+         //if (cb) {
+         //    cb.enable(false);
+         //}
+      });
+
+      if (editor) {
+         editor.setOptions({ readOnly: true });
+         $('.ace_text-input').attr('disabled', false);
+      }
+   }
+   function setWindowMode() {
+      //customize according model key
+      if ('@keyID' !== '@keyEmptyValueID') {
+          actualmode = 1;
+      } else {
+          //$('#BedName').attr('readonly', false);
+          actualmode = 2;
+      }
+   }
+
+   function setMode() {
+      if (actualmode === 2)
+         changeToEditMode();
+      else
+         changeToViewMode();
+   }
+
+   var editor;
+   function setAceEditor() {
+      editor = ace.edit('aceEditor');
+      editor.setOptions({
+         autoScrollEditorIntoView: true,
+         copyWithEmptySelection: true,
+         readOnly: true,
+         displayIndentGuides: true,
+         enableBasicAutocompletion: true,
+         enableSnippets: true,
+         enableLiveAutocompletion: false,
+         printMargin: false
+      });
+
+      editor.setTheme("ace/theme/chrome");
+      var codeMode = "ace/mode/sql";
+      editor.session.setMode(codeMode);
+      var textarea = $("#SQLQuery");
+      editor.getSession().setValue(textarea.val());
+      editor.getSession().on('change', function () {
+         textarea.val(editor.getSession().getValue());
+      });
+
+   }
+
+   $(document).ready(function() {
+      umsHideAllEditSaveButton();
+      setAceEditor();
+      setWindowMode();
+      //set up condition to know if it's a new item
+      setMode();
+      $('#btnEdit' + '@postId').off('click').on('click', function () {
+          if(consolelog)console.log("btnEdit called");
+          changeToEditMode();
+      });
+      $('#btnCancel' + '@postId').off('click').on('click', function () {
+         if (consolelog)console.log("btnCancel called");
+         // IF is new add, close the dialog
+         if ('@keyID'=='@keyEmptyValueID') {
+            dialog.close();
+            return;
+         }
+
+         //TODO: reload data
+         displayItemDetail('@keyID');
+         changeToViewMode();
+      });
+      $('#btnSave'+'@postId').off('click').on('click', function() {
+          if (consolelog)console.log("btnSave called");
+          actionSave();
+      });
+      $('#btnDelete').off('click').on('click', function () {
+          if (consolelog)console.log("btnDelete called");
+          umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteItem, cancelDeleteItem);
+      });
+      //$('#btnCopy').off('click').on('click', function () {
+      //    if (consolelog) console.log("btnCopy called");
+      //    $("#BedId").val("0");
+      //    $('#BedName').attr('readonly', false);
+      //    changeToEditMode();
+      //});
+      $('#btnClose' + '@postId').off('click').on('click', function () {
+          if (consolelog)console.log("btnClose called");
+          dialog.close();
+      });
+      $("input[data-val-length-max]").each(function (index, element) {
+          element.setAttribute("maxlength", element.getAttribute("data-val-length-max"))
+      });
+   });
+
+
+
+   function actionSave() {
+      //debugger;
+      if (OnValidation()) {
+         //uncomment for production
+         $("#@formId").submit();
+      }
+   }
+
+   function OnValidation() {
+      //debugger;
+      var retValue = true;
+      var customFieldValidation = function() {
+         var retFV = false;
+         //Only if we have field not validable by Model
+         try {
+            //retFV = $('#Location_LocationName').val().length === 0;
+         } catch (e) {
+            //
+         }
+         return retFV;
+      }
+      var mk = [];
+      var validator = $("#@formId").kendoValidator({
+         rules: {
+            ParameterRequired: function(input) {
+
+               if (input.is("[name=ParameterLabel]")) {
+                  return input.val().trim() !== "";
+               }
+
+               return true;
+            },
+            SqlCommandRequired: function(input) {
+
+               if (input.is("[name=SQLQuery]")) {
+                  return input.val().trim() !== "";
+               }
+
+               return true;
+            },
+            SqlCommandMustContain: function(input) {
+
+               if (input.is("[name=SQLQuery]")) {
+
+                  var m = mk;
+
+                  function missingKey(text, key, arr) {
+                     if (text.indexOf(key) === -1)
+                        arr.push(key);
+                     else {
+                        //this check is commented for not check all combination of logic operator
+                        //attached to the key
+                        //var str = text.substring(text.indexOf(key), text.indexOf(key) + key.length + 1).trim();
+                        //if (str != key) {
+                        //   arr.push(key);
+                        //}
+                     }
+
+                     return arr;
+                  }
+
+
+                  m = missingKey(input.val(), 'PointValue', m);
+                  m = missingKey(input.val(), 'PointAlarm', m);
+                  m = missingKey(input.val(), 'PointDateTimeUtc', m);
+                  m = missingKey(input.val(), '@@PatientId', m);
+                  m = missingKey(input.val(), '@@DateFrom', m);
+                  m = missingKey(input.val(), '@@DateTo', m);
+                  //debugger;
+                  if (m.length > 0) {
+                     return false;
+                  }
+
+               }
+               return true;
+            }
+         },
+         messages: {
+            SqlCommandRequired: function(input) {
+               return '@rawXlateJs("Sql Command is required")';
+            },
+            SqlCommandMustContain: function(input) {
+               return '@rawXlateJs("one or more required field/parameter is missing:")<br/>' + mk.join(',');
+            },
+            ParameterRequired: function(input) {
+               return '@rawXlateJs("Parameter Label is required")';
+               }
+           }
+       }).data("kendoValidator");
+      if (!validator.validate()) {
+         retValue = false;
+         try {
+            var errors = validator.errors();
+            $("#errors").html(buildValidationMessage(errors));
+         } catch (e) {
+            $("#errors").html(e);
+         }
+      }
+      else {
+         $("#errors").html("");
+         validator.destroy();
+         retValue = true;
+      }
+
+      return retValue;
+   }
+   function OnSuccess(response) {
+      //debugger;
+      if (response.success) {
+         grid.dataSource.read();
+         dialog.close();
+      }
+      else {
+         window.umsAlert("Error occured", response.errorMessage, 400, 300);
+      }
+   }
+   function OnFailure(response) {
+      window.umsAlert("Error occured", response.errorMessage, 400, 300);
+   }
+   function toolBarShowButtonByClass(clas) {
+      var tb = $("#toolbarDetail").data("kendoToolBar");
+      tb.umsShowButtonByClass(clas);
+   }
+   function umsHideAllEditSaveButton() {
+      var tb = $("#toolbarDetail").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+
+
+    function deleteItem() {
+        $.ajax({
+            url: '@Url.Action("DeleteQueryDetail")',
+            type: 'POST',
+            data: { queryId: '@keyID' },
+            async: false
+
+        }).done(function (data) {
+            if (data.success != undefined && data.success) {
+                dialog.close();
+                grid.dataSource.read();
+            } else {
+                $('#errors').html('not saved. reason:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+
+    }
+
+    function cancelDeleteItem() {
+
+        /* do nothing */
+    }
+</script>

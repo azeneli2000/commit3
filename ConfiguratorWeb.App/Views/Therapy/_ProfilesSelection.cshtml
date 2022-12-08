@@ -1,0 +1,118 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@using Digistat.FrameworkStd.Enums;
+@model TherapyItemModel
+@{
+   var gridName = "ProfileComponentsSelection";
+}
+
+
+<input type="hidden" asp-for="Classification.LocationRef" />
+<div style="width: 100%">
+   <div class="row" style="width: 97%; height: 90%">
+
+      @(Html.Kendo().Grid<Digistat.FrameworkStd.Model.Therapy.Profiles>
+                                                  ()
+                                                  .Name(gridName)
+                                                  .Columns(columns =>
+                                                  {
+                                                     columns.Bound(e => e.IdProfile).Visible(false);
+                                                     columns.Bound(e => e.Name).Title(DicSvc.XLate("Name"));
+                                                     columns.Bound(e => e.Description).Title(DicSvc.XLate("Description"));
+                                                     columns.Bound(e => e.LocationName).Title(DicSvc.XLate("Location")).Width(100);
+                                                     columns.Bound(e => e.LocationRef).Hidden(true);
+
+                                                  })
+                                                  .Navigatable(true)
+                                                  .UmsDefaultPager(DicSvc)
+                                                  .UmsDefaultSettings(DicSvc)
+                                                  .DataSource(dataSource => dataSource
+                                                  .Ajax()
+                                                  .PageSize(25)
+                                                    .Model(model =>
+                                                    {
+                                                       model.Id(o => o.IdProfile);
+                                                       model.Field(o => o.Name);
+                                                       model.Field(o => o.Description);
+                                                       model.Field(o => o.LocationName);
+                                                       model.Field(o => o.LocationRef);
+                                                    })
+                                                  .Read(read => read.Action("ReadProfiles", "Therapy"))
+                                                  )
+                                                  .HtmlAttributes(new { style = "width:100%;" })
+                                                           .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+
+      )
+
+   </div>
+   <div class="row">
+      <button id="addProfileCompButton" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" style="margin-left: 86%; border-radius: 4%;width: 91px;height: 26px;">Add Selected</button>
+      <p id="errorInsertProfile" style="display:none; color:red;position:relative;bottom:26px;">@DicSvc.XLate("Profile already selected")</p>
+   </div>
+
+</div>
+
+<script>
+
+
+
+   $('#addProfileCompButton').off('click').on('click', function (e) {
+
+      e.preventDefault();
+      var sourceGrid =  $("#@gridName").data("kendoGrid");
+      var destGrid = $("#ProfilesLink").data("kendoGrid");;
+
+
+      var rowsToAdd = sourceGrid.select();
+
+      for (var i = 0; i < rowsToAdd.length; i++)
+      {
+
+         var dataGrid = sourceGrid.dataItem(rowsToAdd[i]);
+         var data = { IdProfile: dataGrid.IdProfile,  Name: dataGrid.Name, Description: dataGrid.Description, LocationRef: dataGrid.LocationRef,LocationNameForLink: dataGrid.LocationName };
+
+         for (var j = 0; j < destGrid.dataSource._data.length; j++) {
+            if (destGrid.dataSource._data[j].Name == data.Name) {
+               $("#errorInsertProfile").css("display", "block");
+
+               return false;
+            }
+         }
+            destGrid.dataSource.add(data);
+
+      }
+      $("#errorInsertProfile").css("display", "none");
+
+      sourceGrid.clearSelection();
+      return false;
+   });
+
+   function ProfileSelection_LoadProfilesLocation()
+   {
+      let currentLocationRefNumber = 0;
+      let temp = $("#Classification_LocationRef").val();
+      let filter = [];
+      if (temp != '' && temp != null) {
+            currentLocationRefNumber = Number(temp);
+            filter =
+                [{
+                    logic: "or",
+                    filters:
+                        [
+                            { field: 'LocationRef', operator: 'eq', value: currentLocationRefNumber },
+                            { field: 'LocationRef', operator: 'eq', value: null },
+                        ]
+                }];
+
+      }
+      let sourceGrid = $("#@gridName").data("kendoGrid");
+      sourceGrid.dataSource.filter(filter);
+   }
+  
+   $(document).ready(function () {
+     
+       ProfileSelection_LoadProfilesLocation();
+   });
+
+</script>
+

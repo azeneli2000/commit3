@@ -1,0 +1,418 @@
+﻿@model ConfiguratorWeb.App.Models.HospitalUnitViewModel
+@using ConfiguratorWeb.App.Extensions
+@using System.Text;
+
+@{
+   string[] actions = new string[] { "Close" };
+   Layout = null;
+
+   string strGuidFunction = (!string.IsNullOrWhiteSpace(Model.GUID)? Model.GUID.Replace("-", "_"):"");
+   string strDialogID = "divHUDetail";
+
+   StringBuilder objSbDelete = new StringBuilder();
+   objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Hospital Unit \"{0}\" "),
+      Model.Name);
+   objSbDelete.Append("?");
+
+   string strParentName = string.Empty;
+   if (!string.IsNullOrEmpty(Model.ParentUnit))
+   {
+       strParentName = Model.ParentUnit;
+   }
+
+}
+<style>
+    .k-checkbox-label {
+        margin-top: 6px;
+    }
+</style>
+<script>
+    //datetime, time, integer, float
+    function onChangeValue@(strGuidFunction)() {
+        if ($(".view-mode").is(":visible")) {
+            $(".btnEdit").trigger("click");
+        }
+    }
+
+      function openParentHospitalUnitGrid@(strGuidFunction)() {
+
+                kendo.ui.progress( $("#popupParentHospital"), true);
+                $.ajax({
+                        url: '@Url.Action("GetHospitalUnits", "SystemConfiguration")',
+                        type: 'GET',
+                    data: { soID: '@Model.GUID', huID: '@Model.GUID', huToExcludeID:'@Model.GUID' },
+                        cache:false
+                    }).done(function (data) {
+                        debugger;
+                        var dialogAbout = $("#popupParentHospital");
+                        dialogAbout.data("kendoWindow").content(data);
+                        dialogAbout.data("kendoWindow").center().open();
+                    }).always(function() {
+                        kendo.ui.progress($("#popupParentHospital"), false);
+                    })
+                    ;
+            }
+
+    function onHUSelected(guid, name) {
+        $('#ParentGUID').val(guid);
+        $('#ParentName').val(name);
+        $('#popupParentHospital').data('kendoWindow').close();
+    }
+
+
+</script>
+
+<div class="card h-90 pt-1 pb-2" id="@strDialogID">
+    <form asp-controller="SystemConfiguration" asp-action="SaveHospitalUnitDetail" id="form_@strDialogID"
+          class="card-body h-90 p-0 border-0"
+          data-ajax-failure="OnFailure" data-ajax-success="OnSuccess" kendo-auto-scroll="true"
+          data-ajax="true" data-ajax-method="POST">
+        <div asp-validation-summary="ModelOnly"></div>
+        <input asp-for="GUID" type="hidden" />
+        <input asp-for="Version" type="hidden" />
+        <input asp-for="Current" type="hidden" />
+        <input asp-for="rc_ID" type="hidden" />
+        <input asp-for="rc_Version" type="hidden" />
+        <input asp-for="ParentGUID" type="hidden" />
+
+        <div class="container-fluid">
+            <div class="row mt-3">
+                <div class="col-sm-1 u-col-h-fixed">
+                    <label asp-for="Name" class="label-name field-required">@DicSvc.XLate("Name")</label>
+                </div>
+                <div class="col-sm-3 u-col-h-fixed">
+                    <div class="input-group">
+                        <input asp-for="Name" class="k-input k-textbox" />
+                    </div>
+                </div>
+                <div class="col-sm-1 u-col-h-fixed ml-5">
+                    <label asp-for="Phone" class="label-name">@DicSvc.XLate("Phone")</label>
+                </div>
+                <div class="col-sm-6 u-col-h-fixed">
+                    <div class="input-group">
+                        <input asp-for="Phone" class="k-input k-textbox" />
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-1 u-col-h-fixed">
+                    <label asp-for="ShortName" class="label-name field-required">@DicSvc.XLate("Short Name")</label>
+                </div>
+                <div class="col-sm-3 u-col-h-fixed">
+                    <div class="input-group">
+                        <input asp-for="ShortName" class="k-input k-textbox" />
+                    </div>
+                </div>
+                <div class="col-sm-1 u-col-h-fixed ml-5">
+                    <label asp-for="CellPhone" class="label-name">@DicSvc.XLate("Cell Phone")</label>
+                </div>
+                <div class="col-sm-6 u-col-h-fixed">
+                    <div class="input-group">
+                        <input asp-for="CellPhone" class="k-input k-textbox" />
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-1 u-col-h-fixed">
+                    <label asp-for="Code" class="label-name">@DicSvc.XLate("Code")</label>
+                </div>
+                <div class="col-sm-3 u-col-h-fixed">
+                    <div class="input-group">
+                        <input asp-for="Code" class="k-input k-textbox" />
+                    </div>
+                </div>
+                <div class="col-sm-1 u-col-h-fixed ml-5">
+                    <label asp-for="Beeper" class="label-name">@DicSvc.XLate("Beeper")</label>
+                </div>
+                <div class="col-sm-6 u-col-h-fixed">
+                    <div class="input-group">
+                        <input asp-for="Beeper" class="k-input k-textbox" />
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-1 u-col-h-fixed">
+                    <label asp-for="Mail" class="label-name">@DicSvc.XLate("Mail")</label>
+                </div>
+                <div class="col-sm-3 u-col-h-fixed">
+                    <div class="input-group">
+                        <input asp-for="Mail" class="k-input k-textbox" />
+                    </div>
+                </div>
+                <div class="col-sm-1 u-col-h-fixed ml-5">
+                    <label asp-for="InheritsSlots" class="label-name">@DicSvc.XLate("Inherits Slots")</label>
+                </div>
+                <div class="col-sm-6 u-col-h-fixed">
+                    <div class="input-group">
+                        @Html.Kendo().CheckBoxFor(m => m.InheritsSlots).Label(" ")
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-1 u-col-h-fixed">
+                    <label asp-for="Type" class="label-name">@DicSvc.XLate("Type")</label>
+                </div>
+                <div class="col-sm-3 u-col-h-fixed">
+                    <div class="input-group">
+                        @(Html.Kendo().DropDownListFor(m => m.Type)
+                                    .HtmlAttributes(new { @style = "width:100%;", id = "HospitalUnitType_" + Guid.NewGuid().ToString() })
+                                    .DataTextField("Text")
+                                    .DataValueField("Value")
+                                    .DataSource(source =>
+                                    {
+                                        source.Read(read =>
+                                        {
+                                            read.Action("GetHospitalUnitsTypes", "Generic");
+                                        });
+                                    })
+                        )
+                    </div>
+                </div>
+                <div class="col-sm-1 u-col-h-fixed ml-5">
+                    <label asp-for="ExternalKey" class="label-name">@DicSvc.XLate("External Key")</label>
+                </div>
+                <div class="col-sm-6 u-col-h-fixed">
+                    <div class="input-group">
+                        <input asp-for="ExternalKey" class="k-input k-textbox" />
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-1 u-col-h-fixed">
+                    <label asp-for="Type" class="label-name">@DicSvc.XLate("Parent")</label>
+                </div>
+                <div class="col-sm-3 u-col-h-fixed">
+                    <div class="input-group">
+                        <input id="ParentName" readonly="readonly" value="@strParentName" class="form-control control-required"  />
+                        <input asp-for="ParentGUID" type="hidden" id="HospitalUnitParentGUID_@Model.GUID" style="width: 80%;" />
+                        <div class="input-group-append">
+                            <button id="btnHUParent_@Model.GUID" onclick="openParentHospitalUnitGrid@(strGuidFunction)();" class="btn border" type="button" title="@DicSvc.XLate("Set Parent")">
+                                <span class="mdi mdi-pencil"></span>
+                            </button>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="row">
+                <div class="col-sm-1 u-col-h-fixed">
+                    <label asp-for="Description" class="label-name field-required">@DicSvc.XLate("Description")</label>
+                </div>
+                <div class="col-sm-11 u-col-h-fixed">
+                    <div class="input-group">
+                        <textarea asp-for="@Model.Description" rows="6" class="k-textarea w-100" style="resize: none;"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+    <div class="card-footer h-10 p-0 m-0 mt-2 border-0">
+        @(Html.Kendo().ToolBar()
+                      .Name("toolbarDetailHU")
+                      .UmsDefaultErrors(DicSvc)
+                       .Items(
+                        items =>
+                        {
+                            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode");
+                        }
+                      )
+                      .UmsDefaultSettings(DicSvc, "")
+        )
+    </div>
+
+
+
+<script type="text/javascript">
+
+
+    function changeToEditMode() {
+        actualmode = 2;
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+            toolBarAllEditSaveButton();
+            toolBarShowButtonByClass("modify-mode");
+
+        $('#@strDialogID :input').attr('disabled', false);
+        $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(true);
+            }
+        });
+         $('#@strDialogID :input').each(function() {
+           var cb = $(this).data("kendoNumericTextBox");
+           if (cb) {
+              cb.enable(true);
+           }
+        });
+        $('#@strDialogID :input').each(function() {
+           var cb = $(this).data("kendoTimePicker");
+           if (cb) {
+              cb.enable(true);
+           }
+        });
+        if ('@Model.GUID' == '') {
+           $('#btnDelete').hide();
+        }
+
+    }
+
+    function changeToViewMode() {
+        actualmode = 1;
+        $(".view-mode").show();
+        $(".modify-mode").hide();
+        toolBarAllEditSaveButton();
+        toolBarShowButtonByClass("view-mode");
+        $('#@strDialogID :input').attr('disabled', true);
+        $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(false);
+            }
+        });
+        $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoNumericTextBox");
+            if (cb) {
+                cb.enable(false);
+            }
+        });
+    }
+
+    var actualmode;
+    function setWindowMode() {
+        if ('@Model.GUID' !== '') {
+            actualmode = 1;
+        } else {
+            actualmode = 2;
+        }
+        setMode();
+    }
+    function setMode() {
+        if (actualmode === 2)
+            changeToEditMode();
+        else
+            changeToViewMode();
+        dialog.center().resize();
+    }
+    function toolBarShowButtonByClass(clas) {
+        var tb = $("#toolbarDetailHU").data("kendoToolBar");
+        tb.umsShowButtonByClass(clas);
+    }
+    function toolBarAllEditSaveButton() {
+        var tb = $("#toolbarDetailHU").data("kendoToolBar");
+        tb.umsHideAllEditSaveButton();
+    }
+    var dialog = $("#HospitalUnitEditWindow").data("kendoWindow");
+    dialog.bind("activate", setMode);
+    dialog.bind("resize", setMode);
+    $(document).ready(function () {
+        setWindowMode();
+        $('.btnEdit').click(function () {
+            changeToEditMode();
+        })
+        $('.btnCancel').click(function () {
+            var currentID = $('#GUID').val();
+            if (currentID && currentID != '') {
+                openDetail({ GUID: $('#GUID').val() });
+            }
+            else {
+                dialog.close();
+            }
+
+        })
+        $('.btnClose').click(function () {
+            dialog.close();
+            $(this).closest(".k-state-focused").focus();
+        });
+        $('#btnDelete').click(function () {
+            umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteHospitalUnit, cancelDeleteHospitalUnit);
+        });
+        $('#btnSave').off('click').on('click',function () {
+        if (OnValidationHospitalUnit()) {
+            $("#form_@strDialogID").submit();
+        }
+    });
+    });
+
+    function deleteHospitalUnit() {
+        $.ajax({
+            url: '@Url.Action("DeleteHospitalUnit", "SystemConfiguration")',
+            type: 'POST',
+            data: { guid: '@Model.GUID' },
+            async: false
+
+        }).done(function (data) {
+            debugger;
+            if (!data.success) {
+                $('#HospitalUnitEditWindow').data('kendoWindow').close();
+                umsErrorDialog("Error occured", data.errorMessage, 200, 200);
+            }
+            else {
+                $('#HospitalUnitEditWindow').data('kendoWindow').close();
+                var grid = $("#hospital-units-grid").data("kendoGrid");
+                grid.dataSource.read();
+            }
+        }).fail(function (response) {
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+
+    }
+
+    function cancelDeleteHospitalUnit() {
+
+        /* do nothing */
+    }
+
+    $(document).ready(function () {
+        //add change handler
+        addChangeHandler('@Model.GUID','hospital-units-grid');
+
+
+        $('#btnEdit_@Model.GUID').click(function () {
+            $(this).closest(".button-container").find(".modify-mode").show();
+            $(this).closest(".button-container").find(".view-mode").hide();
+            $(this).closest("tr.k-detail-row").prev().find(".k-grid-edit").trigger("click");
+        });
+        $('#btnCancel_@Model.GUID').click(function () {
+            //$(this).closest(".button-container").find(".view-mode").show();
+            //$(this).closest(".button-container").find(".modify-mode").hide();
+            //$(this).closest("tr.k-detail-row").prev().find(".k-grid-cancel").trigger("click");
+        });
+
+
+
+
+    });
+
+    function OnValidationHospitalUnit() {
+
+          var validator = $("#form_@strDialogID").kendoValidator().data("kendoValidator");
+            if (!validator.validate()) {
+                var errors = validator.errors();
+                $("#toolbarDetailHU #errors").html(buildValidationMessage(errors));
+                return false;
+            }
+            else {
+                $("#toolbarDetailHU #errors").html("");
+            }
+            return true;
+    }
+    function OnSuccess(response) {
+        debugger;
+            if (response.success) {
+                var grid = $("#hospital-units-grid").data("kendoGrid");
+                grid.dataSource.read();
+                dialog.close();
+            }
+            else {
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            }
+        }
+
+        function OnFailure(response) {
+            //debugger;
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        }
+</script>

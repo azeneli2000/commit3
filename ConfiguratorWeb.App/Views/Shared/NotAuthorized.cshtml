@@ -1,0 +1,13 @@
+﻿@model ErrorViewModel
+@{
+    ViewBag.Title = DicSvc.XLate("Not Authorized");
+}
+
+
+
+<div class="jumbotron jumbotron-fluid">
+    <div class="container bg-light text-center">
+        <h1 class="display-4">@DicSvc.XLate("Not Authorized")</h1>
+        <p class="lead">@DicSvc.XLate("You have not a valid permission to perform this operation.")</p>
+    </div>
+</div>

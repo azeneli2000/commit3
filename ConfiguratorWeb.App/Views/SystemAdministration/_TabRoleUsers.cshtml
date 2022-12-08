@@ -1,0 +1,42 @@
+﻿@model ConfiguratorWeb.App.Models.RoleViewModel
+
+@using System.Linq.Expressions
+@using Kendo.Mvc.UI.Fluent
+
+@{ 
+
+   int tmpModelId = Model.Id.HasValue?Model.Id.Value:-1;
+}
+
+<div style="height:310px">
+
+
+    @(Html.Kendo().Grid<UserViewModel>
+    ()
+    .Name("grid_role_users")
+    .UmsDefaultSettings(DicSvc)
+     .HtmlAttributes(new { @style = "height:300px; " })
+    .UmsDefaultPager(DicSvc)
+    .Columns(columns =>
+    {
+        columns.Bound(e => e.UserName);
+        columns.Bound(e => e.FirstName);
+        columns.Bound(e => e.LastName);
+    })
+    .Groupable(g => g.Enabled(false))
+    .DataSource(dataSource => dataSource
+    .Ajax()
+    //Uncomment for use Pager
+    .PageSize(20) //if pager is not enabled, remove this row
+
+    .Read(read => read.Action("GetUsersForRole", "SystemAdministration", new { RoleID = tmpModelId }))
+    
+    ))
+
+
+</div>
+
+
+
+
+

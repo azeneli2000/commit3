@@ -1,0 +1,43 @@
+﻿@using ConfiguratorWeb.App.Models.DiaryWeb
+@model Subject
+@{
+   var gridName = "subjectGridph";
+}
+
+@(Html.Kendo().Grid(Model?.SubjectsPhrases)
+         .Name(gridName)
+         .Navigatable(true)
+         .Columns(columns =>
+         {
+            columns.Bound(e => e.Text).Title(DicSvc.XLate("Phrase")).HtmlAttributes((new { style = "border-color: rgb(33 37 41 / 31%);" })).Width("80%");
+            columns.Bound(e => e.Index).Visible(false);
+
+
+         })
+         .Scrollable()
+         .Selectable(s => s.Mode(GridSelectionMode.Single))
+         .Navigatable(true)
+         .Reorderable(reorder => reorder.Columns(true))
+      .DataSource(dataSource => dataSource
+                  .Ajax()
+                  .ServerOperation(true)
+                   .Model(model =>
+                   {
+
+                      model.Id(o => o.ID);
+                      model.Field(o => o.Index);
+                      model.Field(o => o.Text);
+
+                   })
+
+      )
+      .HtmlAttributes(new { @style = "height:214px;top:30px;width:577px;overflow-x:hidden;" })
+      .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No Subject Phrases found") + "</div>"))
+      )
+
+      <script>
+
+
+
+   
+      </script>

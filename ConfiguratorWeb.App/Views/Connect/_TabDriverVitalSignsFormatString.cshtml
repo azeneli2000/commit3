@@ -1,0 +1,170 @@
+﻿@using System.Linq;
+@model ConfiguratorWeb.App.Models.DriverViewModel
+@{
+   Layout = null;
+}
+@{ 
+
+   Dictionary<string, string> objDicParm = new Dictionary<string, string>();
+   objDicParm.Add("PARAMETERS", "");
+   if (Model.Capabilities != null)
+   {
+       foreach(DriverCapabilityViewModel objCap in Model.Capabilities)
+       {
+          string objCapTypeShort = objCap.TypeShort??"";
+          if(!objDicParm.ContainsKey(objCap.Name + "(" + objCap.IdParameter.ToString() + ") " + objCapTypeShort))
+          {
+             if(objCapTypeShort.Equals("INF",StringComparison.InvariantCultureIgnoreCase))
+             {
+                 objDicParm.Add(
+                     objCap.Name + "(" + objCap.IdParameter.ToString() + ") " + objCapTypeShort,
+                     "{%" + objCap.IdParameter.ToString() + "#X.name%}");
+             }
+             else
+             {
+                 objDicParm.Add(
+                     objCap.Name + "(" + objCap.IdParameter.ToString() + ") " + objCapTypeShort,
+                     "{%" + objCap.IdParameter.ToString() + ".name%}");
+
+             }
+          }
+
+       }
+   }
+
+
+
+}
+
+
+<script>
+
+   function insertTextInArea(txt) {
+      //debugger;
+      var targets = document.getElementsByName("FormatStyle");
+      if (targets && targets.length > 0) {
+         if (targets[0].setRangeText) {
+            targets[0].setRangeText(txt)
+         } else {
+            targets[0].focus()
+            document.execCommand('insertText', false, txt);
+         }
+      }
+
+
+   }
+
+   function onChangeConstruct() {
+      var dl = $('#scentralTagConstruct').data('kendoDropDownList');
+      insertTextInArea(dl.value());
+      dl.select(0);
+   }
+
+   function onChangeFormat() {
+      var dl = $('#scentralTagFormat').data('kendoDropDownList');
+      insertTextInArea(dl.value());
+      dl.select(0);
+   }
+
+   function onChangeLine() {
+      var dl = $('#scentralTagLine').data('kendoDropDownList');
+      insertTextInArea(dl.value());
+      dl.select(0);
+   }
+
+   function onChangeParam() {
+      var dl = $('#scentralTagParam').data('kendoDropDownList');
+      insertTextInArea(dl.value());
+      dl.select(0);
+   }
+
+   function onChangeDevice() {
+      var dl = $('#scentralTagDevice').data('kendoDropDownList');
+      insertTextInArea(dl.value());
+      dl.select(0);
+   }
+
+</script>
+
+<div style="height:390px;" id="info-formatstring-@Model.Id">
+    <div class="row pt-3">
+        <div class="col-md-3 u-col-h-fixed">
+            <div class="row">
+                <div class="col-md-12 u-col-h-fixed">
+                    @(Html.Kendo().DropDownList()
+                        .Name("scentralTagDevice")
+                        .DataTextField("Text")
+                        .DataValueField("Value")
+                        .Events(e => e.Change("onChangeDevice"))
+                        .DataSource(source =>
+                        {
+                            source.Read(read =>
+                            {
+                                read.Action("GetStandardDeviceTypesForList", "Connect");
+                            });
+                        })
+                        .HtmlAttributes(new { @style = "width:90%;" })
+                    )
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 u-col-h-fixed">
+                    @(Html.Kendo().DropDownList()
+                        .Name("scentralTagParam")
+                        .DataTextField("Text")
+                        .DataValueField("Value")
+                        .Events(e => e.Change("onChangeParam"))
+                        .BindTo(new SelectList(objDicParm, "Value", "Key"))
+                        .HtmlAttributes(new { @style = "width:90%;" })
+                    )
+
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 u-col-h-fixed">
+                    @(Html.Kendo().DropDownList()
+                        .Name("scentralTagConstruct")
+                        .DataTextField("Text")
+                        .DataValueField("Value")
+                        .Events(e => e.Change("onChangeConstruct"))
+                        .BindTo(new SelectList(Configurator.Std.BL.DasDrivers.SmartCentralTagHelper.GetContructTags(), "Value", "Key"))
+                        .HtmlAttributes(new { @style = "width:90%;" })
+                    )
+
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 u-col-h-fixed">
+                    @(Html.Kendo().DropDownList()
+                        .Name("scentralTagFormat")
+                        .DataTextField("Text")
+                        .DataValueField("Value")
+                        .Events(e => e.Change("onChangeFormat"))
+                        .BindTo(new SelectList(Configurator.Std.BL.DasDrivers.SmartCentralTagHelper.GetTextFormatTags(), "Value", "Key"))
+                        .HtmlAttributes(new { @style = "width:90%;" })  
+                    )
+
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 u-col-h-fixed">
+                    @(Html.Kendo().DropDownList()
+                        .Name("scentralTagLine")
+                        .DataTextField("Text")
+                        .DataValueField("Value")
+                        .Events(e => e.Change("onChangeLine"))
+                        .BindTo(new SelectList(Configurator.Std.BL.DasDrivers.SmartCentralTagHelper.GetStartOfLineTags(), "Value", "Key"))
+                        .HtmlAttributes(new { @style = "width:90%;" })
+                    )
+
+                </div>
+            </div>
+        </div>
+        <div class="col-md-9 ">
+            @Html.TextAreaFor(m => m.FormatStyle, new { @rows = "10", @cols = "50", @class = "k-input k-textarea k-input-solid k-input-md k-rounded-md  ", @style = "height:380px;max-height:380px; resize:none;" })
+        </div>
+    </div>
+
+</div>
+
+

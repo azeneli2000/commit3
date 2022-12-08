@@ -1,0 +1,59 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+
+@inject IDictionaryService DicSvc
+
+@model ConfiguratorWeb.App.Models.StandardDatasetViewModel
+
+@{
+   Layout = null;
+}
+<div class="row " style="height: 365px">
+    <div class="col-9 pt-1 text-center">
+       <div class="col pt-1 text-center">
+
+          <textarea asp-for="sd_IntervalScript" class="c-sharp"
+                    style="width:98%;max-width:98%;margin-top:5px;height: 95%;max-height:95%;border-color: #e4e4e4;padding:10px;"></textarea>
+       </div>
+   </div>
+    <div class="col-3">
+        <div style="height: 325px">
+            <div>
+                @DicSvc.XLate("Script for calculation of Interval")
+                <ul>
+                    <li>
+                        @DicSvc.XLate("Script language : C#")
+                    </li>
+                    <li>
+                        @DicSvc.XLate("It must return an Integer. Result represents the number of minutes.")
+                    </li>
+                    <li>
+                        @DicSvc.XLate("Placeholder @score must be used to refer to result of score calculation")
+                    </li>
+                    <li>
+                        <a href="javascript:toggleIntervalScriptExamples();">@DicSvc.XLate("Show/Hide Example/s")</a>
+                        <div id="divIntervalScriptExamples" style="display:none;">
+                           <small>
+                              <b>Example</b>
+                              Given a score with five items, returns different intervals depending on score and single item’s value.
+                              <br />
+                              <pre><code>
+   int ret = 60;
+   if (@@score >= 7)
+      ret =  30;
+   if (@@score >= 5 || @@p1 == 3 || @@p2 == 3 || @@p3 == 3 || @@p4 == 3 || @@p5 == 3)
+      ret =  60;
+   if (@@score >= 1 && @@score <= 4)
+      ret = 240;
+   if (@@score == 0)
+      ret = 720;
+   return ret;
+
+</code></pre>
+                           </small>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+   </div>
+</div>

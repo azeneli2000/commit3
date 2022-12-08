@@ -1,0 +1,157 @@
+﻿@model ConfiguratorWeb.App.Models.Therapy.TherapyItemModel
+@using System.Text.Json;
+@{
+   var gridName = "AllowedDiluentsGrid";
+   //<ConfiguratorWeb.App.Models.Therapy.BoolStringPair>
+
+}
+
+<script>
+
+function onDataBound(e) {
+
+
+      var grid = $("#@gridName").data("kendoGrid");
+   var checkBox = $(".checkBoxCustomDiluents");
+      if (checkBox.length > 0) {
+
+
+      var checkInputs = grid.dataItems(checkBox);
+      for (var i = 0; i < checkInputs.length; i++) {
+
+          var checkProp = $(checkBox[i].firstChild);
+      if (checkInputs[i].Enabled == true) {
+      checkProp.prop("checked", true);
+         checkProp.attr("aria-checked", "true");
+      }
+      else {
+         checkProp.prop("checked", false);
+         checkProp.attr("aria-checked", "false");
+      }
+      }
+      }
+}
+</script>
+<div id="editGridWndwD"  style=display:none;>
+   <div class="editor-label">
+      <div class="col-md-1  u-col-h-fixed ">
+         <label for="NameD">@DicSvc.XLate("Name")</label>
+      </div>
+   </div>
+   <div class="editor-field">
+      <input class="k-textbox" id="NameD" maxlength="10" />
+   </div>
+   <p id="waysErrorD" style="display:none; color:red;position:relative;top:33px;">@DicSvc.XLate("This input already exists")</p>
+   <p id="waysError1D" style="display:none; color:red;position:relative;top:33px;">@DicSvc.XLate("Input is required")</p>
+   <input type="hidden" id="EnabledD" style="display:none" />
+   <div class="window-footer">
+      <button type="button" id="btnNewGridItemD" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary">@DicSvc.XLate("Insert new Record")</button>
+      <button type="button" id="brnCancelGridItemD" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base">@DicSvc.XLate("Cancel")</button>
+
+   </div>
+</div>
+
+
+@(Html.Kendo().Grid(Model?.QuantityDose?.Diluents)
+      .Name(gridName)
+      .Navigatable(true)
+      .Columns(columns =>
+      {
+         //columns.Bound(e => e.Enabled).ClientTemplate("<input id='#=Name#' style='position:relative;left:40%;' class='checkBoxCustomDiluents' type='checkbox' #= Enabled ? checked='checked': '' # />").Title("Default").Width("100px").Editable("noEditCheckbox");
+         columns.Select().ClientHeaderTemplate("Default").Width("100px").HtmlAttributes(new { style = "text-align:center;", @class = "checkBoxCustomDiluents" });
+         columns.Bound(e => e.Name).Title(DicSvc.XLate("Diluent")).Editable("noEditCheckbox").HtmlAttributes(new { style = "text-align:center;", @class = "textBoxCustomDiluent", @onclick = "AllowDiluents_ClickTextDiluent()" });
+
+      })
+     .Events(e => e.DataBound("onDataBound"))
+      .Scrollable()
+
+      .DataSource(dataSource => dataSource
+                  .Ajax()
+                  .ServerOperation(true)
+                   .Model(model =>
+                   {
+                      model.Field(o => o.Name);
+                      model.Field(o => o.Enabled).Editable(true);
+                   })
+
+      )
+      .HtmlAttributes(new { @class = "subGridsTherapy" })
+      .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+      )
+
+
+
+
+<script>
+   var customAddRuteD = $('#editGridWndwD').umsKendoWindow({
+
+      title: 'New Diluent',
+      height: 100,
+      width: 500,
+      modal: true,
+      actions: [
+         "Close"
+      ],
+    close: function () {
+   
+   $("#waysError1D").css("display","none");
+   $("#waysErrorD").css("display","none");
+           $("#NameD").val("");
+    }
+
+
+   });
+   var tdaD;
+   loadDiluentsTable();
+      $('#addDiluents').off('click').on('click', function (e) {
+
+         var ptw = $("#editGridWndwD").data("kendoWindow");
+         kendo.ui.progress(ptw.element, true);
+         if (ptw.element.is(":hidden")) {
+            ptw.open();
+
+            ptw.center();
+
+         }
+         kendo.ui.progress(ptw.element, false);
+      });
+
+      $('#removeDiluents').off('click').on('click', function (e) {
+      var grid = $("#@gridName").data("kendoGrid");
+         var dataItem = grid.dataItem($("#AllowedDiluentsGrid_active_cell").closest("tr"));
+      var datasource = $("#@gridName").data("kendoGrid").dataSource;
+
+         grid.removeRow(dataItem);
+
+         datasource.remove(dataItem);
+      $("#removeDiluents").css("display", "none");
+   });
+
+
+
+
+
+      $('#btnNewGridItemD').off('click').on('click', function (e) {
+         var grid2 = $("#@gridName").data("kendoGrid");
+         $("#removeDiluents").css("display", "none");
+      AllowDiluents_Grid_save($("#NameD").val());
+       
+      });
+
+      $('#brnCancelGridItemD').off('click').on('click', function (e) {
+         $("#removeDiluents").css("display", "none");
+      var dialog = $("#editGridWndwD").data("kendoWindow");
+         $("#removeDiluents").css("display", "none");
+         $("#waysError1D").css("display", "none");
+         $("#waysErrorD").css("display", "none");
+         $("#NameD").val("");
+      dialog.close();
+
+      });
+
+
+</script>
+
+
+
+

@@ -1,0 +1,280 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@model ConfiguratorWeb.App.Models.TelligenceServerViewModel
+@using ConfiguratorWeb.App.Extensions
+@inject IDictionaryService DicSvc
+@{
+    Layout = null;
+    string strDialogID = "divTLServerDetails";
+}
+<script>
+    function OnSuccess(response) {
+        if (response.success) {
+            var grid = $('#' + gridIdName).data("kendoGrid");
+            grid.dataSource.read();
+            dialog.close();
+        }
+        else {
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        }
+    }
+</script>
+<div class="card h-85 pt-1 pb-2" id="@strDialogID">
+    <form asp-controller="Telligence" id="form_@strDialogID" asp-action="SaveServerDetails"
+          data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+          data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress" >
+
+        <div class="container-fluid">
+            <div asp-validation-summary="ModelOnly"></div>
+            @Html.HiddenFor(m => m.ID)
+
+            <div class="row mt-2">
+                <div class="col-md-3">
+                    @Html.LabelFor(m => m.ServerURL)
+                </div>
+                <div class="col-md-9">
+                    @Html.Kendo().TextBoxFor(m => m.ServerURL).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "50" })
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    @Html.LabelFor(m => m.IMTBridgeWebAPIUrl)
+                </div>
+                <div class="col-md-9">
+                    @Html.Kendo().TextBoxFor(m => m.IMTBridgeWebAPIUrl).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "200" })
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    @Html.LabelFor(m => m.IMTBridgeUsername)
+                </div>
+                <div class="col-md-9">
+                    @Html.Kendo().TextBoxFor(m => m.IMTBridgeUsername).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "100" })
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    @Html.LabelFor(m => m.IMTBridgePassword)
+                </div>
+                <div class="col-md-9">
+                    @Html.Kendo().TextBoxFor(m => m.IMTBridgePassword).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "100" })
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    @Html.LabelFor(m => m.TLConfigHandlerURL)
+                </div>
+                <div class="col-md-9">
+                    @Html.Kendo().TextBoxFor(m => m.TLConfigHandlerURL).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "200" })
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    @Html.LabelFor(m => m.TLConfigHandlerUsername)
+                </div>
+                <div class="col-md-9">
+                    @Html.Kendo().TextBoxFor(m => m.TLConfigHandlerUsername).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "50" })
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3">
+                    @Html.LabelFor(m => m.TLConfigHandlerPassword)
+                </div>
+                <div class="col-md-9">
+                    @Html.Kendo().TextBoxFor(m => m.TLConfigHandlerPassword).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "50" })
+                </div>
+            </div>
+
+        </div>
+    </form>
+    </div>
+    <div class="card-footer h-10 p-0 m-0 mt-2 border-0 bg-white">
+        @(Html.Kendo().ToolBar()
+            .Name("toolbarDetail")
+            .UmsDefaultErrors(DicSvc)
+            .Items(
+            items =>
+            {
+                items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode");
+            }
+            )
+            .UmsDefaultSettings(DicSvc, "")
+        )
+    </div>
+
+    
+
+
+
+<script type="text/javascript">
+  function changeToEditMode() {
+        actualmode = 2;
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+            toolBarAllEditSaveButton();
+            toolBarShowButtonByClass("modify-mode");
+
+        $('#@strDialogID :input').attr('disabled', false);
+        $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(true);
+            }
+        });
+         $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoNumericTextBox");
+            if (cb) {
+                cb.enable(true);
+            }
+        });
+         $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoTimePicker");
+            if (cb) {
+                cb.enable(true);
+            }
+        });
+        if ('@Model.ID' =='0') {
+           $('#btnDelete').hide();
+        }
+    }
+
+    function changeToViewMode() {
+        actualmode = 1;
+        $(".view-mode").show();
+        $(".modify-mode").hide();
+        toolBarAllEditSaveButton();
+        toolBarShowButtonByClass("view-mode");
+        $('#@strDialogID :input').attr('disabled', true);
+        $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(false);
+            }
+        });
+        $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoNumericTextBox");
+            if (cb) {
+                cb.enable(false);
+            }
+        });
+        $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoTimePicker");
+            if (cb) {
+                cb.enable(false);
+            }
+        });
+    }
+
+    var actualmode;
+    function setWindowMode() {
+        if ('@Model.ID' !== '' && @Model.ID!==0) {
+            actualmode = 1;
+        } else {
+            actualmode = 2;
+        }
+        setMode();
+    }
+    function setMode() {
+        if (actualmode === 2)
+            changeToEditMode();
+        else
+            changeToViewMode();
+        dialog.center().resize();
+    }
+
+
+  function OnValidation() {
+     debugger; 
+         var retValue = false;
+        var validator = $("#form_@strDialogID").kendoValidator().data("kendoValidator");
+        if (!validator.validate() ) {
+            try {
+                var errors = validator.errors();
+                $("#errors").html(buildValidationMessage(errors));    
+            } catch (e) {
+                $("#errors").html(e);
+            } 
+        }
+        else {
+            $("#errors").html("");
+            retValue = true;
+        }
+        
+        return retValue;
+    }
+
+    function toolBarShowButtonByClass(clas) {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsShowButtonByClass(clas);
+    }
+    function toolBarAllEditSaveButton() {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsHideAllEditSaveButton();
+    }
+    var dialog = $("#TelligenceServerEditWindow").data("kendoWindow");
+    dialog.bind("activate", setMode);
+    dialog.bind("resize", setMode);
+    $(document).ready(function () {
+        setWindowMode();
+        $('.btnEdit').off('click').on('click',function () {
+            changeToEditMode();
+        })
+        $('.btnCancel').off('click').on('click',function () {
+            var currentID = $('#ID').val();
+            if (currentID && currentID != '0') {
+                openDetail({ ID: $('#ID').val() });
+            }
+            else {
+                dialog.close();
+            }
+
+        })
+        $('.btnClose').off('click').on('click',function () {
+            dialog.close();
+            $(this).closest(".k-state-focused").focus();
+        })
+        $('#btnCopy').off('click').on('click',function () {
+            //reset guid
+            $("#ID").val("");
+            changeToEditMode();
+        });
+        $('#btnDelete').off('click').on('click',function () {
+            umsConfirm('@DicSvc.XLate("Confirm Delete")', '@DicSvc.XLate("Do you really want to delete this Telligence Server?")', deleteTLServer, cancelDeleteTLServer);
+        });
+        $('#btnSave').off('click').on('click',function () {
+        if (OnValidation()) {
+            $("#form_@strDialogID").submit();
+        }
+    });
+    });
+
+   
+
+    function deleteTLServer() {
+        $.ajax({
+            url: '@Url.Action("DeleteServer", "Telligence")',
+            type: 'POST',
+            data: { ID: '@Model.ID' },
+            async: false
+
+        }).done(function (data) {
+            if (data.success) {
+                $('#TelligenceServerEditWindow').data('kendoWindow').close();
+                var grid = $("#" + gridIdName).data("kendoGrid");
+                grid.dataSource.read();
+            }
+            else {
+                umsErrorDialog("Error occured", data.errorMessage, 200, 200);
+            }
+            }).fail(function (response) {
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+            
+    }
+
+    function cancelDeleteTLServer() {
+
+        /* do nothing */
+    }
+
+</script>

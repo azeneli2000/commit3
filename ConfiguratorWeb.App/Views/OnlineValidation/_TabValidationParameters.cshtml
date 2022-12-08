@@ -1,0 +1,373 @@
+﻿@using Newtonsoft.Json
+@model ConfiguratorWeb.App.Models.OnLine.ValidationGroupViewModel
+@{
+   Layout = null;
+   string[] actions = new string[] { "Close" };
+}
+
+
+<style>
+   .btn.border {
+      padding: 1px 6px !important;
+   }
+
+   /*.k-grid-norecords {
+      padding-left: 46%;
+   }*/
+
+   .umsDraggable {
+      cursor: move;
+   }
+
+   .placeholder {
+      outline-style: dashed;
+      outline-width: 1px;
+      outline-color: red;
+   }
+   .ums-param-tab .row {
+      margin-bottom: 0px;
+   }
+</style>
+
+<script id="valparameterMoveTemplate" type="text/x-kendo-template">
+    <button type="button" class="btn w-100" onclick='validParameterMoveDialog(#=ParameterID#);'><i class="mdi mdi-swap-vertical-bold"></i>@DicSvc.XLate("Move")</button>
+</script>
+<script>
+   var valparameterMoveTemplate = kendo.template($('#valparameterMoveTemplate').html());
+</script>
+<script>
+
+   function displayVParDialog_@(Model.ID)(valParamItem) {
+      if (actualmode ==2) {
+         $.ajax({
+               url: '@Url.Action("GetValidationParameterDialog", "OnlineValidation")',
+               type: 'GET',
+               async: false
+            }).done(function(dataHtml) {
+               var itemDialog = $('#vpEditWindow').data('kendoWindow');
+               itemDialog.content('');
+               itemDialog.content(dataHtml);
+               if (itemDialog.element.is(":hidden")) {
+                  itemDialog.open();
+                  itemDialog.center();
+               }
+               //debugger;
+               //Fill validation parameter details
+               validationParameterDetails(valParamItem);
+            })
+            .fail(function(jqxhr, textStatus, error) {
+               //debugger;;
+               var err = textStatus + ", " + error;
+               console.error("Request Failed: " + err);
+
+
+            });
+      }
+   }
+
+
+   function addItemToGrid(vgItem, isNew) {
+      var grid = $('#validation-group-parameters_@Model.ID').data('kendoGrid');
+      if (isNew) {
+         //Insert new item in grid
+         vgItem.Index = grid.dataSource.data().lenght;
+         //grid.dataSource.add(vgItem);
+         grid.dataSource.pushUpdate(vgItem);
+      } else {
+
+         for (var i = 0; i < grid.dataSource.data().length; i++) {
+            var currItem = grid.dataSource.data()[i];
+            if (currItem.ParameterID == vgItem.originalParameterID &&
+               currItem.UnitOfMeasureID == vgItem.originalUnitOfMeasureID
+            ) {
+               //TODO : add channel and deviceid, maybe DriverId?
+               if (vgItem.ParameterID != vgItem.originalParameterID || vgItem.UnitOfMeasureID != vgItem.originalUnitOfMeasureID) {
+                  grid.dataSource.remove(currItem);
+               }
+               grid.dataSource.pushUpdate(vgItem);
+               break;
+            }
+         }
+         grid.refresh();
+      }
+   }
+
+
+   function removeItemFromGrid(vgItem) {
+      var grid = $('#validation-group-parameters_@Model.ID').data('kendoGrid');
+      var itemSelected;
+      for (var i = 0; i < grid.dataSource.data().length; i++) {
+         var currItem = grid.dataSource.data()[i];
+         if (currItem.ParameterID == vgItem.originalParameterID &&
+            currItem.UnitOfMeasureID == vgItem.originalUnitOfMeasureID
+         ) {
+            itemSelected = currItem;
+            break;
+         }
+      }
+      if (currItem) {
+         grid.dataSource.remove(currItem);
+         grid.refresh();
+      }
+
+   }
+
+
+   function validationParameterDetails(vgItem) {
+      var frmDialog = $('#frmVPItem');
+      if (vgItem) {
+         frmDialog.find('#IsNewItem').val('0');
+         frmDialog.find('#ParameterID').val(vgItem.ParameterID);
+         frmDialog.find('#ParameterPrint').val(vgItem.ParameterPrint);
+         frmDialog.find('#vpdOriginalParId').val(vgItem.ParameterID);
+         frmDialog.find('#txtParSummary').val(createStadardItemDescription(vgItem.ParameterID, vgItem.ParameterPrint));
+         frmDialog.find('#UnitOfMeasureID').val(vgItem.UnitOfMeasureID);
+         frmDialog.find('#UnitPrint').val(vgItem.UnitPrint);
+         frmDialog.find('#vpdOriginalUomId').val(vgItem.UnitOfMeasureID);
+         frmDialog.find('#txtUnitSummary').val(createStadardItemDescription(vgItem.UnitOfMeasureID, vgItem.UnitPrint));
+         frmDialog.find('#SQLQuery').val(vgItem.SQLQuery);
+         frmDialog.find('#IsAlwaysVisible').prop('checked', vgItem.IsAlwaysVisible);
+         frmDialog.find('#IsManuallyAlarmable').prop('checked', vgItem.IsManuallyAlarmable);
+         frmDialog.find('#IsMandatory').prop('checked', vgItem.IsMandatory);
+         frmDialog.find('#IsEditable').prop('checked', vgItem.IsEditable);
+         frmDialog.find('#IsSimpleChoiceOnly').prop('checked', vgItem.IsSimpleChoiceOnly);
+         frmDialog.find('#PlausibilityMin').data("kendoNumericTextBox").value(vgItem.PlausibilityMin);
+         frmDialog.find('#PlausibilityMax').data("kendoNumericTextBox").value(vgItem.PlausibilityMax);
+         frmDialog.find('#RangeMin').data("kendoNumericTextBox").value(vgItem.RangeMin);
+         frmDialog.find('#RangeMax').data("kendoNumericTextBox").value(vgItem.RangeMax);
+         frmDialog.find('#SimpleChoiceGroup').val(vgItem.SimpleChoiceGroup);
+         frmDialog.find('#Decimal').data("kendoNumericTextBox").value(vgItem.Decimal);
+         frmDialog.find('#SectionID').val(vgItem.SectionID);
+         frmDialog.find('#DriverID').data("kendoDropDownList").value(vgItem.DriverID);
+
+         setDataType(vgItem.ParameterDataType);
+      }
+      else {
+         frmDialog.find('#IsNewItem').val('1');
+      }
+      if (actualmode != 2) {
+         $('#btnApplyVParam').hide();
+         $('#btnDeleteVParam').hide();
+         $('#frmVPItem :input').attr('disabled', true);
+         $('#frmVPItem :input').each(function () {
+            var cb = $(this).data("kendoNumericTextBox");
+            if (cb) {
+               cb.enable(false);
+            }
+            cb = $(this).data("kendoDropDownList");
+               if (cb) {
+                  cb.enable(false);
+               }
+            });
+      }
+   }
+
+
+   function hint(element) {
+      var table = $('<table style="width: 600px;" class="k-grid k-widget"></table>'),
+         hint;
+
+      table.append(element.clone()); // Append the dragged element.
+      table.css("opacity", 0.7);
+
+      return table; // Return the hint element.
+   }
+
+   function placeholder(element) {
+      return $('<tr colspan="4" class="placeholder"></tr>');
+   }
+
+   function onRowMoved(e) {
+      console.log('row moved');
+   }
+
+   function onValParamGridDataBound(e) {
+      //debugger;
+      var grid = this;
+      grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+         function (e) {
+            //debugger;
+            var item = grid.dataItem($(e.target).closest('tr'));
+            valParamSelectOnGrid(item.id);
+            onValParamGridKeyEnter(item);
+         });
+   }
+
+   function onValParamGridKeyEnter(item) {
+      displayVParDialog_@(Model.ID)(item);
+   };
+
+   function valParamSelectOnGrid(vpID) {
+
+      if (vpID && vpID != '') {
+         var grid = $("#validation-group-parameters_" + @Model.ID).data("kendoGrid");
+         grid.items().each(function () {
+            var data = grid.dataItem(this);
+            if (data.ID == vpID) {
+               grid.select(this);
+            }
+         });
+         toggleItemDblSelection(false);
+      }
+      else {
+         toggleItemDblSelection(true);
+      }
+   }
+
+   function toggleValParamGridDblSelector(tgl) {
+
+      var grid = $("#validation-group-parameters_" + @Model.ID).data("kendoGrid");
+      if (tgl) {
+         grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+               var item = grid.dataItem($(e.target).closest('tr'));
+               if (item.ID) {
+                  displayDetailDialog(item.ID);
+               }
+
+            });
+      }
+      else {
+         grid.element.off('dblclick', 'tbody tr[data-uid]');
+      }
+   }
+   function collapseAll() {
+      //debugger;
+      $("#validation-group-parameters_@Model.ID .k-icon.k-i-collapse").trigger("click");
+   }
+
+   function expandAll() {
+      //debugger;
+      $("#validation-group-parameters_@Model.ID .k-icon.k-i-expand").trigger("click");
+   }
+</script>
+
+<div style="height:370px" class="ums-param-tab">
+   <div class="row">
+      <div class="col-12">
+         <div style="width: 100%; float: left;" >
+            @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.OnLine.ValidationParameterViewModel>(Model.Parameters)
+                 .UmsDefaultToolbar("create_validationparameter_" + Model.ID, DicSvc.XLate("ADD NEW VALIDATION PARAMETER"), "displayVParDialog_" + Model.ID.ToString() + "(0,0,0,0);", DicSvc)
+                 .ToolBar(t =>
+                 {
+                    t.Custom().Name("CollapseAll").Text(DicSvc.XLate("Collapse all")).HtmlAttributes(new {style= "margin-left: auto;order: 2;" ,onclick= "collapseAll();" });
+                    t.Custom().Name("ExpandAll")  .Text(DicSvc.XLate("Expand All")).HtmlAttributes(new { style = "order: 2;", onclick = "expandAll();" });
+                 })
+                 .Name("validation-group-parameters_" + Model.ID).HtmlAttributes(new {@class = "no-hover", @style = "heigth:350px;"})
+
+                 .Columns(info =>
+                 {
+
+                    info.Group(g => g.Title(" ")
+                       .Columns(attrib =>
+                       {
+                          //attrib.Bound(c => c.SectionDescription).Title(" ");,@class="modify-mode"
+                          attrib.Bound(c => c.SectionIndex).Title(" ")
+                             .ClientTemplate("<i class=\"modify-mode mdi mdi-arrow-up-down umsCanBeDragged text-muted\" title=\"#=Index#\" ></i>")
+                             .Width(35)
+                             .ClientGroupHeaderTemplate("#if(items && items.length>0) {# #:items[0].SectionDescription# #} #");
+                       })
+                       );
+                    info.Group(g => g.Title(" ")
+                       .Columns(attrib =>
+                       {
+                          //attrib.Bound(c => c.SectionDescription).Title(" ");
+                          attrib.Bound(c => c.DriverID).Title("<b title='" + DicSvc.XLate("Driver Name") + "'>D</b>")
+                             .HtmlAttributes(new {style = "text-overflow:clip;"})
+                             .ClientTemplate("#if(data && data.DriverID && data.DriverID.trim().length >0) {# <i class='mdi mdi-alpha-d-circle-outline mdi-18px' title=\"#=data.DriverName#\"></i> #} #")
+                             .Width(35);
+                       })
+                       );
+
+
+
+                    info.Group(g => g.Title("Parameter")
+                       .Columns(attrib =>
+                       {
+
+                          attrib.Bound(c => c.ParameterID).Title("ID").Width(50);
+                          attrib.Bound(c => c.ParameterPrint).Title("Description");
+                          attrib.Bound(c => c.ParameterDataType).Title("Type")
+                             .ClientHeaderTemplate("<span title='" + DicSvc.XLateHtml("Data type") + "'>"+DicSvc.XLateHtml("Type")+"</span>")
+                             .ClientTemplate("#:ParameterDataType.substr(0, 3)#").Width(50);
+                       })
+                       );
+                    info.Group(g => g.Title("Unit")
+                       .Columns(attrib =>
+                       {
+                          attrib.Bound(c => c.UnitOfMeasureID).Title("ID").Width(50);
+                          attrib.Bound(c => c.UnitPrint).Title("Description");
+                       })
+                       );
+
+                    info.Group(g => g.Title(DicSvc.XLate("Data Source"))
+                       .Columns(attrib =>
+                       {
+                          attrib.Bound(c => c.SQLQuery).Title("SQL").Width(100).ClientTemplate("#=SQLQuery ? 'SQL' :'' #");
+                          attrib.Bound(c => c.SimpleChoiceGroup).Title("Simple Choice");
+
+                       })
+                       );
+                    info.Group(g => g.Title(DicSvc.XLate("Behavior"))
+                       .Columns(attrib =>
+                       {
+                          attrib.Bound(c => c.IsEditable).Title("Edit.").Width(50)
+                             .ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #=IsEditable ? checked='checked' :'' # /><label class='k-checkbox-label'></label>")
+                             .HtmlAttributes(new {style = "text-align:center;"})
+                             .ClientHeaderTemplate("<i class='mdi mdi-pencil' title='Editable'>");
+                          attrib.Bound(c => c.IsMandatory).Title("Mand.").Width(50)
+                             .ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #=IsMandatory ? checked='checked' :'' # /><label class='k-checkbox-label'></label>")
+                             .HtmlAttributes(new {style = "text-align:center;"})
+                             .ClientHeaderTemplate("<i class='mdi mdi-check-bold' title='Mandatory'>");
+                          attrib.Bound(c => c.IsAlwaysVisible).Title("Visib.").Width(50)
+                             .ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #=IsAlwaysVisible ? checked='checked' :'' # /><label class='k-checkbox-label'></label>")
+                             .HtmlAttributes(new {style = "text-align:center;"})
+                             .ClientHeaderTemplate("<i class='mdi mdi-eye-outline' title='Always visible'>");
+                          attrib.Bound(c => c.IsManuallyAlarmable).Title("Allarm.").Width(50)
+                             .ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #=IsManuallyAlarmable ? checked='checked' :'' # /><label class='k-checkbox-label'></label>")
+                             .HtmlAttributes(new {style = "text-align:center;"})
+                             .ClientHeaderTemplate("<i class='mdi mdi-bell-outline' title='Manually Allarmable'>");
+                          attrib.Bound(c => c.IsSimpleChoiceOnly).Title("Choice").Width(50)
+                             .ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #=IsSimpleChoiceOnly ? checked='checked' :'' # /><label class='k-checkbox-label'></label>")
+                             .HtmlAttributes(new {style = "text-align:center;"})
+                             .ClientHeaderTemplate("<i class='mdi mdi-format-list-bulleted' title='Simple Choice only'>");
+                       })
+                       );
+                 })
+
+                 .HtmlAttributes(new {style = "height:360px;margin:10px;"})
+                 .Sortable(false)
+
+                 .Selectable()
+                 .DataSource(dataSource => dataSource
+                    .Ajax()
+                    .Model(model =>
+                    {
+                       model.Id(i => i.ParameterID);
+                       //model.Id(i => i.UnitOfMeasureID);
+                       //model.Id(i => i.ChannelID);
+                       // model.Id(i => i.DeviceID);
+
+                    })
+                    .Group(groups => groups.Add(p => p.SectionIndex)).Sort(_=>{_.Add(f=>f.Index ).Ascending();}).Aggregates(a=>a.Add(r=>r.SectionID))
+
+                    .ServerOperation(false)
+                 ).NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No parameters found") + "</div>"))
+                 .Events(e => e.DataBound("onValParamGridDataBound")).Scrollable()
+            )
+
+         </div>
+      </div>
+
+   </div>
+   <div class="row">
+      <div class="col-12">
+         <div style="width:100%; float:left;" id="lblHelpMoveRows">
+            <i class="mdi mdi-arrow-up-down"></i> <span class="label-note small">@DicSvc.XLate("Drag and drop items to change order within sections")</span>
+         </div>
+      </div>
+
+   </div>
+</div>
+
+

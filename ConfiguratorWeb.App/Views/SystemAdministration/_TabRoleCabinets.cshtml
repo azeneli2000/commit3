@@ -1,0 +1,90 @@
+﻿@using System.Linq.Expressions
+@using Kendo.Mvc.UI.Fluent
+@using Microsoft.AspNetCore.Routing
+@using System.Collections.Specialized;
+@using System.Collections;
+
+@model ConfiguratorWeb.App.Models.RoleViewModel
+
+<script>
+    var insertArray = [];
+    var deleteArray = [];
+
+    function getRoleInPostionGridRowIndex(data) {
+        return getGridRowIndex("#gridRoleInPostion", data);
+    }
+
+    function checkAllowField(el) {
+        var state = $(el).is(':checked');
+        var elName = $(el).attr('elChkIDEnable');
+        $('[name="Cabinets\[' + elName + '\].Allow"]').val(state);
+        var uidItem = $($(el).parent()).parent()[0].dataset.uid
+        var rolePositionItem = $('#gridRoleInPostion').data("kendoGrid").dataSource.data().find(function (el) { return el.uid == uidItem });
+        if (state == true)//false=>true
+        {
+            if (deleteArray.indexOf(rolePositionItem.ScGuid) === -1)
+                insertArray.push(rolePositionItem.ScGuid)
+            else
+                deleteArray.splice(deleteArray.indexOf(rolePositionItem.ScGuid), 1)
+        }
+        if (state == false) //true=>false
+            if (insertArray.indexOf(rolePositionItem.ScGuid) === -1)
+                deleteArray.push(rolePositionItem.ScGuid)
+            else
+                insertArray.splice(insertArray.indexOf(rolePositionItem.ScGuid), 1)
+    }
+
+    function RolesEditable(dataItem) {
+        debugger
+        var res = actualmode == 1
+        return (res);
+    }
+    function IsTrolleyEditable(dataItem) {
+        
+        return false;
+    }
+</script>
+
+<div style="height:310px">
+    @(Html.Kendo().Grid<Configurator.Std.Models.StockManagement.RoleInPosition>()
+        .Name("gridRoleInPostion")
+        .Events(ev => ev.DataBound("onDataBound"))
+        .Columns(columns =>
+        {
+            columns.Bound(e => e.StockRoomName).Filterable(ftb => ftb.Multi(true).Search(true))
+            .Editable("RolesEditable");
+            columns.Bound(e => e.CabinetGroupName).Filterable(ftb => ftb.Multi(true).Search(true))
+            .Editable("RolesEditable");
+            columns.Bound(e => e.CabinetName).Filterable(ftb => ftb.Multi(true).Search(true))
+            .Editable("RolesEditable");
+
+            columns.Bound(e => e.IsBasket)
+            .ClientTemplate(@"<input name='PermissionCheck[#=getRoleInPostionGridRowIndex(data)#].CheckIsBasket' type = 'checkbox' #=IsBasket?checked='checked':''# onclick='checkAllowField(this)' elChkIDEnable='#=getRoleInPostionGridRowIndex(data)#' value='#=IsBasket#'  class='check-col  k-checkbox istrolleybasketkit' disabled />
+             <input type = 'hidden' name='Cabinets[#=getRoleInPostionGridRowIndex(data)#].IsBasket' value='#=IsBasket#' />")
+            .Editable("RolesEditable");
+
+            columns.Bound(e => e.IsTrolley)
+            .ClientTemplate(@"<input name='PermissionCheck[#=getRoleInPostionGridRowIndex(data)#].CheckIsTrolley' type = 'checkbox' #=IsTrolley?checked='checked':''# onclick='checkAllowField(this)' elChkIDEnable='#=getRoleInPostionGridRowIndex(data)#' value='#=IsTrolley#'  class='check-col  k-checkbox istrolleybasketkit' disabled />
+            <input type = 'hidden' name='Cabinets[#=getRoleInPostionGridRowIndex(data)#].IsTrolley' value='#=IsTrolley#' />")
+            .Editable("IsTrolleyEditable");
+
+            columns.Bound(e => e.IsGenericKit)
+            .ClientTemplate(@"<input name='PermissionCheck[#=getRoleInPostionGridRowIndex(data)#].CheckIsGenericKit' type = 'checkbox' #=IsGenericKit?checked='checked':''# onclick='checkAllowField(this)' elChkIDEnable='#=getRoleInPostionGridRowIndex(data)#' value='#=IsGenericKit#'  class='check-col  k-checkbox istrolleybasketkit' disabled />
+            <input type = 'hidden' name='Cabinets[#=getRoleInPostionGridRowIndex(data)#].IsGenericKit' value='#=IsGenericKit#' />")
+            .Editable("RolesEditable");
+
+            columns.Bound(e => e.Allow)
+            .ClientTemplate(@"<input name='PermissionCheck[#=getRoleInPostionGridRowIndex(data)#].CheckAllow' type = 'checkbox' #=Allow?checked='checked':''# onclick='checkAllowField(this)' elChkIDEnable='#=getRoleInPostionGridRowIndex(data)#' value='#=Allow#'  class='check-col  k-checkbox' disabled />
+                            <input type = 'hidden' name='Cabinets[#=getRoleInPostionGridRowIndex(data)#].Allow' value='#=Allow#' />")
+            .Editable("RolesEditable")
+            .Width(100);
+        })
+        .UmsDefaultSettings(DicSvc)
+        .HtmlAttributes(new { style = "height:100%;" })
+        .DataSource(dataSource => dataSource
+        .Ajax()
+        .Events(events => events.Error("error_handler_users"))
+        .Read(read => read.Action("ReadPositionsRole", "StockManagement", new { id = Model.Id }))
+        )
+        )
+</div>

@@ -1,0 +1,161 @@
+﻿@model ConfiguratorWeb.App.Models.Therapy.TherapyItemModel
+@using System.Text.Json;
+@{
+   var gridName = "AllowedRouteGrid";
+   //<ConfiguratorWeb.App.Models.Therapy.BoolStringPair>
+
+}
+<script>
+
+   function onDataBound(e) {
+
+       
+      var grid = $("#@gridName").data("kendoGrid");
+   var checkBox = $(".checkBoxCustomRoute");
+      if (checkBox.length > 0) {
+
+
+      var checkInputs = grid.dataItems(checkBox);
+      for (var i = 0; i < checkInputs.length; i++) {
+
+     var checkProp = $(checkBox[i].firstChild);
+      if (checkInputs[i].Enabled == true) {
+            checkProp.prop("checked", true);
+         checkProp.attr("aria-checked", "true");
+      }
+      else {
+              checkProp.prop("checked", false);
+         checkProp.attr("aria-checked", "false");
+      }
+      }
+   }
+
+
+}
+</script>
+
+
+<div id="editGridWndw"  style=display:none;>
+   <div class="editor-label">
+      <div class="col-md-1  u-col-h-fixed ">
+         <label for="Name">@DicSvc.XLate("Name")</label>
+      </div>
+   </div>
+   <div class="editor-field">
+      <input class="k-textbox" id="Name" maxlength="10" />
+   </div>
+   <p id="waysError" style="display:none; color:red;position:relative;top:33px;">@DicSvc.XLate("This input already exists")</p>
+   <p id="waysError1" style="display:none; color:red;position:relative;top:33px;">@DicSvc.XLate("Input is required")</p>
+   <input type="hidden" id="Enabled" style="display:none" />
+   <div class="window-footer">
+      <button type="button" id="btnNewGridItem" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary">@DicSvc.XLate("Insert new Record")</button>
+      <button type="button" id="brnCancelGridItem" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base">@DicSvc.XLate("Cancel")</button>
+
+   </div>
+</div>
+<div id="containerRoute">
+   @(Html.Kendo().Grid(Model?.QuantityDose?.Ways)
+                                 .Name(gridName)
+                                 .Navigatable(true)
+                                 .Columns(columns =>
+                                 {
+                                    //columns.Bound(e => e.Enabled).ClientTemplate("<input style='position: relative;left:40%;' class='checkBoxCustomRoute' type='checkbox' #= Enabled ? checked='checked': '' # />").Title("Default").Width("100px").Editable("noEditCheckbox");
+                                    columns.Select().ClientHeaderTemplate("Default").Width("100px").HtmlAttributes(new { style = "text-align:center;", @class = "checkBoxCustomRoute" });
+                                    columns.Bound(e => e.Name).Title(DicSvc.XLate("Route")).Editable("noEditCheckbox").HtmlAttributes(new { style = "text-align:center;", @class = "textBoxCustomRoute",@onclick= "AllowRoutes_ClickTextRoute()" });
+
+                                 })
+                              //.Editable()
+                              .Scrollable()
+                              //.Selectable(s => s.Mode(GridSelectionMode.Single))
+                              .Events(e => e.DataBound("onDataBound"))
+                              .DataSource(dataSource => dataSource
+                                          .Ajax()
+                                          .ServerOperation(true)
+                                           .Model(model =>
+                                           {
+                                              model.Field(o => o.Name);
+                                              model.Field(o => o.Enabled).Editable(false);
+                                           })
+
+                              )
+                              .HtmlAttributes(new { @class = "subGridsTherapy" })
+                              .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+   )
+</div>
+
+<script>
+
+
+   loadRouteTable();
+   var tdA; 
+   $('#addRoutes').off('click').on('click', function (e) {
+       
+
+    var ptw = $("#editGridWndw").data("kendoWindow");
+      kendo.ui.progress(ptw.element, true);
+      if (ptw.element.is(":hidden")) {
+         ptw.open();
+
+         ptw.center();
+
+      }
+      kendo.ui.progress(ptw.element, false);
+   });
+
+     $('#removeRoutes').off('click').on('click', function (e) {
+       var grid = $("#@gridName").data("kendoGrid");
+        var dataItem = grid.dataItem($("#AllowedRouteGrid_active_cell").closest("tr"));
+            var datasource = $("#@gridName").data("kendoGrid").dataSource;
+
+        grid.removeRow(dataItem);
+        document.getElementById("AllowedRouteGrid_active_cell").classList.remove("k-state-selected");
+        datasource.remove(dataItem);
+        $("#removeRoutes").css("display", "none");
+   });
+
+
+
+
+   var customAddRute = $('#editGridWndw').umsKendoWindow({
+
+      title: 'New Route',
+      height: 100,
+      width: 500,
+      modal: true,
+      actions: [
+         "Close"
+      ],
+          close: function () {
+   
+   $("#waysError1").css("display","none");
+   $("#waysError").css("display","none");
+   $("#Name").val("");
+           
+    }
+   });
+
+
+
+$('#btnNewGridItem').off('click').on('click', function (e) {
+   var grid2 = $("#@gridName").data("kendoGrid");
+   $("#removeRoutes").css("display", "none");
+
+   AllowRoutes_GridSave($("#Name").val());
+
+});
+
+$('#brnCancelGridItem').off('click').on('click', function (e) {
+   $("#removeRoutes").css("display", "none");
+
+   var dialog = $("#editGridWndw").data("kendoWindow");
+   $("#waysError1").css("display", "none");
+   $("#waysError").css("display", "none");
+   $("#Name").val("");
+   dialog.close();
+
+   });
+
+</script>
+
+

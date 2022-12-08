@@ -1,0 +1,502 @@
+﻿
+@inject Digistat.FrameworkStd.Interfaces.ISynchronizationService syncSvc;
+@inject Digistat.FrameworkStd.Interfaces.IPermissionsService permSvc;
+@inject Digistat.FrameworkStd.Interfaces.IDigistatConfiguration configSvc;
+@inject ConfiguratorWeb.App.Services.IMenuService MenuSvc;
+@{
+   var nowTicks = DateTime.Now.ToString();
+   //in release mode use a fixed value
+   nowTicks = "20220124_1032";
+   string pageTitle = "" + (string.IsNullOrWhiteSpace(ViewBag.SitePath) ? "" : ViewBag.SitePath);
+   if (String.IsNullOrWhiteSpace(pageTitle))
+   {
+      pageTitle = ViewBag.Title ?? "";
+   }
+   else
+   {
+      pageTitle = pageTitle.Substring(pageTitle.LastIndexOf(">", StringComparison.Ordinal) + 1).Trim();
+   }
+
+   var noControlbarHeaderViewModel = new Digistat.WebComponents.Models.NoControlbarHeaderViewModel
+   {
+      AddKendoUI = false,
+      AddMaterialDesignWebFont = true,
+      AddJQuery = false,
+      AddJQueryUI = false,
+      AddDigistatJsAndCSS = false,
+      EnableIndication = false,
+      AddUMSWebSocket = true
+   };
+
+   var requestCultureFeature = Context.Features.Get<Microsoft.AspNetCore.Localization.IRequestCultureFeature>();
+   if (requestCultureFeature == null)
+   {
+      requestCultureFeature = new RequestCultureFeature(new RequestCulture("en-GB"), null);
+   }
+   var requestCulture = requestCultureFeature.RequestCulture;
+   var clientCulture = requestCulture.Culture.ToString();
+}
+<!DOCTYPE html>
+<html>
+<head>
+
+   <meta charset="utf-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+   @{await Html.RenderPartialAsync("_Favicons");}
+   <title>@pageTitle - ConfiguratorWeb.App</title>
+
+   <link href="~/lib/bootstrap/4.5.3/css/bootstrap.css" rel="stylesheet"  />
+
+   <link rel="stylesheet" href="~/lib/kendo-ui/styles/kendo.bootstrap-v4.min.css?v=2022.1.119" />
+
+   <link rel="stylesheet" href="~/css/Digistat.FontFace.css" asp-append-version="true" />
+   <link rel="stylesheet" href="~/css/Digistat.Kendo.Custom.FontFamily.css" asp-append-version="true" />
+
+   <link rel="stylesheet" href="~/css/site.css"  asp-append-version="true"/>
+   <link rel="stylesheet" href="~/css/ums.column.css"  asp-append-version="true"/>
+   <link rel="stylesheet" href="~/css/kendo.digistat.custom.css" asp-append-version="true" />
+
+   <script src="~/lib/jquery/dist/jquery.min.js?v=3.4.1"></script>
+
+   
+   @await Component.InvokeAsync("DigistatHeaderNoCtrlbar", noControlbarHeaderViewModel)
+
+   <script src="~/lib/bootstrap/4.5.3/js/bootstrap.min.js"></script>
+
+   <script src="~/lib/jquery-ajax-unobtrusive/jquery.unobtrusive-ajax.min.js"></script>
+   <script src="~/lib/kendo-ui/js/kendo.all.min.js?v=2022.1.119"></script>
+   <script src="~/lib/kendo-ui/js/kendo.aspnetmvc.min.js?v=2022.1.119"></script>
+   <script src="~/lib/kendo-ui/js/kendo.touch.min.js?v=2022.1.119"></script>
+   <script src="~/lib/kendo-ui/js/jszip.min.js"></script>
+
+
+   <script src="@Url.Content("~/lib/kendo-ui/js/cultures/kendo.culture." + clientCulture + ".min.js")"></script>
+
+   <script>
+      kendo.culture("@(clientCulture)");
+      window.jsAnInternalErrorOccurredSeeLogsForDetails = '@DicSvc.XLateJs("An internal error occurred, see logs for details")';
+      //debugger;
+      //TODO: USE with fwebGetTranslatedString() in site.js
+      window.gdicTransaltion = [];
+      try {
+         //debugger;
+         var a = @Html.Raw(JsonConvert.SerializeObject( DicSvc.XLateDict(syncSvc.GetCurrentUser()?.Language??"ENGLISH")));
+         window.gdicTransaltion = a["@ModulesDefinitions.Module_ConfiguratorWeb"];
+      } catch (e) {
+
+      }
+
+   </script>
+
+   <script src="~/js/ums.prototype.js" asp-append-version="true"></script>
+   <script src="~/js/site.js" asp-append-version="true"></script>
+   <script src="~/js/ums.plugin.js" asp-append-version="true"></script>
+
+
+   @RenderSection("Head", false)
+
+</head>
+<body class="bg-white">
+   <div id="coverScreen" class=""></div>
+   <header>
+      <div class="k-header">
+         <div class="d-flex">
+             <div style="width: 50%; float: left;">
+                 <div class="navbar-appname"><a href="~/home/" class="text-white"><span>DIGISTAT Configurator</span></a> </div>
+                 <a href="#" id="btnAboutDialog"><span class="navbar-about"></span></a>
+                 @if (!string.IsNullOrEmpty(configSvc.EnvironmentFromLicence))
+                 {
+                 <span style="background-color:#FF0000;color:#FFFFFF;">@configSvc.EnvironmentFromLicence</span>
+                 }
+             </div>
+            <div style="width: 50%; float: right;">
+               <div style="display: table; float: right;">
+
+                  <div class="user-header">
+                     @Html.CreateAdminAbout(permSvc, syncSvc)
+
+                     <div>
+                        <div class="user-image"></div>
+                     </div>
+                     <div>
+                        <div class="spanUserName">@MenuSvc.GetCurrentUserAbbrev()</div>
+                     </div>
+                     <div><a href="@Url.Action("LogOff", "Security")" title="@DicSvc.XLate("LogOut")"><span class="logout-image"></span></a></div>
+                     <div><img class="page-logo" src='@Url.Content("~/images/blank.gif")'></div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      <div id="responsive-panel" class="ums-menu">
+
+         @Html.CreateMenuKendo(MenuSvc,Context)
+
+      </div>
+      <div id="systemInfoDialog"></div>
+   </header>
+
+   @{await Html.RenderPartialAsync("About");}
+   <div class="main-panel ">
+      <div class="container-fluid h-100">
+         <div class="breadcrumbs @(string.IsNullOrWhiteSpace(ViewBag.SitePath)?"invisible":"")"> @ViewBag.SitePath</div>
+         @RenderBody()
+      </div>
+   </div>
+
+   @RenderSection("Scripts", required: false)
+   <script>
+
+   function AfterProcessUMSMessage(message) {
+      if (message.packetType == "RCMD") {
+         switch (message.message) {
+         case 'CHANGE_USER':
+            window.location = '@Url.Action("LogOff", "ConfiguratorSecurity")';
+            break;
+         }
+      }
+      if (typeof (AfterProcessUMSMessagePage) == 'function') {
+         //console.log('AfterProcessUMSMessage ' + msg);
+         AfterProcessUMSMessagePage(message);
+      }
+      else {
+         //console.log('no AfterProcessUMSMessage found' + msg);
+      }
+   }
+
+
+   $(document).ready(function () {
+      $("#main-menu-kendo").kendoMenu({
+      });
+
+
+      var kndWndSysInfo = null;
+      if (!kndWndSysInfo) {
+         kndWndSysInfo = $('#systemInfoDialog').usmKendoWindow({
+            height: 300,
+            width: '40%',
+            title: '@DicSvc.XLate("System Information")'
+
+         });
+      }
+
+
+
+      $('#btnSystemDetails').off('click').on('click', function () {
+         displaySystemInfoDialog();
+      });
+
+
+
+   });
+
+   function displaySystemInfoDialog() {
+
+      var sysInfoWidget = $("#systemInfoDialog").data("kendoWindow");
+      $.ajax({
+         url: '@Url.Action("SystemInfo", "Home")',
+         type: 'GET'
+      }).done(function (dataHtml) {
+         var itemDialog = $('#systemInfoDialog').data('kendoWindow');
+         itemDialog.content(dataHtml);
+         itemDialog.open();
+         itemDialog.center();
+      });
+   }
+
+
+   function mergeGridRows(gridId, colTitle) {
+
+      $('#' + gridId + '>.k-grid-content>table').each(function (index, item) {
+
+         var dimension_col = 1;
+         // First, scan first row of headers for the colTitle column.
+         $('#' + gridId + '>.k-grid-header>.k-grid-header-wrap>table').find('th').each(function () {
+            if ($(this).text() == colTitle) {
+
+               var first_instance = null;
+
+               $(item).find('tr').each(function () {
+                  if ($(this).hasClass("k-grouping-row")) {
+                     first_instance = null;
+                  }
+                  else {
+                     // find the td of the correct column (determined by the colTitle)
+                     var dimension_td = $(this).find('td:nth-child(' + dimension_col + ')');
+
+                     if (first_instance == null) {
+                        first_instance = dimension_td;
+                     } else if (dimension_td.text() == first_instance.text()) {
+                        // if current td is identical to the previous
+                        // then remove the current td
+                        dimension_td.remove();
+                        // increment the rowspan attribute of the first instance
+                        first_instance.attr('rowspan', typeof first_instance.attr('rowspan') == "undefined" ? 2 : 1 + parseInt(first_instance.attr('rowspan')));
+                     } else {
+                        // this cell is different from the last
+                        first_instance = dimension_td;
+                     }
+                  }
+
+
+               });
+               return;
+            }
+            dimension_col++;
+         });
+
+      });
+   }
+
+   function detailExpand(ev) {
+      var expandedRow = $(ev.sender.wrapper).data('expandedRow');
+      // Only one open at a time
+      if (expandedRow && expandedRow[0] != ev.masterRow[0]) {
+         var grid = $(ev.sender.wrapper).data('kendoGrid');
+         grid.collapseRow(expandedRow);
+      }
+      $(ev.sender.wrapper).data('expandedRow', ev.masterRow);
+   }
+   function umsPrompt(title,content, defaultValue){
+      var dialog = $("#divUmsPromp").data("kendoPrompt");
+      if (dialog) {
+         dialog.destroy();
+      }
+      return $("<div id='divUmsPromp'></div>").kendoPrompt({
+         title: title,
+         value: defaultValue,
+         content: content,
+         minWidth:"300px",
+         actions: [
+            { text: 'OK', primary: false }
+         ]
+      }).data("kendoPrompt").open().result;
+   }
+
+   function umsAlert(title, content, wpx, hpx) {
+      //debugger;
+      var dialog = $("#divUmsAlert").data("kendoDialog");
+      if (dialog) {
+         dialog.destroy();
+      }
+      if (typeof (wpx)==="undefined") {
+         wpx = 400;
+      }
+      if (typeof (hpx)==="undefined") {
+         hpx = "150px";
+      } else {
+         if (hpx.toString().indexOf("px")<0 && hpx.toString().indexOf("%")<0) {
+            hpx = hpx.toString().trim() + "px";
+         }
+      }
+      var vh = window.innerHeight * 0.90,
+          vw = window.innerWidth * 0.90;
+      $("<div id='divUmsAlert'></div>").kendoDialog({
+         title: title,
+         content: content,
+         closable: false,
+         modal: true,
+         minWidth: wpx + "px",
+         minHeight: hpx ,
+         maxWidth: vw + "px",
+         maxHeight: vh + "px",
+
+         open: function () {
+            if (/MSIE (\d+\.\d+);/.test(navigator.userAgent) || navigator.userAgent.indexOf("Trident/") > -1) {
+               try {
+                  $('#divUmsAlert').parents('div').find('.k-button-group').attr('style', 'position: absolute !important; top: 80% !important; width: 100% !important;');
+                  $('#divUmsAlert').parents('div').find('.k-button-group').find('.k-button').attr('style', 'width: 100% !important;');
+               } catch (e) {
+                  /**/
+               }
+
+            }
+         },
+         actions: [
+            { text: 'OK', primary: false }
+         ]
+      }).data("kendoDialog").open();
+   }
+
+   function umsErrorDialog(title, content) {
+      var dialog = $("#divUmsAlert").data("kendoDialog");
+      if (dialog) {
+         dialog.destroy();
+      }
+      $("<div id='divUmsAlert'></div>").kendoDialog({
+         title: title,
+         content: content,
+         closable: false,
+         modal: true,
+         minWidth: "400px",
+         minHeight: "200px",
+         open: function () {
+            $('#divUmsAlert').parents('div').find('.k-widget .k-window .k-dialog').addClass("umsErrorTitle");
+         },
+         actions: [
+            { text: 'OK', primary: false }
+         ]
+      }).data("kendoDialog").open();
+   }
+
+   // functions used for every detail in grid
+   function addChangeHandler(idModel, gridName) {
+
+      $('#btnEdit_' + idModel).click(function (e) {
+         e.preventDefault();
+         var grid = $("#" + gridName).data("kendoGrid");
+         $(this).closest(".button-container").find(".modify-mode").show();
+         $(this).closest(".button-container").find(".view-mode").hide();
+         $(this).closest("tr.k-detail-row").prev().find(".k-grid-edit").trigger("click");
+
+      });
+      $('#btnCancel_' + idModel).click(function () {
+         $(this).closest(".button-container").find(".view-mode").show();
+         $(this).closest(".button-container").find(".modify-mode").hide();
+         $(this).closest("tr.k-detail-row").prev().find(".k-grid-cancel").trigger("click");
+
+      });
+
+   }
+
+   function activateEditMode(idModel, keepFocus) {
+      //if (!$(this).closest(".button-container").find(".modify-mode").is(":visible")) {
+      //    $("#btnEdit_" + idModel).trigger("click");
+      //    if (keepFocus) {
+      //        $(this).focus();
+      //    }
+      //}
+   }
+
+   function addOnCancelGridHandler(e) {
+      var grid = e.sender;
+      var vntDetail = $(e.container[0]).next().find("td.k-detail-cell");
+      //refresh detail
+      var expanded = $.map(grid.tbody.children(":has(> .k-hierarchy-cell .k-i-collapse)"), function (row) {
+         return $(row).data("uid");
+      });
+
+      grid.one("dataBound", function () {
+         grid.expandRow(grid.tbody.children().filter(function (idx, row) {
+            return $.inArray($(row).data("uid"), expanded) >= 0;
+         }));
+      });
+      grid.refresh();
+   }
+   function resizeGridMaster(offSet) {
+      clearTimeout(window._resizeId);
+      if (!$gridElement) {
+         $gridElement = $(".card").find(".k-grid");
+      }
+      if ($gridElement && $gridElement.data("kendoGrid")) {
+         //
+         window._resizeId = setTimeout(function () {
+            $gridElement.data("kendoGrid").resizeGridToFitHeight(offSet);
+
+         }, 200);
+      }
+   }
+   function centerWindow() {
+      //console.log("resize window");
+      var kendoWindow = $("[data-role='window']");
+      if (kendoWindow.length) {
+         for (var i = 0; i < kendoWindow.length; i++) {
+            var win = $(kendoWindow[i]).data("kendoWindow");
+            if (!win.element.is(":hidden")) {
+               win.center();
+               //var opt = win.getOptions();
+               //win.setOptions(opt);
+               if (win.resize != undefined) {
+                  win.trigger('resize');
+
+               }
+
+            }
+         }
+      }
+   }
+
+   var $gridElement;
+   $(document).ready(function () {
+      if (typeof(gridIdName) != 'undefined') {
+         $gridElement = $("#" + gridIdName);
+      }
+      if (!$gridElement) {
+         $gridElement = $(".card").find(".k-grid");
+      }
+      resizeGridMaster();
+
+      try {
+         var arrows = [38, 40];
+         var gridT = $gridElement.data("kendoGrid");
+         gridT.table.on("keydown",
+            function(e) {
+               if (arrows.indexOf(e.keyCode) >= 0) {
+                  setTimeout(function() {
+                        gridT.clearSelection();
+                        var row = $(".k-state-focused").closest("tr");
+                        if (!row.hasClass("k-grouping-row")) {
+                           gridT.select(row);
+                        }
+
+                     },
+                     10);
+               }
+               if ([13].indexOf(e.keyCode) >= 0) {
+                  if (typeof (onGridKeyEnter) != 'undefined') {
+
+                     var row = $(".k-state-focused").closest("tr");
+                     if (!row.hasClass("k-grouping-row")) {
+                        var item = gridT.dataItem(row);
+                        onGridKeyEnter(item);
+                     }
+
+                  }
+               }
+            });
+
+      } catch (e) {
+
+      }
+
+   });
+   var gridSizeOffset;
+   $(window).resize(function () {
+      setTimeout(function() {
+            resizeGridMaster(gridSizeOffset);
+            centerWindow();
+         }
+         ,100);
+   });
+
+   $(document).ready(function() {
+      $('#main-menu-kendo').css('visibility', 'visible');
+
+   });
+   $(document.body).keydown(function (e) {
+      if (e.altKey && e.keyCode == 87) {  //ALT+W
+         try {
+            var gridS = $gridElement.data("kendoGrid");
+            gridS.table.focus();
+            gridS.clearSelection();
+            //gridS.select($(".k-state-focused").closest("tr"));
+            var row = $(".k-state-focused").closest("tr");
+            if (!row.hasClass("k-grouping-row")) {
+               gridS.select(row);
+            }
+         } catch (e) {
+            //
+         }
+      }
+   });
+   </script>
+   <script type="text/javascript">
+      $(function () {
+         // Disable browser cache Ajax.ActionLinks
+         $.ajaxSetup({ cache: false });
+      });
+   </script>
+</body>
+
+</html>

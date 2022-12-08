@@ -1,0 +1,38 @@
+﻿@model ConfiguratorWeb.App.Models.DriverViewModel
+@{
+    Layout = null;
+}
+<div class="k-content">
+
+   
+    @*<form asp-controller="Connect" asp-action="UploadDriverFiles" method="post" id="upload_@Model.Id">*@
+    <form asp-controller="Connect" asp-action="CacheDriverFiles" method="post" id="upload_@Model.Id">
+        <input asp-for="BinariesCacheIdentifier" type="hidden" />
+        <kendo-upload name="files" >
+
+            @*<validation allowed-extensions="@Model.Extensions" />*@
+        </kendo-upload>
+        <div style="text-align: right;position:absolute;bottom: 0; margin-bottom: 10px;width: 95%;">
+            <button type="submit" class="k-button k-primary">Submit</button>
+        </div>
+    </form>
+</div>
+
+
+@*<script>
+    $("#upload_@Model.Id").submit(function (event) {
+        debugger;
+      //  event.preventDefault();
+       this.submit();
+        //update extended row
+       var grid = $("#drivers-grid").data("kendoGrid");
+       grid.tbody.find("tr[role='row']").each(function () {
+           var id = grid.dataItem(this).Id;
+
+           if (id == '@Model.Id') {
+               grid.expandRow(this);
+               return;
+           }
+       });
+    });
+</script>*@

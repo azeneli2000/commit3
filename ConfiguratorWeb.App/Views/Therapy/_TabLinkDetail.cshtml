@@ -1,0 +1,427 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@using Digistat.FrameworkStd.Enums
+@using Digistat.FrameworkStd.Model.Therapy
+@model TherapyItemModel
+@{
+   ViewData["Title"] = "_TabClassificationDetail";
+
+   var gridName1 = "ProfilesLink";
+   var gridName2 = "Mixtures";
+   var gridName3 = "Protocols";
+   var gridName4 = "TabLinkResourcesGrid";
+}
+
+<style>
+</style>
+
+
+<script>
+
+   function onDataBoundRes(e) {
+
+  
+      var grid = $("#@gridName4").data("kendoGrid");
+      var checkBox = $(".checkBoxCustomResource");
+      if (checkBox.length > 0) {
+
+
+         var checkInputs = grid.dataItems(checkBox);
+      for (var i = 0; i < checkInputs.length; i++) {
+
+        var checkProp = $(checkBox[i].firstChild);
+         if (checkInputs[i].IsDefault == true) {
+     checkProp.prop("checked", true);
+         checkProp.attr("aria-checked", "true");
+      }
+      else {
+         checkProp.prop("checked", false);
+         checkProp.attr("aria-checked", "false");
+      }
+      }
+   }
+
+   }
+
+ function DataBoundProfilesLink()
+ {
+        //var  components = $('#Protocols').getKendoGrid().dataSource.data();
+        //if (components != null) {
+        //for (var i = 0; i < components.length; i++) {
+        //associatedItemArray.push(components[i].IdChild)
+        //}
+        //}
+ }
+
+</script>
+<div class="mainLinkContainer">
+   <div class="row" style="position: relative; top: 7px; right: 7px;">
+      <label asp-for="Link.ExternalKey" style="font-weight:bold;">@DicSvc.XLate("External Key")</label>
+      <input asp-for="Link.ExternalKey" class="k-input k-textbox" style="width: 30%;margin-left: 37px;" maxlength="48" />
+   </div>
+   @if (Model.ItemType.Equals(TherapyItemType.Protocol))
+   {
+      <div class="row">
+         <label style="font-weight: bold; font-weight: bold; position: relative; left: -7px;">@DicSvc.XLate("Help Key Presc.")</label>
+         <input asp-for="Properties.HelpKeyExec" class="k-textbox" style="width: 30%;margin-left: 12px;" />
+      </div>
+      <div class="row">
+         <label style="font-weight:bold;margin-left:-5px;">@DicSvc.XLate("Note")</label>
+         @Html.TextAreaFor(m => m.Properties.PrescNotes, new { @style = "width:30%;margin-left:87px;height:100px;" })
+      </div>
+   }
+
+<div class="gridLinkTabContainer">
+   <label style=" margin-top:10px;">@DicSvc.XLate("Profiles")</label>
+   <div id="tableProfiles">
+      @(Html.Kendo().Grid(Model?.Link?.Profiles)
+                                                                   .Name(gridName1)
+                                                                   .Navigatable(true)
+                                                                   .Columns(columns =>
+                                                                   {
+                                                                      columns.Bound(e => e.Name).Title(DicSvc.XLate("Name")).Width("300px");
+                                                                      columns.Bound(e => e.Description).Title(DicSvc.XLate("Description"));
+                                                                      columns.Bound(e => e.LocationRef).Visible(false);
+                                                                      columns.Bound(e => e.LocationNameForLink).Title(DicSvc.XLate("Location Name"));
+
+                                                                   })//.AutoBind(false)
+                                                                   .Editable(e => e.Mode(GridEditMode.InCell))
+                                                                   .Selectable(s => s.Mode(GridSelectionMode.Single))
+                                                                   .Scrollable()
+                                                                   .DataSource(dataSource => dataSource
+
+                                                                   .Ajax()
+                                                                   .ServerOperation(true)
+                                                                    .Model(model =>
+                                                                    {
+                                                                       model.Id(o => o.IdProfile);
+                                                                       model.Field(x => x.Name).Editable(false);
+                                                                       model.Field(x => x.Description).Editable(false);
+                                                                       model.Field(x => x.LocationRef).Editable(false);
+                                                                       model.Field(x => x.LocationNameForLink).Editable(false);
+                                                                    })
+                                                                  .Read(read => read.Action("VerifyProfilesAssociationsFromLink", "Therapy", new { ID = Model.Id }))
+
+                                                                   )
+                                                                   .HtmlAttributes(new { @class = "linkGrids" })
+                                                                   .NoRecords(x => x.Template("<div class='empty-grid'  style='position: relative;'>" + DicSvc.XLate("No Profiles linked") + "</div>"))
+
+         )
+      <div style="display:flex;flex-direction:column;">
+         <button id="addProfiles" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button"><span class="k-icon k-i-plus"></span></button>
+         <button id="removeRProfiles" style="display:none;order:1;" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button"><span class="k-icon k-i-minus"></span></button>
+      </div>
+   </div>
+   @if (!Model.ItemType.Equals(TherapyItemType.Protocol))
+   {
+      <label style=" margin-top:10px;">@DicSvc.XLate("Protocols")</label>
+      @(Html.Kendo().Grid(Model?.Link?.Protocols)
+                                                                       .Name(gridName3)
+                                                                       .Navigatable(true)
+                                                                       .Columns(columns =>
+                                                                       {
+                                                                          columns.Bound(e => e.Name).Title(DicSvc.XLate("Name")).Width("300px");
+                                                                          columns.Bound(e => e.Description).Title(DicSvc.XLate("Description"));
+                                                                          columns.Bound(e => e.IdChild).Hidden(true);
+                                                                          columns.Bound(e => e.LocationRef).Hidden(true);
+                                                                          columns.Bound(e => e.LocationName);
+
+                                                                       })
+                                                                       .Editable(e => e.Mode(GridEditMode.InCell))
+                                                                       .Selectable(s => s.Mode(GridSelectionMode.Single))
+                                                                       .Scrollable()
+                                                                       .Events(ev => ev.DataBound("DataBoundProfilesLink"))
+                                                                       .Editable()
+                                                                              .DataSource(dataSource => dataSource
+                                                                                 .Ajax()
+                                                                                 .ServerOperation(true)
+                                                                                 .Model(model =>
+                                                                                 {
+                                                                                    model.Field(x => x.Name).Editable(false);
+                                                                                    model.Field(x => x.Description).Editable(false);
+                                                                                    model.Field(x => x.IdChild).Editable(false);
+                                                                                    model.Field(x => x.LocationRef).Editable(false);
+                                                                                    model.Field(x => x.LocationName).Editable(false);
+                                                                                 }
+                                                                                 )
+                                                                             .Read(read => read.Action("VerifyComponentOfMixtureAndProtocol", "Therapy", new { ID = Model.Id, type = 2 }))
+                                                                             )
+                                                                      .HtmlAttributes(new { @class = "linkGrids" })
+                                                                       .NoRecords(x => x.Template("<div class='empty-grid'  style='position: relative;'>" + DicSvc.XLate("No Protocols linked") + "</div>"))
+
+         )
+
+      @if (Model != null)
+      {
+         @if (Model.ItemType.ToString() == "Action")
+
+         {
+            if (Model.ItemType == Digistat.FrameworkStd.Enums.TherapyItemType.Action/* && Model.Classification.CanBeMixtureComponent*/)
+            {
+               <label style=" margin-top:10px;">@DicSvc.XLate("Mixtures")</label>
+
+               @(Html.Kendo().Grid(Model?.Link?.Mixtures)
+                                                                                      .Name(gridName2)
+                                                                                      .Navigatable(true)
+                                                                                      .Columns(columns =>
+                                                                                      {
+                                                                                         columns.Bound(e => e.Name).Title(DicSvc.XLate("Name")).Width("300px");
+                                                                                         columns.Bound(e => e.Description).Title(DicSvc.XLate("Description"));
+                                                                                         columns.Bound(e => e.LocationRef).Hidden(true);
+                                                                                         columns.Bound(e => e.LocationName);
+
+                                                                                      })//.AutoBind(false)
+
+                                                                                      .Selectable(s => s.Mode(GridSelectionMode.Single))
+                                                                                      .Scrollable()
+
+                                                                                      .DataSource(dataSource => dataSource
+                                                                                      .Ajax()
+                                                                                      .ServerOperation(true)
+                                                                                      .Model(model =>
+                                                                                      {
+                                                                                         model.Field(x => x.Name).Editable(false);
+                                                                                         model.Field(x => x.Description).Editable(false);
+                                                                                         model.Field(x => x.LocationRef).Editable(false);
+                                                                                         model.Field(x => x.LocationName).Editable(false);
+                                                                                      }
+                                                                                      )
+                                                                                   .Read(read => read.Action("VerifyComponentOfMixtureAndProtocol", "Therapy", new { ID = Model.Id, type = 1 }))
+                                                                                   )
+                                                                          .HtmlAttributes(new { @class = "linkGrids" })
+                                                                                      .NoRecords(x => x.Template("<div class='empty-grid'  style='position: relative;'>" + DicSvc.XLate("No Mixtures linked") + "</div>"))
+
+                  )
+            }
+         }
+
+         @if (Model.ItemType.ToString() == "Action" || Model.ItemType.ToString() == "Mixture")
+
+         {
+
+            <label style=" margin-top:10px;">@DicSvc.XLate("Resources")</label>
+            <div id="tableResources">
+
+               @(Html.Kendo().Grid(Model?.Link?.Resources)
+             .Name(gridName4)
+             .Navigatable(true)
+             .Columns(columns =>
+             {
+
+                columns.Bound(e => e.ResourceName).Title(DicSvc.XLate("Resources")).Editable("noEditCheckbox").HtmlAttributes(new { style = "text-align:center;", @class = "textBoxCustomResource", @onclick = "AllowResources_ClickTextDiluent()" });
+                //columns.Bound(e => e.IsDefault).ClientTemplate("<input style = 'position: relative;left:40%;' class='checkBoxCustomResource' type='checkbox' #= IsDefault ? checked='checked': '' # />").Title("Default");
+                columns.Select().ClientHeaderTemplate("Default").Width("100px").HtmlAttributes(new { style = "text-align:center;", @class = "checkBoxCustomResource" });
+
+                columns.Bound(e => e.Index).Hidden();
+             })
+             .Scrollable()
+              .Events(e => e.DataBound("onDataBoundRes"))
+              .DataSource(dataSource => dataSource
+                  .Ajax()
+                  .ServerOperation(true)
+                   .Model(model =>
+                   {
+                      model.Field(o => o.IdResource);
+                      model.Field(o => o.IdStandardAction);
+                      model.Field(o => o.ResourceName);
+                      model.Field(o => o.IsDefault).Editable(true);
+                   })
+
+      )
+             //.Selectable(s => s.Mode(GridSelectionMode.Single))
+             .HtmlAttributes(new { @class = "linkGrids" })
+             .NoRecords(x => x.Template("<div class='empty-grid' style='position: relative;'>" + DicSvc.XLate("No Resources linked") + "</div>"))
+                  )
+
+               <div style="display:flex;flex-direction:column;">
+                  <button id="btnAddResources" class="k-button k-button-solid-base k-button-solid k-button-rectangle k-button-md k-rounded-md customSubGridsButtom" type="button"><span class="k-icon k-i-plus"></span></button>
+                  <button id="btnRemoveResources" style="display:none;" class="k-button k-button-solid-base k-button-solid k-button-rectangle k-button-md k-rounded-md customSubGridsButtom" type="button"><span class="k-icon k-i-minus"></span></button>
+                  <div class="arrowsResources" disabled="disabled">
+                     <div style="display:flex; flex-direction:column;">
+                        <button id="btnMoveResourceUp" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" style="margin-bottom: 1px;" type="button"><span class="k-icon k-i-arrow-60-up"></span></button>
+                        <button id="btnMoveResourceDown" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" type="button"><span class="k-icon k-i-arrow-60-down"></span></button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+         }
+      }
+   }
+</div>
+</div>
+
+
+<div id="ProfileSelectionWindow" style="height:400px; display:flex;flex-direction:row;">
+   @{ await Html.RenderPartialAsync("_ProfilesSelection", Model); }
+</div>
+@*@if (Model.ItemType.Equals(TherapyItemType.Action))
+{
+   <div id="editGridWndwR">
+      <div class="editor-label">
+         <div class="col-md-1  u-col-h-fixed ">
+            <label for="NameR">@DicSvc.XLate("Name")</label>
+         </div>
+      </div>
+      <div class="editor-field">
+         <input class="k-textbox" id="NameR" maxlength="10" />
+      </div>
+      <p id="waysErrorR" style="display:none; color:red;">@DicSvc.XLate("This input already exists")</p>
+      <p id="waysError1R" style="display:none; color:red;">@DicSvc.XLate("Input is required")</p>
+      <input type="hidden" id="EnabledR" style="display:none" />
+      <div class="window-footer">
+         <button type="button" id="btnNewGridItemR" class="k-primary k-button">@DicSvc.XLate("Insert new Record")</button>
+         <button type="button" id="brnCancelGridItemR" class="k-button">@DicSvc.XLate("Cancel")</button>
+
+      </div>
+   </div>
+   }*@
+
+<div id="addResourceWindow" ></div>
+
+<script>
+
+   var tabLinkDetailFeature = (function(){
+
+      var addResourceWindow= '#addResourceWindow';
+      var profileSelectionWindow= '#ProfileSelectionWindow';
+      var btnMoveResourceDown= '#btnMoveResourceDown';
+      var btnMoveResourceUp= '#btnMoveResourceUp';
+      var btnRemoveResources= '#btnRemoveResources';
+      var btnAddResources= '#btnAddResources';
+      var btnAddProfiles = '#addProfiles';
+      var btnRemoveRProfiles = '#removeRProfiles';
+
+      var init = function () {
+         var customAddResource = $(addResourceWindow).umsKendoWindow({
+            title: 'New Resource',
+            height: 600,
+            width: 765,
+            modal: true,
+            actions: [
+               "Close"
+            ],
+            close: function (e) {
+               this.content('');
+            }
+         });
+
+
+         var profileskndWnd = $(profileSelectionWindow).usmKendoWindow({
+
+            title: 'Profiles Selection',
+            height: 650,
+            width: 765,
+            modal: true,
+            visible: false,
+         });
+
+         var ptw = $(profileSelectionWindow).data("kendoWindow");
+         if (ptw != null) {
+            ptw.close();
+         }
+         if ($("#typeTherapy").val() != "@TherapyItemType.Protocol.ToString()") {
+            loadResourceTable();
+         }
+         $(btnMoveResourceDown).off("click").on("click", function (event) { gridOrderingArrowButtonDown($(this), '@gridName4', btnMoveResourceUp.slice(1)); });
+         $(btnMoveResourceUp).off("click").on("click", function (event) { gridOrderingArrowButtonUp($(this), '@gridName4', btnMoveResourceDown.slice(1)); });
+
+
+         $("#@gridName1").on("click", "tr.k-state-selected", function () {
+            if (enableGrids) {
+               $(btnRemoveRProfiles).css("display", "inherit");
+            }
+
+         });
+
+         $(btnRemoveRProfiles).off('click').on('click', function (e) {
+            var grid = $("#@gridName1").data("kendoGrid");
+            var dataItem = grid.dataItem($("#ProfilesLink_active_cell").closest("tr"));
+            var datasource = $("#@gridName1").data("kendoGrid").dataSource;
+
+            grid.removeRow(dataItem);
+            document.getElementById("ProfilesLink_active_cell").classList.remove("k-state-selected");
+            datasource.remove(dataItem);
+            $(btnRemoveRProfiles).css("display", "none");
+         });
+
+         $(btnRemoveResources).off('click').on('click', function (e) {
+            var grid = $("#@gridName4").data("kendoGrid");
+            var dataItem = grid.dataItem($("#@gridName4" + "_active_cell").closest("tr"));
+            var datasource = $("#@gridName4").data("kendoGrid").dataSource;
+            
+            var i = datasource.indexOf(dataItem);
+            grid.removeRow(dataItem);
+
+            if (i < datasource._data.length) {
+               for (i; i < datasource._data.length; i++) {
+                  if (datasource._data[i].Index > dataItem.Index) {
+                     datasource._data[i].Index = datasource.data()[i].Index - 1;
+                  }
+               }
+            }
+
+            document.getElementById("@gridName4" + "_active_cell").classList.remove("k-state-selected");
+            datasource.remove(dataItem);
+            datasource = $("#@gridName4").data("kendoGrid").dataSource;
+            if (datasource._total == 1) {
+               datasource._data[0].IsDefault = true;
+               grid.select("tr:eq(" + (0) + ")");
+               $(btnRemoveResources).css("display", "block");
+               $(btnMoveResourceUp).css("display", "none");
+               $(btnMoveResourceDown).css("display", "none");
+               var y = grid.select();
+               y[0].id = "TabLinkResourcesGrid_active_cell";
+            } else {
+               $(btnRemoveResources).css("display", "none");
+               $(btnMoveResourceUp).css("display", "none");
+               $(btnMoveResourceDown).css("display", "none");
+            }
+
+
+
+         });
+
+
+         $(btnAddResources).off('click').on('click', function (e) {
+                    
+            $.ajax({
+               url: '@Url.Action("StandardResourcesSelectionView", "Therapy")',
+               type: 'GET'
+            })
+               .done(function (data) {
+                  var ptw = $(addResourceWindow).data("kendoWindow");
+                  kendo.ui.progress(ptw.element, true);
+                  if (ptw.element.is(":hidden")) {
+
+                     ptw.content('');
+                     ptw.content(data);
+                     ptw.open();
+                     ptw.center();
+                  }
+                  kendo.ui.progress(ptw.element, false);
+               });
+         });
+
+         $(btnAddProfiles).off('click').on('click', function (e) {
+
+            ShowProfilesComponent();
+            return false;
+         });
+      };
+
+      var ShowProfilesComponent = function () {
+         var ww = $(profileSelectionWindow).data("kendoWindow");
+         kendo.ui.progress(ww.element, true);
+         if (ww.element.is(":hidden")) {
+            ww.center();
+            ww.open();
+         }
+         kendo.ui.progress(ww.element, false);
+      };
+
+      return { Init: init}
+   })();
+
+   $(document).ready(tabLinkDetailFeature.Init());
+
+</script>

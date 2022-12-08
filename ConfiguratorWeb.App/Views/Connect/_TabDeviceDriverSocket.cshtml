@@ -1,0 +1,51 @@
+﻿@model ConfiguratorWeb.App.Models.DeviceDriverViewModel
+@{
+   Layout = null;
+}
+
+<div style="height:100%; width: 100%; min-width: 350px;padding-top: 10px;">
+    <div class="row">
+        <div class="col-2">
+            <label asp-for="Socket.SocketType" class="label-name">@DicSvc.XLate("Socket Type")</label>
+        </div>
+        <div class="col-4 u-col-h-fixed">
+            @(Html.Kendo().DropDownListFor(m => m.Socket.SocketType)
+                          .HtmlAttributes(new { @style = "width:95%;", @id = "SocketType_" + Model.Id })
+                          .DataTextField("Text")
+                          .DataValueField("Value")
+                          .DataSource(source =>
+                          {
+                              source.Read(read =>
+                              {
+                                  read.Action("GetSocketTypeList", "Generic");
+                              });
+                          })
+                          .Events(ev => ev.Change("onSocketTypeChange"))
+            )
+
+            
+            
+
+       
+            <span asp-validation-for="Socket.SocketType"></span>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-2">
+            <label asp-for="Socket.HostName" class="label-name">@DicSvc.XLate("Host Name")</label>
+        </div>
+        <div class="col-8 u-col-h-fixed">
+            <input asp-for="Socket.HostName" class="k-input k-textbox w-95" disabled="disabled" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-2">
+            <label asp-for="Socket.Port" class="label-name">@DicSvc.XLate("Port")</label>
+        </div>
+        <div class="col-4 u-col-h-fixed">
+            <kendo-numerictextbox for="Socket.Port" id="Socket_Port" class="w-50" min="0" format="0" />
+        </div>
+    </div>
+
+
+</div>

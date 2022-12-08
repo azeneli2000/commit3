@@ -1,0 +1,718 @@
+﻿@using ConfiguratorWeb.App.Models.DiaryWeb
+@model Category
+
+
+<style>
+
+/*   .k-item {
+      cursor: default;
+      border: 1px solid #00000024;
+   }*/
+  .k-input-md.k-icon-picker .k-input-inner, .k-picker-md.k-icon-picker .k-input-inner {
+    width: 29.5em;
+    height: 1.5em;
+    padding: 0.375rem;
+    box-sizing: content-box;
+  }
+   .colorWrapperCat .k-colorpicker .k-selected-color {
+      width: 400px;
+      color: black;
+      text-align: center;
+      font-weight: bold;
+   }
+
+   .k-grid .k-dirty {
+      border-width: 0;
+   }
+
+   .rowCategory {
+      margin: 10px;
+      display: flex;
+      width: 100%;
+      height: 30px;
+   }
+
+   .checkCategory {
+      position: relative;
+      top: 84px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 68px;
+   }
+
+   #coverSubCheck
+   {
+     width: 374px;
+    position: relative;
+    top: 41px;
+    height: 165px;
+    left: 651px;
+    z-index: 5;
+    opacity: 0.3;
+    background: white;
+    display:none;
+   }
+
+</style>
+<script>
+
+   var isNameChanged = false;
+   var selectedSub = "" ; 
+   var selectedPh = "" ; 
+   function changeNameControl() {
+      isNameChanged = true;
+   }
+   
+   function orderGridsIndex(tableName) {
+
+      var visibleGrid = $('#'+tableName).data("kendoGrid");
+      for (var i = 0; i < visibleGrid.dataSource._data.length; i++) {
+         visibleGrid.dataSource._data[i].Index = i;
+      }
+
+   }
+   $("#subjectGrid").on("click", "tr.k-state-selected", function () {
+      
+      var gridS = $("#subjectGrid").data("kendoGrid");
+      var dataItemSelectedS1 = gridS.dataItem(this);
+      if (enableGrids == true) {
+         if (dataItemSelectedS1.isEditable) {
+            $("#removeSubjectsBtn").css("display", "inherit");
+         }
+         else {
+            $("#removeSubjectsBtn").css("display", "none");
+         
+         }
+         $("#editSubjectsBtn").css("display", "inherit");
+         $(".arrowSubject").attr('disabled', false);
+         $("#moveSubjectUp").attr('disabled', false);
+         $("#moveSubjectDown").attr('disabled', false);
+         checkAssociationIndex("subjectGrid", 1);
+         isSeelectedSub = dataItemSelectedS1;
+    
+      }
+   });
+
+   $("#phrasesGrid").on("click", "tr.k-state-selected", function () {
+      var gridS = $("#phrasesGrid").data("kendoGrid");
+      var dataItemSelectedS1 = gridS.dataItem(this);
+      if (enableGrids == true) {
+
+         $("#removePhraseBtn").css("display", "inherit");
+         $("#editPhBtn").css("display", "inherit");
+         $(".arrowPH").attr('disabled', false);
+         $("#movePhUp").attr('disabled', false);
+         $("#movePhDown").attr('disabled', false);
+         checkAssociationIndex("phrasesGrid", 2);
+         isSeelectedPh = dataItemSelectedS1;
+      }
+   });
+
+   function UpdateCategoryColor(e) {
+
+
+      $("#Color").val(e.value);
+      $(".colorWrapperCatTxt").val(e.value);
+
+      UpdateColorWrapper(e.value,1);
+   }
+
+   function OnCategorySubjectListBoxRemove(e) {
+      $("#newSubjectTxt").val("");
+      $("#btnAddSubjectCategory").text("Add");
+   }
+
+   function OnCategoryPhraseListBoxRemove(e) {
+      $('#newPhraseTxt').val("");
+      $("#btnAddCategoryPhrase").text("Add");
+   }
+
+   function OnCategorySubjectListBoxChange(e) {
+      let current = e.sender.dataItem(e.sender.select());
+      let txt = "";
+      if (current != undefined && current.Text !== "") {
+         txt = current.Text;
+         $("#btnAddSubjectCategory").text("Update");
+      }
+      else {
+         e.sender.clearSelection();
+         $("#btnAddSubjectCategory").text("Add");
+      }
+      $("#newSubjectTxt").val(txt);
+   }
+
+   function OnCategoryPhraseListBoxChange(e) {
+      let current = e.sender.dataItem(e.sender.select());
+      let txt = "";
+      if (current != undefined && current.Text !== "") {
+         txt = current.Text;
+         $("#btnAddCategoryPhrase").text("Update");
+      }
+      else {
+         e.sender.clearSelection();
+         $("#btnAddCategoryPhrase").text("Add");
+      }
+      $("#newPhraseTxt").val(txt);
+   }
+</script>
+
+
+<div class="card h-90 pt-1 pb-2">
+   <div id="CategoryDetailContainer" class="card-body h-90 p-0 border-0" style="margin-top: 23px;">
+      <form id="CategoryDetailForm" action="javascript:SaveCategory()">
+         @*asp-controller="DiaryWeb" asp-action="SaveCategory"
+            data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress"
+            data-ajax-failure="OnCategoryDetailFormFailure" data-ajax-success="OnCategoryDetailFormSuccess">*@
+         <input asp-for="ID" type="hidden" />
+         <input asp-for="LocationID" type="hidden" />
+         <input asp-for="Index" type="hidden" />
+         <input asp-for="Color" type="hidden" />
+         <div style="display: flex; flex-direction: row; ">
+            <div style="flex-direction: column; order: 0; width: 37%; position: relative; height: 300px; top: 0px;margin:7px;">
+               <div style="display: flex; flex-direction: row; justify-content: space-between; order:0;position:relative;top:0px;">
+                  <label asp-for="Text" class="label-name" style=" margin-right: 33px; margin-top: 6px; font-size: 14px;">@DicSvc.XLate("Text")</label>
+                  <input asp-for="Text" class="k-input k-textbox" style="    width: 426px;position: relative; right: -3px;" required />
+               </div>
+               <div class="colorWrapperCat" style="display: flex; flex-direction: row; justify-content: space-between; order: 1; position: relative; top: 29px;">
+                  <label asp-for="Color" class="label-name" style="font-size: 14px; margin-top: 6px;">Color</label>
+                  <div style="position: relative; left: 30px; height:20px;">
+                     @(Html.Kendo().ColorPicker()
+                  .Name("picker")
+                  .Value(Model.Color)
+                  .Buttons(false)
+                 //.Events(events => events.Change("UpdateCategoryColor"))
+                 .Events(events => events.Select("UpdateCategoryColor"))
+                 .HtmlAttributes(new { style = "height:20px;" })
+                
+
+                  )
+                  </div>
+                  <div class="colorWrapperCatTxt"  style="position: relative;z-index: 5; top: 4px;"> </div>
+               </div>
+               <div style="display: flex; flex-direction: row; justify-content: space-between; order: 2; position: relative; top: 56px; height: 30px;">
+                  <label asp-for="LocationName" class="label-name" style="margin-right: 12px; margin-top: 6px; font-size: 14px;">@DicSvc.XLate("Location")</label>
+                  <div class="input-group">
+                     <input asp-for="LocationName" class=" label-name form-control control-required" readonly="readonly" />
+                     <span class="input-group-append">
+                        <button id="btnLocation" onclick="openLocationsGrid();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Set Location">
+                           <span class="mdi mdi-pencil"></span>
+                        </button>
+                        <button id="btnClearLocation" onclick="clearLocationField();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Clear Location">
+                           <span class="mdi mdi-close"></span>
+                        </button>
+                     </span>
+                  </div>
+               </div>
+               <div class="checkCategory">
+                  <div style="">
+                     <label style="padding-right: 20px; font-size: 14px; margin-top: -3px;">@DicSvc.XLate("IsActive")</label>
+                     @Html.Kendo().CheckBoxFor(m => m.IsActive).Label("")
+
+                  </div>
+                  <div style="">
+                     <label style="padding-right: 12px; font-size: 14px; margin-top: -3px ">@DicSvc.XLate("IsSystem") </label>
+                     @Html.Kendo().CheckBoxFor(m => m.IsSystem).Label("")
+
+                  </div>
+               </div>
+            </div>
+             <div id="coverSubCheck"></div>
+            <div class="d-flex justify-content-between m-2" style="flex-direction: column; order: 1; width: 63%; justify-content: space-between; ">
+               <div style="display: flex; flex-direction: row; justify-content: right;">
+                  <div>
+                     @{await Html.RenderPartialAsync("_Subject", Model);}
+                  </div>
+                  <div style="display:flex; flex-direction:column;position:relative;">
+                     <div>
+                        <button id="addSubjectsBtn"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base" type="button"><span class="k-icon  k-i-plus"></span></button>
+
+                     </div>
+                     <div style="width: 25px; position: relative; top: 5px;">
+                        <button id="removeSubjectsBtn" style="display:none;"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base"type="button"><span class="k-icon k-i-minus"></span></button>
+                     </div>
+                     <div class="arrowSubject" style="position:absolute;bottom:0;" disabled="disabled">
+                        <div style="display:flex; flex-direction:column;">
+                           <button id="moveSubjectUp"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base" style="margin-bottom: 1px;" type="button"><span class="k-icon k-i-arrow-60-up"></span></button>
+                           <button id="moveSubjectDown"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base" type="button"><span class="k-icon k-i-arrow-60-down"></span></button>
+                        </div>
+                     </div>
+                      <div style="width: 25px; position: absolute; bottom: 58px;">
+                        <button id="editSubjectsBtn" style="display:none;"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base"type="button"><span class="k-icon k-i-pencil"></span></button>
+                     </div>
+                  </div>
+               </div>
+               <div style="display: flex; flex-direction: row; justify-content: right;">
+                  <div>
+                     @{await Html.RenderPartialAsync("_Phrase", Model);}
+                  </div>
+                  <div style="display: flex; flex-direction: column; position: relative; top: 20px;">
+                     <div>
+                        <button id="addPhraseBtn" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base"  type="button"><span class="k-icon  k-i-plus"></span></button>
+
+                     </div>
+                     <div style="width: 25px; position: relative; top: 5px;">
+                        <button id="removePhraseBtn" style="display:none;"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base"type="button"><span class="k-icon k-i-minus"></span></button>
+                     </div>
+                     <div class="arrowPH" style="position:absolute;bottom:0;" disabled="disabled">
+                        <div style="display:flex; flex-direction:column;">
+                           <button id="movePhUp" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base"  style="margin-bottom: 1px;" type="button"><span class="k-icon k-i-arrow-60-up"></span></button>
+                           <button id="movePhDown" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base"  type="button"><span class="k-icon k-i-arrow-60-down"></span></button>
+                        </div>
+                     </div>
+                      <div style="width: 25px; position:absolute;bottom:58px;">
+                        <button id="editPhBtn" style="display:none;"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base"type="button"><span class="k-icon k-i-pencil"></span></button>
+                     </div>
+                  </div>
+               </div>
+
+
+            </div>
+         </div>
+      </form>
+   
+   </div>
+</div>
+<div class="card-footer h-10 p-0 m-0 border bg-white">
+
+   @{
+      string postId = ""; //use in case of multi toolbar
+   }
+   @(Html.Kendo().ToolBar()
+                              .Name("toolbarDiaryCategoryDetail")
+                              .UmsDefaultErrors(DicSvc, "errors")
+                              .Items(items =>
+                              {
+                                 if (Model.ID > 0)
+                                 {
+
+                                    items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode");
+                                 }
+                                 items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode");
+                              })
+                              .UmsDefaultSettings(DicSvc, postId).HtmlAttributes(new {@style="height:49px;" })
+      )
+</div>
+
+<kendo-window name="popupLocations"
+              draggable="false"
+              scrollable="false"
+              visible="false"
+              width="600"
+              modal="true"
+              title="LOCATIONS"
+              height="500"
+              resizable="true">
+   <popup-animation enabled="false" />
+</kendo-window>
+
+<script type="text/javascript">
+   var enableGrids = false;
+   var originaelCatName;
+   var customAddSubject;
+   var customAddSubject2;
+
+   $(document).ready(function () {
+      var dialogCat = $("#DiaryCategoryDetailDialog").data("kendoWindow");
+      dialogCat.bind("close", window_closeCat);
+      UpdateColorWrapper('@Model.Color', 1);
+      originaelCatName= document.getElementById("Text").value;
+
+
+   });
+
+   function setInitColor() {
+
+      var randomColorC = (Math.random() * 0xFFFFFF << 0).toString(16).padStart(6, '0');
+
+      var colorPicker = $("#picker").data("kendoColorPicker");
+
+         colorPicker.value("#" + randomColorC);
+         $(".colorWrapperCatTxt").text("#" + randomColorC);
+         $(".colorWrapperCatTxt").css("color", pickTextColorBasedOnBgColorAdvanced("#" + randomColorC));
+         $("#Color").val("#" + randomColorC);
+
+
+   }
+
+   function window_closeCat() {
+
+
+      var dialogCat = $("#DiaryCategoryDetailDialog").data("kendoWindow");
+      dialogCat.unbind("close", window_closeCat);
+     /* resetCategoryInput();*/
+      $("html").css("overflow-y", "hidden");
+
+   };
+
+
+   var categoryDialogActualMode = 0;
+
+
+   function OnCategoryDetailFormSuccess(response) {
+
+
+      if (response.success) {
+         var dialog = $('#DiaryCategoryDetailDialog').data('kendoWindow');
+         var grid = $("#DiaryWebCategories").data("kendoGrid");
+         grid.dataSource.read();
+         dialog.content('');
+         dialog.close();
+      }
+      else {
+         OnCategoryDetailFormFailure(response);
+      }
+   }
+
+   function OnCategoryDetailFormFailure(response) {
+
+
+      window.umsAlert('@DicSvc.XLate("Error occurred")', response.errorMessage, 400, 150);
+      $("html").css("overflow-y", "auto");
+   }
+
+   function CategoryDialogChangeToEditMode(type) {
+        var gridS = $("#subjectGrid").data("kendoGrid");
+      gridS.clearSelection();
+
+      var gridP = $("#phrasesGrid").data("kendoGrid");
+      gridP.clearSelection();
+
+      categoryDialogActualMode = 2;
+      $(".modify-mode").show();
+      $(".view-mode").hide();
+      umsHideAllEditSaveButton();
+      toolBarShowButtonByClass("modify-mode");
+      $('#CategoryDetailForm :input').attr('disabled', false);
+      $('#CategoryDetailForm :input').each(function () {
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+            cb.enable(true);
+         }
+      });
+
+      if ($("#ID").val() == "0") {
+
+
+         $("#btnDelete").hide();
+         if (type == null) {
+            setInitColor();
+         }
+      }
+
+      $("#btnAddSubjectCategory").attr('disabled', false);
+      $("#btnAddCategoryPhrase").attr('disabled', false);
+      $("#newSubjectTxt").attr('disabled', false);
+      $("#newPhraseTxt").attr('disabled', false);
+
+      enableGrids = true;
+   }
+
+   function CategoryDialogChangeToViewMode() {
+      categoryDialogActualMode = 1;
+      $("#errors").html("");
+      $(".view-mode").show();
+      $(".modify-mode").hide();
+      umsHideAllEditSaveButton();
+      toolBarShowButtonByClass("view-mode");
+      $('#CategoryDetailForm :input').attr('disabled', true);
+      $('#CategoryDetailForm :input').each(function () {
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+               cb.enable(false);
+         }
+      });
+      $("#btnAddSubjectCategory").attr('disabled', true);
+      $("#btnAddCategoryPhrase").attr('disabled', true);
+      $("#newSubjectTxt").attr('disabled', true);
+      $("#newPhraseTxt").attr('disabled', true);
+      $("#coverSubCheck").css('display', 'block');
+
+      enableGrids = false;
+   }
+
+   function setMode() {
+      if (categoryDialogActualMode === 2)
+         CategoryDialogChangeToEditMode();
+      else
+         CategoryDialogChangeToViewMode();
+   }
+
+   function toolBarShowButtonByClass(wclass) {
+      var tb = $("#toolbarDiaryCategoryDetail").data("kendoToolBar");
+      tb.umsShowButtonByClass(wclass);
+   }
+   function umsHideAllEditSaveButton() {
+      var tb = $("#toolbarDiaryCategoryDetail").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+
+   function SaveDiaryCategory() {
+      if (OnValidation()) {
+         $("#CategoryDetailForm").submit();
+         $("html").css("overflow-y", "hidden");
+      }
+   }
+
+   function OnValidation() {
+
+
+      $("#errors").html("");
+      $("#errors").css("margin", "auto");
+      var retValue = false;
+      var validator = $("#CategoryDetailForm").kendoValidator().data("kendoValidator");
+      if (!validator.validate()) {
+         try {
+            var errors = validator.errors();
+
+            $("#errors").html(buildValidationMessage(errors));
+         }
+         catch (e) {
+            $("#errors").html(e);
+         }
+      }
+      else {
+         $("#errors").html("");
+         retValue = true;
+      }
+
+      return retValue;
+   }
+   $('#btnCopy').off('click').on('click', function () {
+
+      $("#ID").val("0");
+      $("#Text").val("");
+
+      var phrases = $('#phrasesGrid').getKendoGrid().dataSource.data();
+      for (let i = 0; i < phrases.length; i++) {
+         phrases[i].set("ID", "");
+         phrases[i].set("Category", "");
+      }
+      var subject = $('#subjectGrid').getKendoGrid().dataSource.data();
+      for (let i = 0; i < subject.length; i++) {
+         subject[i].set("ID", "");
+         subject[i].set("Category", "");
+      }
+      CategoryDialogChangeToEditMode(1);
+   });
+   function DeleteCategory() {
+      $.ajax({
+         url: '@Url.Action("DeleteCategory", "DiaryWeb")',
+         type: 'POST',
+         data: { ID: '@Model.ID' }
+
+      }).done(function (data) {
+         if (data.success != undefined && data.success) {
+
+            var dialog = $('#DiaryCategoryDetailDialog').data('kendoWindow');
+            var grid = $("#DiaryWebCategories").data("kendoGrid");
+            if (data.resCode == 0)
+            {
+               grid.dataSource.read();
+               dialog.close();
+            }
+            if (data.resCode == 1) {
+                umsConfirm('@DicSvc.XLate("Error occurred")', '@DicSvc.XLate("Cannot Delete this Category. One or more Subjectes are referenced by a Note. Do you want deactivate this Category ?")', onOkDeactiveCategory, onCancelFromDialog(this));
+            }
+         }
+         else {
+            $('#errors').html('not saved. reason:' + data.errorMessage);
+         }
+      }).fail(function (response) { umsErrorDialog('@DicSvc.XLate("Error occurred")', response.errorMessage, 200, 200); });
+   }
+
+   function onOkDeactiveCategory() {
+      
+           $.ajax({
+            url: '@Url.Action("DeactiveCategory", "DiaryWeb")',
+            type: 'POST',
+            data: { ID: '@Model.ID' }
+        }).done(function (data) {
+           var dialog = $('#DiaryCategoryDetailDialog').data('kendoWindow');
+           var grid = $("#DiaryWebCategories").data("kendoGrid");
+           if (data.statusCode == 0) {
+              grid.dataSource.read();
+              dialog.close();
+           }
+           else {
+              umsErrorDialog('@DicSvc.XLate("Error occurred")', '@DicSvc.XLate("This category has already been deactivated")', 200, 200);
+           }
+        });
+   }
+
+
+   function onCancelFromDialog() {
+      /*var dialog = $('.k-widget k-window k-dialog').data("kendoWindow");*/
+      $("html").css("overflow-y", "hidden");
+      /*resetCategoryInput();*/
+      this.close();
+   }
+   function CancelDeleteCategory() {
+      /* do nothing */
+   }
+
+   function openLocationsGrid() {
+        $.ajax({
+            url: '@Url.Action("GetLocations", "SystemConfiguration")',
+            type: 'GET',
+            data: { id: '@Model.LocationID' }
+        }).done(function (data) {
+
+            var dialogAbout = $("#popupLocations");
+            dialogAbout.data("kendoWindow").content(data);
+            dialogAbout.data("kendoWindow").center().open();
+        });
+   }
+
+   function clearLocationField() {
+      $("#LocationName").val("");
+      $("#LocationID").val("0");
+      $("#CategoryDetailForm input").trigger("change");
+   }
+
+   //used by _LocationModal
+   function onDataBoundLoc(e) {
+      var that = this;
+      var grid = $("#loc-grid").data("kendoGrid");
+      if ($('#LocationID').val() != '') {
+         grid.items().each(function () {
+            var data = grid.dataItem(this);
+            if (data.ID == $('#LocationID').val()) {
+               grid.select(this);
+            }
+         });
+      }
+
+      $(that.tbody).off("click", "tr").on("click", "tr", function (e) {
+
+         //save grid and current search form state and current url
+         //var dataSource = grid.dataSource;
+
+         var keyVal = grid.dataItem($(e.currentTarget).closest("tr"))['LocationName'];
+         var keyId = grid.dataItem($(e.currentTarget).closest("tr"))['ID'];
+         $("#LocationName").val(keyVal);
+         $("#LocationID").val(keyId);
+         $("#LocationName").trigger("input");
+         $('#popupLocations').data("kendoWindow").close();
+		   $("#CategoryDetailForm input").trigger("change");
+      });
+   }
+
+
+
+
+
+
+   $("#Text").change(changeNameControl);
+
+   function SaveCategory()
+   {
+        
+
+      var listbox = $('#phrasesGrid').getKendoGrid().dataSource.data();
+      var phrases= [];
+      for (let i = 0; i < listbox.length; i++)
+      {
+         if (listbox[i].Text !== "" ) {
+            phrases.push({ ID: listbox[i].ID, Category: listbox[i].Category, Text: listbox[i].Text, Index: listbox[i].Index })
+         }
+      }
+
+      listbox = $('#subjectGrid').getKendoGrid().dataSource.data();
+      var subjects = [];
+      var subPhPost = [] ;
+
+      for (let i = 0; i < listbox.length; i++) {
+
+         if (listbox[i].Text !== "" ) {
+          for(let j=0; j < listbox[i].SubjectsPhrases.length; j++ )
+          {
+            subPhPost.push({  ID:listbox[i].SubjectsPhrases[j].ID, Text: listbox[i].SubjectsPhrases[j].Text, Index: listbox[i].SubjectsPhrases[j].Index,Subject: listbox[i].SubjectsPhrases[j].Subject })
+
+          }
+            subjects.push({ ID: listbox[i].ID, Category: listbox[i].Category, Text: listbox[i].Text, Index: listbox[i].Index, IsActive:listbox[i].IsActive,SubjectsPhrases:subPhPost })
+            subPhPost = [];
+         }
+      }
+
+      var finalIndex;
+      if ($("#ID").val() == "0") {
+         var indexCat = [];
+         var cat = $('#DiaryWebCategories').getKendoGrid().dataSource.data();
+         for (let i = 0; i < cat.length; i++) {
+            indexCat.push(cat[i].Index);
+         }
+         finalIndex = Math.max(...indexCat) + 1;
+
+      }
+      else {
+         finalIndex = parseInt($("#Index").val().toString(), 10);
+      }
+
+      var isActiveVal = document.getElementById("IsActive").checked;
+      var isSystemVal = document.getElementById("IsSystem").checked;
+
+      var cat = {
+         ID: $("#ID").val(),
+         Text: $("#Text").val(),
+         Color: $("#Color").val(),
+         LocationID: $("#LocationID").val(),
+         Subjects: subjects,
+         Phrases: phrases,
+         Index: finalIndex,
+         IsActive: isActiveVal,
+         IsSystem: isSystemVal
+      };
+
+
+       $.ajax({
+         url: '@Url.Action("SaveCategory", "DiaryWeb")',
+         type: 'POST',
+          data: { c: cat, isNameUpdated: isNameChanged, oldName: originaelCatName},
+       }).done(function (data) { OnCategoryDetailFormSuccess(data); }).fail(function (response) { OnCategoryDetailFormFailure(response); });
+   }
+
+   $(document).ready(function () {
+      var dialog = $('#DiaryCategoryDetailDialog').data("kendoWindow");
+      dialog.bind("activate", setMode);
+
+      if (@Model.ID > 0) {
+         CategoryDialogChangeToViewMode();
+      }
+      else
+      {
+         CategoryDialogChangeToEditMode();
+      }
+
+
+      $('#btnEdit').off('click').on('click', function () {
+
+         CategoryDialogChangeToEditMode();
+
+      });
+
+      $('#btnCancel').off('click').on('click', function () {
+
+         if ($("#ID").val() == "0") {
+            dialog.close();
+            return;
+         }
+         OpenCategoryDetail('@Model.ID');
+      });
+
+      $('#btnSave').off('click').on('click', function () {
+         SaveDiaryCategory();
+      });
+      $('#btnDelete').off('click').on('click', function () {
+         umsConfirm('@DicSvc.XLate("Confirm delete")', '@DicSvc.XLate("Do you really want to delete this Category?")', DeleteCategory, CancelDeleteCategory);
+      });
+      $('#btnClose').off('click').on('click', function () {
+         $("html").css("overflow-y", "hidden");
+         /*resetCategoryInput();*/
+         dialog.close();
+      });
+   });
+
+
+
+</script>

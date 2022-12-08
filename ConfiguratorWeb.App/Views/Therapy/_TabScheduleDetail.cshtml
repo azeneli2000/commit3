@@ -1,0 +1,1867 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@model TherapyItemModel
+@{
+	ViewData["Title"] = "_TabClassificationDetail";
+
+
+
+	var timeChanged = new List<SelectListItem>() {
+new SelectListItem(DicSvc.XLate("No"), "0"),
+new SelectListItem(DicSvc.XLate("Yes"), "1"),
+new SelectListItem(DicSvc.XLate("YesByDefault"),"2")
+};
+	var policy = new List<SelectListItem>() {
+new SelectListItem(DicSvc.XLate("No Policy"), "0"),
+new SelectListItem(DicSvc.XLate("Yes Policy"), "1")
+};
+	List<SelectListItem> HoursinDay = new List<SelectListItem>();
+
+	for (int i = 0; i < 24; i++)
+	{
+		var finalHour = i.ToString();
+		if (i.ToString().Length == 1)
+		{
+			finalHour = '0' + i.ToString();
+		}
+		var obj = new SelectListItem();
+		obj.Text = finalHour;
+		obj.Value = i.ToString();
+		HoursinDay.Add(obj);
+	}
+
+
+	List<SelectListItem> daysSchedule = new List<SelectListItem>
+																() {
+						new SelectListItem("Monday", "1"),
+						new SelectListItem("Tuesday", "2"),
+						new SelectListItem("Wednesday","3"),
+						new SelectListItem("Thursday","4"),
+						new SelectListItem("Friday","5"),
+						new SelectListItem("Saturday","6"),
+						new SelectListItem("Sunday","7")
+};
+
+List<SelectListItem> customDaysSchedule = new List<SelectListItem>
+																() {
+						new SelectListItem("Monday", "1"),
+						new SelectListItem("Tuesday", "2"),
+						new SelectListItem("Wednesday","3"),
+						new SelectListItem("Thursday","4"),
+						new SelectListItem("Friday","5"),
+						new SelectListItem("Saturday","6"),
+						new SelectListItem("Sunday","0")
+};
+
+	List<SelectListItem> daysScheduleR = new List<SelectListItem>
+																() {
+						new SelectListItem(("0+"), "0"),
+						new SelectListItem(("1+"), "1"),
+						new SelectListItem(("2+"),"2"),
+						new SelectListItem(("3+"),"3"),
+						new SelectListItem(("4+"),"4"),
+						new SelectListItem(("5+"),"5"),
+						new SelectListItem(("6+"),"6")
+
+};
+
+
+	List<SelectListItem> planningTyeVal = new List<SelectListItem>
+																				() {
+								 new SelectListItem(DicSvc.XLate("None"), "-1"),
+								 new SelectListItem(DicSvc.XLate("Immediate"), "0"),
+								 new SelectListItem(DicSvc.XLate("Conditional"),"1"),
+								 new SelectListItem(DicSvc.XLate("Daily"),"2"),
+								 new SelectListItem(DicSvc.XLate("Weekly"),"3"),
+								 new SelectListItem(DicSvc.XLate("Schema"),"4"),
+								 new SelectListItem(DicSvc.XLate("Custom"),"5")
+									  };
+
+
+	List<SelectListItem> toleranceValue = new List<SelectListItem>() {
+								 new SelectListItem(DicSvc.XLate("00:05"), "5"),
+								 new SelectListItem(DicSvc.XLate("00:10"), "10"),
+								 new SelectListItem(DicSvc.XLate("00:15"), "15"),
+								 new SelectListItem(DicSvc.XLate("00:20"), "20"),
+								 new SelectListItem(DicSvc.XLate("00:30"),"30"),
+								 new SelectListItem(DicSvc.XLate("00:40"),"40"),
+								 new SelectListItem(DicSvc.XLate("00:45"),"45"),
+								 new SelectListItem(DicSvc.XLate("01:00"),"60"),
+								 new SelectListItem(DicSvc.XLate("01:30"),"90"),
+								 new SelectListItem(DicSvc.XLate("02:00"),"120"),
+								 new SelectListItem(DicSvc.XLate("03:00"),"180"),
+								 new SelectListItem(DicSvc.XLate("04:00"),"240"),
+								 new SelectListItem(DicSvc.XLate("06:00"),"360"),
+								 new SelectListItem(DicSvc.XLate("08:00"),"480"),
+								 new SelectListItem(DicSvc.XLate("09:00"),"540"),
+								 new SelectListItem(DicSvc.XLate("12:00"),"720"),
+};
+
+	List<SelectListItem> schedulePolicy = new List<SelectListItem>() {
+						new SelectListItem(DicSvc.XLate("Immediate"), "-4"),
+						new SelectListItem(DicSvc.XLate("Next hour"), "-3"),
+						new SelectListItem(DicSvc.XLate("Next even hour"), "-2"),
+						new SelectListItem(DicSvc.XLate("Next odd hour"), "-1"),
+						new SelectListItem(DicSvc.XLate("No policy"), "0"),
+
+};
+
+	for (int i = 1; i <= 24; i++)
+	{
+		var obj = new SelectListItem();
+		obj.Text = "Start at " + i.ToString();
+		obj.Value = i.ToString();
+		schedulePolicy.Add(obj);
+	}
+
+	List<SelectListItem> patternDrop = new List<SelectListItem>
+																() {
+						new SelectListItem(DicSvc.XLate("Minutes"), "0"),
+						new SelectListItem(DicSvc.XLate("Hours"), "1"),
+						new SelectListItem(DicSvc.XLate("Days"),"2"),
+
+
+};
+
+
+}
+<style>
+	#colH .k-i-x, #colD .k-i-x {
+		display: none !important;
+	}
+
+	#colH .k-i-close, #colD .k-i-close {
+		display: none !important;
+	}
+
+	#colH .k-chip-content, #colD .k-chip-content {
+		padding-right: 4px;
+	}
+
+	#Schedule_HowManyTimes::-webkit-outer-spin-button,
+	#Schedule_HowManyTimes::-webkit-inner-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+
+	#colH .k-icon.k-i-close {
+		display: none !important;
+	}
+
+	#colD .k-icon.k-i-close {
+        display: none !important;
+    } 
+</style>
+
+<script>
+		   var isStartEdit = false;
+		   var selectedCustom = "";
+		var nameSelectedMulti  ;
+		if(multiSelectDayVal.lenght > 0 )
+		{
+		if(nameSelectedMulti.includes('+'))
+		{
+			nameSelectedMulti =  "#MultiDaysR"
+		}
+		else
+		{
+		   nameSelectedMulti = "#MultiDays"
+		}
+		}
+		else
+		{
+		nameSelectedMulti = "#MultiDays"
+		}
+		   function changeIdSelected(val, val1) {
+		  var container = document.querySelector("#textCustom");
+		  var matches = container.querySelectorAll("input[type='text']");
+		  for (var j = 0; j < matches.length; j++) {
+						 $(matches[j]).css("border", "");
+				  }
+				  selectedCustom = val.id;
+		  $("#onlyForCustom").css("display", "");
+		  $("#startlb1").text(" ");
+		  $("#startlb2").text("hours");
+		  isStartEdit = true;
+		  $("#" + selectedCustom).css("border", "3px solid lightblue");
+		  $("#" + selectedCustom).css("cursor", "pointer");
+		   }
+
+		   $('#startingFromDesc').keydown(function (e) {
+		  e.preventDefault();
+		   });
+		   $('#patternSchedule').keydown(function (e) {
+		  e.preventDefault();
+		   });
+		   $('#Schedule_CustomOrdersDesc').keydown(function (e) {
+		  e.preventDefault();
+		   });
+
+
+		   function orderMultiselect(name) {
+		  var multi = $(name).data("kendoMultiSelect");
+
+		  var result = multi.dataItems();
+		  var x = [];
+				  for(var j=0 ; j < result.length;j++)
+		  {
+			  x.push(parseInt(result[j].Value));
+		  }
+		  x.sort(function(a, b) {
+				return a - b;
+		});
+		  tempDays = [];
+		  for (var i = 0; i < x.length; i++) {
+			 tempDays.push(x[i]);
+				  }
+		  multi.value("");
+		  multi.value(tempDays);
+
+		   }
+
+
+
+		   function onSelectPlanningType(e) {
+				var index =0;
+				index = parseInt(e.dataItem.Value);
+				Schedule_resetValue();
+				var dropdownlist = $("#Schedule_PlanningType").data("kendoDropDownList");
+				dropdownlist.value("-1");
+				changePlanningType(index, "change");
+
+		   }
+
+		function onSelectSchedPolicy(e) {
+
+		  var policyVal = e.dataItem.Value;
+		  $("#Schedule_SchedPolicy").val(policyVal);
+		  multiSelectHourVal = [];
+				  tempHours = [];
+		  var selectedItemsFromMulti = $("#MultiHours").data("kendoMultiSelect");
+		  selectedItemsFromMulti.value(tempHours);
+		  $("#colH").css("margin-bottom", "0px");
+		  //$("#Schedule_HowManyTimes").val(null);
+		  if (policyVal == '-4') {
+			 Schedule_resetValue();
+			 changePlanningType(0, "change");
+			 var planning = $("#Schedule_PlanningType").data("kendoDropDownList");
+			 planning.value("0");
+		  }
+
+
+		   }
+		   function defaultSelect(e) {
+		  e.preventDefault();
+		   }
+
+		   function reCalculatePattern(e) {
+
+		  if (document.getElementById("executeP").checked == true) {
+			 if ($("#executePText2").val() != "" && $("#executePText3").val() != "") {
+				calculatePattern(1);
+			 }
+		  }
+		  if (document.getElementById("executeP2").checked == true) {
+			 if ($("#executePText").val() != "" && $("#executePText3").val() != "") {
+				calculatePattern(2);
+			 }
+				  }
+		  if (document.getElementById("executeP3").checked == true) {
+			 if ($("#executePText").val() != "" && $("#executePText2").val() != "") {
+				calculatePattern(3);
+			 }
+		  }
+		   }
+		   var countOfCustom = 0 ;
+
+</script>
+<div id="mainScheduleContainer" style="margin:7px;">
+
+	<div id="customDetail" style="width: 100%">
+		<div class="form-group row">
+			<div>
+				<label for="StartingFromH">@DicSvc.XLate("Description")</label>
+			</div>
+			<div id="textCustom" style="overflow-y: auto;width: 98%;height: 118px;position: relative;top: 5px;">
+				@*<textarea id="descCustom" rows="6" class="k-textarea w-100" style="resize: none;"></textarea>*@
+			</div>
+		</div>
+		<div class="row" style="position: relative;z-index: 1;top: 23px;width: 375px;">
+			<div class="col-4">
+				<button type="button" id="removeCustomBtn" class="k-button k-button-solid-base k-button-solid k-button-rectangle k-button-md k-rounded-md" style="width:100%;">@DicSvc.XLate("Remove")</button>
+			</div>
+			<div class="col-4">
+				<button type="button" id="editCustomBtn" class="k-button k-button-solid-base k-button-solid k-button-rectangle k-button-md k-rounded-md" style="width:100%;">@DicSvc.XLate("Edit")</button>
+			</div>
+			<div class="col-4">
+				<button type="button" id="addCustomBtneH" class="k-button k-button-solid-base k-button-solid k-button-rectangle k-button-md k-rounded-md" style="width:100%;" onclick="Schedule_clickAddCustom()">@DicSvc.XLate("Add")</button>
+			</div>
+		</div>
+		<div class="window-footer">
+			<button type="button" id="okCustomgWnd" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary">Ok</button>
+			<button type="button" id="closeCustomgWnd" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base">Close</button>
+
+		</div>
+	</div>
+
+
+	<div id="stratingFromDetail" style="width: 100%">
+		<div class="form-group row">
+			<div class="col-md-1 ">
+				<input id="selStartingFromH" name='customOrdersInput' type="radio" style="top: 7px;position: relative;" onchange="Therapy_RadioGrids_ValueChanged('selStartingFromH',0)" />
+
+			</div>
+			<div class="col-md-1 ">
+				<label for="StartingFromH">@DicSvc.XLate("at")</label>
+			</div>
+			<div class="col-4 u-col-h-fixed">
+				@*<input id="StartingFromH" type="number" min="1" max="23" class="k-input k-textbox" />*@
+				@(Html.Kendo().NumericTextBox()
+				.Step(1)
+				.Spinners(true)
+				.HtmlAttributes(new { @class = "numericStyleLarge" })
+				.Format("#.######")
+				.RestrictDecimals(true)
+				.Decimals(0)
+				.Min(1)
+				.Max(23)
+				.Name("StartingFromH")
+
+				)
+			</div>
+			<div class="col-md-2 ">
+				<label id="startlb1">@DicSvc.XLate("hours")</label>
+			</div>
+		</div>
+		<div class="form-group row">
+			<div class="col-md-1 ">
+				<input id="selStartingFromD" name='customOrdersInput' style="top: 7px;position: relative;" type="radio" onchange="Therapy_RadioGrids_ValueChanged('selStartingFromD',0)" />
+			</div>
+			<div class="col-md-1 ">
+				<label for="StartingFromD">@DicSvc.XLate("in")</label>
+			</div>
+			<div class="col-4 u-col-h-fixed">
+				@*<input id="StartingFromD" type="number" min="1" max="99" class="k-input k-textbox" />*@
+				@(Html.Kendo().NumericTextBox()
+				.Step(1)
+				.Spinners(true)
+				.HtmlAttributes(new { @class = "numericStyleLarge" })
+				.Format("#.######")
+				.RestrictDecimals(true)
+				.Decimals(0)
+				.Min(1)
+				.Max(99)
+				.Name("StartingFromD")
+
+				)
+			</div>
+			<div class="col-md-2 ">
+				<label id="startlb2">@DicSvc.XLate("days")</label>
+			</div>
+		</div>
+		<div class="form-group row" id="onlyForCustom" style="display:none;">
+			<div class="col-md-1 ">
+				<input id="selDay" name='customOrdersInput' style="top: 7px;position: relative;" type="radio" onchange="Therapy_RadioGrids_ValueChanged('selDay',0)" />
+			</div>
+			<div class="col-md-1 ">
+				<label for="StartingFromD">@DicSvc.XLate("on")</label>
+			</div>
+			<div class="col-4 u-col-h-fixed">
+				@(Html.Kendo().DropDownList()
+				.BindTo(customDaysSchedule)
+				.HtmlAttributes(new { @style = "width:150px;height:30px;" })
+				.DataTextField("Text")
+				.DataValueField("Value")
+				.Name("dropCustomDay")
+
+				)
+			</div>
+			<div class="col-md-2 ">
+				<label>@DicSvc.XLate("at")</label>
+			</div>
+			<div class="col-2 u-col-h-fixed">
+				@*<input id="DayNumberCustom" type="number" min="1" max="24" class="k-input k-textbox" />*@
+				@(Html.Kendo().NumericTextBox()
+				.Step(1)
+				.Spinners(true)
+				.HtmlAttributes(new { @class = "numericStyleLarge" })
+				.Format("#.######")
+				.RestrictDecimals(true)
+				.Decimals(0)
+				.Min(1)
+				.Max(23)
+				.Name("DayNumberCustom")
+
+				)
+			</div>
+		</div>
+		<div class="form-group row">
+			<div class="col-md-1 ">
+				<input id="selStartingFromDA" name='customOrdersInput' type="radio" style="top: 7px;position: relative;" onchange="Therapy_RadioGrids_ValueChanged('selStartingFromDA',0)" />
+			</div>
+			<div class="col-md-1 ">
+				<label for="selStartingFromDA">@DicSvc.XLate("in")</label>
+			</div>
+			<div class="col-4 u-col-h-fixed">
+				@*<input id="StartingFromDA" type="number" min="1" max="99" class="k-input k-textbox" />*@
+				@(Html.Kendo().NumericTextBox()
+				.Step(1)
+				.Spinners(true)
+				.HtmlAttributes(new { @class = "numericStyleLarge" })
+				.Format("#.######")
+				.RestrictDecimals(true)
+				.Decimals(0)
+				.Min(1)
+				.Max(99)
+				.Name("StartingFromDA")
+
+				)
+			</div>
+			<div class="col-md-2 ">
+				<label>@DicSvc.XLate("days at")</label>
+			</div>
+			<div class="col-2 u-col-h-fixed">
+				@*<input id="StartingFromDA1" type="number" min="1" max="99" class="k-input k-textbox" />*@
+				@(Html.Kendo().NumericTextBox()
+				.Step(1)
+				.Spinners(true)
+				.HtmlAttributes(new { @class = "numericStyleLarge" })
+				.Format("#.######")
+				.RestrictDecimals(true)
+				.Decimals(0)
+				.Min(1)
+				.Max(99)
+				.Name("StartingFromDA1")
+
+				)
+			</div>
+		</div>
+		<div class="window-footer" style="height: 67px;">
+
+			<button type="button" id="okStartingWnd" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary" onclick="Schedule_stratingFromOkClick('starting')">Ok</button>
+			<button type="button" id="closeStartingWnd" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base">Close</button>
+			<p id="errStart" style="display: none; color: red; bottom: 25px;position: relative; width: 50%; left: 165px;">@DicSvc.XLate("Input required")</p>
+		</div>
+	</div>
+
+	<div id="patternDetail" style="width: 100%">
+
+
+		<div class="form-group row">
+			<div class="col-md-3 ">
+				<label for="executeP">@DicSvc.XLate("Execute")</label>
+			</div>
+
+
+			<div class="col-md-2 ">
+				<input id="executeP" type="radio" style="top: 7px;position: relative;" onchange="Therapy_RadioGrids_ValueChanged('executeP',3)" />
+
+			</div>
+
+			<div class="col-2 u-col-h-fixed">
+				@*<input id="executePText" type="number" min="1" step="1" class="k-input k-textbox" onchange="reCalculatePattern()" />*@
+				@(Html.Kendo().NumericTextBox()
+				.Step(1)
+				.Spinners(false)
+				.Format("0")
+				.Decimals(0)
+				.Min(0)
+				.Max(99)
+				.HtmlAttributes(new { @class = "numericStyle" })
+				.Name("executePText")
+				.Events(ev => ev.Change("reCalculatePattern()"))
+
+				)
+			</div>
+			<div class="col-md-2 ">
+				<label>@DicSvc.XLate("Times")</label>
+			</div>
+		</div>
+		<div class="form-group row">
+			<div class="col-md-3 ">
+				<label for="executeP">@DicSvc.XLate("At interval of")</label>
+			</div>
+			<div class="col-md-2 ">
+				<input id="executeP2" type="radio" style="top: 7px;position: relative;" onchange="Therapy_RadioGrids_ValueChanged('executeP2',3)" />
+
+			</div>
+
+			<div class="col-2 u-col-h-fixed">
+				@*<input id="executePText2" type="number" min="1" step="0.5" class="k-input k-textbox" onchange="reCalculatePattern()" />*@
+				@(Html.Kendo().NumericTextBox()
+				.Step(0.1F)
+				.Spinners(false)
+				.HtmlAttributes(new { @class = "numericStyle" })
+				.Format("#.######")
+				.RestrictDecimals(true)
+				.Decimals(2)
+				.Name("executePText2")
+				.Events(ev => ev.Change("reCalculatePattern()"))
+
+				)
+
+			</div>
+			<div class="col-2 u-col-h-fixed">
+				<div class="col-md-2 ">
+					@(Html.Kendo().DropDownList()
+					.BindTo(patternDrop)
+
+					.HtmlAttributes(new { @style = "width: 90px;height: 30px;position: relative;right: 16px; " })
+					.DataTextField("Text")
+					.DataValueField("Value")
+					.Events(ev => ev.Change("reCalculatePattern"))
+
+					.Name("dropPattern2")
+
+					)
+				</div>
+			</div>
+		</div>
+		<div class="form-group row">
+			<div class="col-md-3 ">
+				<label for="executeP">@DicSvc.XLate("In")</label>
+			</div>
+			<div class="col-md-2 ">
+				<input id="executeP3" type="radio" style="top: 7px;position: relative;" onchange="Therapy_RadioGrids_ValueChanged('executeP3',3)" />
+			</div>
+			<div class="col-2 u-col-h-fixed">
+				@*<input id="executePText3" type="number" min="1" step="0.5" class="k-input k-textbox" onchange="reCalculatePattern()" />*@
+
+				@(Html.Kendo().NumericTextBox()
+				.Step(0.1F)
+				.Spinners(false)
+				.HtmlAttributes(new { @class = "numericStyle" })
+				.Format("#.##")
+				.RestrictDecimals(true)
+				.Decimals(2)
+				.Name("executePText3")
+				.Events(ev => ev.Change("reCalculatePattern()"))
+
+				)
+			</div>
+			<div class="col-2 u-col-h-fixed">
+				<div class="col-md-2 ">
+					@(Html.Kendo().DropDownList()
+					.BindTo(patternDrop)
+
+					.HtmlAttributes(new { @style = "width: 90px;height: 30px;position: relative;right: 16px; " })
+					.DataTextField("Text")
+					.DataValueField("Value")
+					.Events(ev => ev.Change("reCalculatePattern"))
+
+					.Name("dropPattern3")
+
+					)
+				</div>
+			</div>
+		</div>
+		<!--<div class="form-group row">
+		   <div class="col-md-3 ">
+			  <label for="everyTimeUnitP">@DicSvc.XLate("EveryTimesUnit")</label>
+		   </div>-->
+		@*<div class="col-md-2 ">
+			<input id="everyTimeUnitP" type="radio" style="top: 7px;position: relative;" onchange="Therapy_RadioGrids_ValueChanged('everyTimeUnitP',3)" />
+
+			</div>*@
+
+
+		<!--</div>
+
+
+
+		<div class="form-group row">
+		   <div class="col-md-3 ">
+			  <label for="inTimeUnitP">@DicSvc.XLate("InTimesUnit")</label>
+		   </div>-->
+		@*<div class="col-md-2 ">
+			<input id="inTimeUnitP" type="radio" style="top: 7px;position: relative;" onchange="Therapy_RadioGrids_ValueChanged('inTimeUnitP',3)" />
+
+			</div>*@
+
+		<!--</div>-->
+
+
+
+
+
+
+		<div class="window-footer" style=" height: 70px;">
+			<div class="row" style="justify-content: flex-end;">
+				<span id="errPatt" style="display: none; color: red; position: relative; right: 12px; top: 4px;">@DicSvc.XLate("Input required. Missing Input Number or Units ")</span>
+				<button type="button" id="okPatternWnd" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary">Ok</button>
+				<button type="button" id="closePatternWnd" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base">Close</button>
+			</div>
+
+		</div>
+	</div>
+
+
+
+	<div id="selectDaysWnd">
+		<div id="buttnDaysGrid" style="width:99%;border: 1px solid lightgray;">
+
+			<div style="margin:8px;" id="btnsDayA">
+				<div class="row" id="daysContainer">
+					@{
+						var strValD = "";
+						string strText = "";
+
+						for (int i = 1; i <= 7; i++)
+						{
+							strValD = daysSchedule.Where(x => x.Value == i.ToString()).First().Value;
+							strText = daysSchedule.Where(x => x.Value == i.ToString()).First().Text;
+
+
+
+
+
+							<input type="button" id="day_@i" value="@strText" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base " onclick="Schedule_addDays('day_@i','@i','false')" />
+
+
+
+						}
+
+					}
+				</div>
+			</div>
+			<div style="margin:8px;" id="btnsDayR">
+				<div class="row" id="daysContainerR">
+					@{
+						var strValD1 = "";
+						string strText1 = "";
+
+						for (int i = 0; i < 7; i++)
+						{
+							strValD1 = daysScheduleR.Where(x => x.Value == i.ToString()).First().Value;
+							strText1 = daysScheduleR.Where(x => x.Value == i.ToString()).First().Text;
+
+							<input type="button" id="dayR_@i" value="@strText1" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" onclick="Schedule_addDays('dayR_@i','@i','false')" />
+						}
+					}
+
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-5 u-col-h-fixed">
+				<label for="absoluteH">@DicSvc.XLate("Absolute") (Mon, Tue, ...)</label>
+			</div>
+			<div class="col-md-2 " style="margin-left:5px;">
+				<input id="absoluteH" type="radio" style="top: 9px;position: relative;right: 20px;" onchange="Schedule_ChangeDays('absoluteH',1,false)" />
+			</div>
+			<div class="col-md-5 u-col-h-fixed">
+				<label for="absoluteH">@DicSvc.XLate("Relative") (+0, +1, ...)</label>
+			</div>
+			<div class="col-md-2 " style="margin-left:5px;">
+				<input id="relativeH" type="radio" style="top: 9px;position: relative;right: 20px;" onchange="Schedule_ChangeDays('relativeH',1,false)" />
+			</div>
+
+		</div>
+		<div class="window-footer">
+			<button type="button" id="okDaysWnd" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary">Ok</button>
+			<button type="button" id="closeDaysWnd" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base">Close</button>
+
+		</div>
+	</div>
+
+
+	<div id="selectHourWnd">
+
+		<div id="buttnHoursGrid" style="width:100%;border: 1px solid lightgray;">
+
+			<div style="margin:8px;">
+
+				@{
+					int countH = 0;
+					string strVal = "";
+					for (int i = 0; i < 6; i++)
+					{
+						<div class="row">
+							@for (int j = 0; j < 4; j++)
+							{
+								if (countH.ToString().Length == 1)
+								{
+									strVal = '0' + countH.ToString();
+								}
+								else
+								{
+									strVal = countH.ToString();
+								}
+
+								<div class="col-3">
+									<input type="button" id="hour_@countH" value="@countH" text="@countH" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" style="width:100%;" onclick="Schedule_addHours('hour_@countH','@countH','false')" />
+
+								</div>
+
+								countH++;
+							}
+						</div>
+					}
+				}
+			</div>
+		</div>
+
+		<div class="row" style="margin-top:2px;">
+			<div class="col-2 u-col-h-fixed">@DicSvc.XLate("Template")</div>
+			<div class="col-12 u-col-h-fixed">
+				@(Html.Kendo().DropDownList()
+				.Name("TemplateHours")
+				.HtmlAttributes(new { @style = "width:100%;height:30px;" })
+
+				)
+			</div>
+		</div>
+		<div style="position:relative; top:14px;">
+			<div class="row">
+				<div class="col-6">
+					<button type="button" id="allH" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary" style="width:100%;" onclick="Schedule_selectAllHours()">@DicSvc.XLate("All")</button>
+				</div>
+				<div class="col-6">
+					<button type="button" id="noneH" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary" style="width:100%;" onclick="Schedule_noneSelectHours()">@DicSvc.XLate("None")</button>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-6">
+					<button type="button" id="oddH" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary" style="width:100%;" onclick="Schedule_oddHours()">@DicSvc.XLate("Odd")</button>
+				</div>
+				<div class="col-6">
+					<button type="button" id="evenH" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary" style="width:100%;" onclick="Schedule_evenHours()">@DicSvc.XLate("Even")</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="window-footer">
+			<button type="button" id="okHoursWnd" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary">Ok</button>
+			<button type="button" id="closeHoursWnd" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base">Close</button>
+
+		</div>
+	</div>
+
+	<div class="form-group row">
+
+		<div class="col-md-2 ">
+			<label>@DicSvc.XLate("Planning Type")</label>
+		</div>
+		<div class="col-md-7 u-col-h-fixed">
+			@(Html.Kendo().DropDownListFor(m => m.Schedule.PlanningType)
+			.HtmlAttributes(new { @style = "width:96%;" })
+			.DataTextField("Text")
+			.DataValueField("Value")
+			.BindTo(planningTyeVal)
+			.Events(e =>
+			{
+			e.Select("onSelectPlanningType");
+			})
+			)
+		</div>
+	</div>
+
+	<div class="form-group row">
+		<div class="col-2">
+			<label for="Schedule_HowManyTimes">@DicSvc.XLate("How Many Times")</label>
+		</div>
+		<div class="col-2 u-col-h-fixed">
+			@*@(Html.Kendo().NumericTextBoxFor(m => m.Schedule.HowManyTimes)
+				.Spinners(false)
+				.Max(24)
+				.Min(0)
+				.Events(ev => ev.Change("Schedule_setLimitToMultiselect()"))
+
+				)*@
+			<input asp-for="Schedule.HowManyTimes" type="number" max="99" class="k-input k-textbox" onchange="Schedule_setLimitToMultiselect()" />
+		</div>
+		<div style="margin-right:13px;margin-right: 13px;position: relative;top: 4px;left:5px;">
+			<label for="Schedule_SchedPolicy" style="margin-left:2px;">@DicSvc.XLate("Scheduling Policy")</label>
+		</div>
+		<div class="col-64 u-col-h-fixed">
+
+			@(Html.Kendo().DropDownListFor(x => x.Schedule.SchedPolicy)
+			.DataTextField("Text")
+			.DataValueField("Value")
+			.BindTo(schedulePolicy)
+			.HtmlAttributes(new { @style = "width:344px;" })
+			.Events(e =>
+			{
+			e.Select("onSelectSchedPolicy");
+			})
+
+			)
+
+		</div>
+	</div>
+
+	<div class="form-group row">
+		<div class="col-md-2">
+			<label>@DicSvc.XLate("Starting From")</label>
+		</div>
+		<div class="col-md-7 u-col-h-fixed ">
+			<input class="k-input k-textbox" id="startingFromDesc" style="width:86%; " autocomplete="off"  />
+			<input asp-for="Schedule.StartingFrom" type="hidden"  />
+		</div>
+		<div style="position: relative;right: 5%;">
+			<button type="button" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" id="startingFromBtn" style="width:30px;height:30px;">...</button>
+		</div>
+	</div>
+
+	<div class="form-group row">
+		<div class="col-md-2 ">
+			<label>@DicSvc.XLate("Hours")</label>
+		</div>
+
+		<div class="col-md-7 u-col-h-fixed " id="colH">
+
+			@(Html.Kendo().MultiSelect()
+			.Name("MultiHours")
+			.BindTo(HoursinDay)
+			.Events(e =>
+			{
+			e.Select("defaultSelect");
+			})
+
+			//.Events(ev => ev.Deselect("multiselect_deselect"))
+
+			.HtmlAttributes(new { style = "width:86%" })
+
+
+			)
+
+			<input asp-for="Schedule.Hours" type="hidden" />
+		</div>
+		<div style="position: relative;right: 5%;">
+			<button type="button" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" id="SelectHoursBtn" style="width:30px;height:30px;">...</button>
+		</div>
+	</div>
+
+	<div class="form-group row">
+		<div class="col-md-2 ">
+			<label>@DicSvc.XLate("Days")</label>
+		</div>
+		<div class="col-md-7 u-col-h-fixed " id="colD">
+
+			<div id="multiA" style="display:none;">
+				@(Html.Kendo().MultiSelect()
+				.Name("MultiDays")
+				.BindTo(daysSchedule)
+				.ClearButton(false)
+				.HtmlAttributes(new { style = "width:86%" })
+
+
+				)
+			</div>
+			<div id="multiR" style="display:none;">
+				@(Html.Kendo().MultiSelect()
+				.Name("MultiDaysR")
+				.BindTo(daysScheduleR)
+				.HtmlAttributes(new { style = "width:86%" })
+
+
+				)
+
+
+
+			</div>
+			<input asp-for="Schedule.Days" type="hidden" />
+		</div>
+		<div style="position: relative;right: 5%;">
+			<button type="button" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" id="SelectDaysBtn" style="width:30px;height:30px;">...</button>
+		</div>
+	</div>
+	<div class="form-group row">
+		<div class="col-md-2 ">
+			<label>@DicSvc.XLate("Pattern")</label>
+		</div>
+		<div class="col-md-7 u-col-h-fixed">
+			<input id="patternSchedule" type="text" class="k-input k-textbox" style="width:86%; " autocomplete="off"  />
+		</div>
+		<div style="position: relative;right: 5%;">
+			<button type="button" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" id="patternButton" style="width:30px;height:30px;">...</button>
+		</div>
+	</div>
+	<div class="form-group row">
+		<div class="col-md-2 ">
+			<label>@DicSvc.XLate("Custom")</label>
+		</div>
+		<div class="col-md-7 u-col-h-fixed">
+			<input class="k-input k-textbox" id="Schedule_CustomOrdersDesc" style="width:86%; " autocomplete="off"  />
+			<input asp-for="Schedule.CustomOrders" type="hidden" class="k-input k-textbox" style="width:86%; " autocomplete="off" />
+		</div>
+		<div style="position: relative;right: 5%;">
+			<button type="button" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" id="customBtn" style="width:30px;height:30px;">...</button>
+		</div>
+	</div>
+
+	<div class="form-group row">
+		<div class="col-md-2 ">
+			<label>@DicSvc.XLate("Condition")</label>
+		</div>
+		<div class="col-md-7 u-col-h-fixed">
+			@*@Html.Kendo().TextBoxFor(m => m.Schedule.Condition).HtmlAttributes(new { maxlength = "50" })*@
+			<input class="k-input k-textbox" asp-for="Schedule.Condition" style="width:96%;" maxlength="50" />
+
+		</div>
+	</div>
+
+	<div class="form-group row">
+		<div class="col-md-2 ">
+			<label>@DicSvc.XLate("Tolerance")</label>
+		</div>
+		<div class="col-md-7 u-col-h-fixed">
+			@(Html.Kendo().DropDownListFor(m => m.Schedule.strTolerance)
+			.HtmlAttributes(new { @style = "width:40%;" })
+			.DataTextField("Text")
+			.DataValueField("Value")
+			.BindTo(toleranceValue)
+
+			)
+		</div>
+	</div>
+
+	<div class="form-group row">
+		<div class="col-md-2 ">
+			<label>@DicSvc.XLate("Repeat")</label>
+		</div>
+		<div class="col-md-7 u-col-h-fixed">
+			@Html.Kendo().CheckBoxFor(m => m.Schedule.Repeat)
+		</div>
+	</div>
+
+	<div class="form-group row">
+		<div class="col-md-2 ">
+			<label>@DicSvc.XLate("Time change allowed")</label>
+			<input asp-for="Schedule.TimeChangeType" type="hidden" />
+
+		</div>
+		<div class="col-md-7 gridCol">
+			@(Html.Kendo().Grid(timeChanged)
+			.Name("scheduleGrid")
+			.Navigatable(true)
+			.Columns(columns =>
+			{
+			columns.Bound(e => e.Value).ClientTemplate("<input class='timeChange' onchange='Therapy_RadioGrids_ValueChanged(#=Value#, 2)' id='#=Text#timeChange' type='radio' />").Title(" ").Width("30px").Editable("noEditCheckbox");
+			//columns.Bound(e => e.Value).ClientTemplate("<input class='timeChange' onchange='valueChanged(#=Text#timeChange, 2)' id='#=Text#timeChange' type='radio' />").Title(" ").Width("30px").Editable("noEditCheckbox");
+			columns.Bound(e => e.Text).Title("Value").Editable("noEditCheckbox");
+
+			})
+			.Editable(e => e.Mode(GridEditMode.InCell))
+			.Selectable(s => s.Mode(GridSelectionMode.Single))
+			.DataSource(dataSource => dataSource
+			.Ajax()
+			.ServerOperation(true)
+			)
+			.HtmlAttributes(new { @class = "scheduleGrid" })
+			.NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+			)
+		</div>
+	</div>
+
+
+
+
+</div>
+
+<script>
+
+	$(document).ready(function () {
+
+	  $("#executePText3").change(function () {
+		  reCalculatePattern();
+	   });
+	   $("#executePText2").change(function () {
+		  reCalculatePattern();
+	   });
+	   $("#executePText").change(function () {
+		  reCalculatePattern();
+	   });
+
+	   //document.getElementsByClassName("k-multiselect-wrap k-floatwrap")[0].childNodes[1].style.display = "none";
+	   //document.getElementsByClassName("k-multiselect-wrap k-floatwrap")[1].childNodes[1].style.display = "none";
+	   //document.getElementsByClassName("k-multiselect-wrap k-floatwrap")[2].childNodes[1].style.display = "none";
+	   var valType = $("#Schedule_TimeChangeType").val();
+	   Therapy_RadioGrids_ValueChanged(valType, 2);
+
+	   var customkndWndDate = $('#customDetail').umsKendoWindow({
+
+		  title: 'Custom',
+		  height: 300,
+		  width: 600,
+		  modal: true,
+		  close: function () {
+
+						 $("#textCustom").empty();
+			 countOfCustom = 0;
+		  }
+
+	   });
+
+	   var patternkndWndDate = $('#patternDetail').umsKendoWindow({
+
+		  title: 'Select Pattern',
+				  height: 300,
+		  width: 600,
+		  modal: true,
+		  close: function () {
+			 setPatternElements();
+			 /*CheckPatterString();*/
+			 $("#errPatt").css("display", "none");
+		  }
+
+
+	   });
+
+
+	   var componentskndWndDate = $('#stratingFromDetail').umsKendoWindow({
+
+		  title: 'Starting From',
+		  height: 350,
+		  width: 600,
+		  modal: true,
+		  close: function () {
+			 $("#errStart").css("display", "none");
+			 $("#onlyForCustom").css("display", "none");
+			 CloseStartingFrom();
+			 /*setStartingFrom();*/
+		  }
+
+
+	   });
+
+
+
+	   var selectkndWndDate = $('#selectDaysWnd').umsKendoWindow({
+
+		  title: 'Select Days',
+				  height: 300,
+		  width: 700,
+		  modal: true,
+		  close: function () {
+
+			 CloseDays();
+			  orderMultiselect(nameSelectedMulti);
+
+		  }
+
+	   });
+
+	   var selectkndWndDHour = $('#selectHourWnd').umsKendoWindow({
+
+		  title: 'Select Hours',
+		  height: 650,
+		  width: 600,
+		  modal: true,
+		  close: function () {
+
+			 CloseHours();
+			 orderMultiselect("#MultiHours");
+		  },
+
+
+		   });
+
+	});
+
+	$('#startingFromBtn').off('click').on('click', function (e) {
+
+	   var numbers = $("#Schedule_StartingFrom").val().match(/\d+/g);
+	   $("#startlb1").text("hours");
+	   $("#startlb2").text("days");
+
+	   var sh = $("#StartingFromH").data("kendoNumericTextBox");
+	   var sd = $("#StartingFromD").data("kendoNumericTextBox");
+	   var sda = $("#StartingFromDA").data("kendoNumericTextBox");
+	   var sda1 = $("#StartingFromDA1").data("kendoNumericTextBox");
+		sh.value('');
+		sd.value('');
+		sda.value('');
+		sda1.value('');
+
+	   var startingVal = $("#startingFromDesc").val().trim();
+	   if (startingVal.length == 0) {
+		  document.getElementById("selStartingFromDA").checked = false
+		  document.getElementById("selStartingFromH").checked = false;
+		  document.getElementById("selStartingFromD").checked = false;
+		  sh.enable(false);
+		  sd.enable(false);
+		  sda.enable(false);
+		  sda1.enable(false);
+
+	   } else if (startingVal.length > 0) {
+		  if (startingVal.charAt(0) == 'i' && (!startingVal.includes("at"))) {
+			 document.getElementById("selStartingFromDA").checked = false
+			 document.getElementById("selStartingFromH").checked = false;
+			 document.getElementById("selStartingFromD").checked = true;
+			 sh.enable(false);
+			 sd.enable(true);
+			 sda.enable(false);
+			 sda1.enable(false);
+			 sd.value(numbers[0]);
+
+		  }  else if (startingVal.includes("in") && startingVal.includes("at"))  {
+
+			 document.getElementById("selStartingFromDA").checked = true
+			 document.getElementById("selStartingFromH").checked = false;
+			 document.getElementById("selStartingFromD").checked = false;
+			 sh.enable(false);
+			 sd.enable(false);
+			 sda.enable(true);
+			 sda1.enable(true);
+			 sda.value(numbers[0]);
+			 sda1.value(numbers[1]);
+		  }
+		  else if (startingVal.charAt(0) == 'a' &&(!startingVal.includes("in"))) {
+			 document.getElementById("selStartingFromDA").checked = false
+			 document.getElementById("selStartingFromH").checked = true;
+			 document.getElementById("selStartingFromD").checked = false;
+			 sh.enable(true);
+			 sd.enable(false);
+			 sda.enable(false);
+			 sda1.enable(false);
+			 sh.value(numbers[0]);
+		  }
+	   }
+
+	   var ptw = $("#stratingFromDetail").data("kendoWindow");
+	   kendo.ui.progress(ptw.element, true);
+	   if (ptw.element.is(":hidden")) {
+		  ptw.open();
+
+		  ptw.center();
+
+	   }
+		   kendo.ui.progress(ptw.element, false);
+
+	});
+
+	$('#patternButton').off('click').on('click', function (e) {
+	   e.preventDefault();
+	   if ($("#patternSchedule").val() != "") {
+		  setPatternElements();
+	   }
+	   else {
+		  document.getElementById('executeP').checked = false;
+				  document.getElementById('executeP2').checked = false;
+		  document.getElementById('executeP3').checked = false;
+
+		  var ex3 = $("#executePText3").data("kendoNumericTextBox");
+		  var ex2 = $("#executePText2").data("kendoNumericTextBox");
+		  var ex = $("#executePText").data("kendoNumericTextBox");
+		  ex.enable(false);
+		  ex2.enable(false);
+		  ex3.enable(false);
+		  var drop1 = $("#dropPattern3").data("kendoDropDownList");
+		  var drop2 = $("#dropPattern2").data("kendoDropDownList");
+		  drop1.enable(false);
+		  drop2.enable(false);
+	   }
+
+	   var ptw = $("#patternDetail").data("kendoWindow");
+	   kendo.ui.progress(ptw.element, true);
+	   if (ptw.element.is(":hidden")) {
+		  ptw.open();
+
+		  ptw.center();
+
+	   }
+	   kendo.ui.progress(ptw.element, false);
+
+	});
+
+	var convertCustomOrder = function (customValue) {
+		var customOrder = "";
+		var splittedItem = customValue.split(" ");
+		if (!splittedItem || splittedItem == "") {
+			return customOrder;
+		}
+
+		if (splittedItem.length == 1) {
+			if (splittedItem[0].startsWith("+")) {
+				var h = splittedItem[0].replace("+H", "");
+				if (h != "") {
+					customOrder = "in " + h;
+				}
+			} else {
+				var h = splittedItem[0].replace("H", "");
+				if (h != "") {
+					customOrder = "at " + h;
+				}
+			}
+		} else if (splittedItem.length == 2) {
+			if (splittedItem[0].startsWith("W", "")) {
+				var d = splittedItem[0].replace("W", "");
+				var h = splittedItem[1].replace("H", "");          
+				if (h != "" && d != "") {
+					let dropCustomStart = $("#dropCustomDay").data("kendoDropDownList");
+					customOrder = "on " + dropCustomStart.dataItems().find(x => x.Value == d).Text + " at " + h;
+				}
+			} else {
+				var d = splittedItem[0].replace("+D", "");
+				var h = splittedItem[1].replace("H", "");
+				if(h != "" && d != "") {
+					customOrder = "in " + d + " days at " + h;
+				}
+			}
+		}
+		return customOrder;
+	};
+
+	var currentCustOrder = $("#Schedule_CustomOrders").val().split(",").map(s => s.trim());
+	var currrentDisplayCustomOrder = "";
+	for (var i = 0; i < currentCustOrder.length; i++) {
+		if (i > 0) {
+			currrentDisplayCustomOrder += ", ";
+		}
+		currrentDisplayCustomOrder += convertCustomOrder(currentCustOrder[i]);
+	}
+	$("#Schedule_CustomOrdersDesc").val(currrentDisplayCustomOrder);
+
+	$('#customBtn').off('click').on('click', function (e) {
+	   e.preventDefault();
+	   selectedCustom = "";
+		   var ptw = $("#customDetail").data("kendoWindow");
+	   kendo.ui.progress(ptw.element, true);
+	   if (ptw.element.is(":hidden")) {
+		  ptw.open();
+
+		  ptw.center();
+
+	   }
+	   kendo.ui.progress(ptw.element, false);
+	   $("#descCustom").prop("readonly", false);
+		   countOfCustom = 0;
+	   if ($("#Schedule_CustomOrders").val() != "") {
+		  var temp = $("#Schedule_CustomOrders").val().split(",").map(s => s.trim());
+		  for (var i = 0; i < temp.length; i++) {
+			 ++countOfCustom;
+			 
+			 var customOrder = convertCustomOrder(temp[i]);
+
+			 $("#textCustom").append("<div class='row' class='rowCust' id='addToCust" + countOfCustom.toString() + "'><input id='addToCustV" + countOfCustom.toString() + "' value='" + customOrder + "' style='width:70%;' type='text'  class='k-input k-textbox' readonly='readonly'  /></div>");
+			 document.getElementById("okStartingWnd").setAttribute("onClick", "Schedule_stratingFromOkClick('starting');");
+			 var idCus = "addToCustV" + countOfCustom.toString();
+			 var idCus1 = "addToCust" + countOfCustom.toString();
+			 $("#"+idCus).data("dbValue", temp[i]);
+			 document.getElementById("addToCust" + countOfCustom.toString()).setAttribute("onclick", "changeIdSelected(" + idCus + "," + idCus1 + ");");         }
+	   }
+	});
+
+	$('#SelectHoursBtn').off('click').on('click', function (e) {
+	   e.preventDefault();
+	   var ptw = $("#selectHourWnd").data("kendoWindow");
+	   kendo.ui.progress(ptw.element, false);
+	   if (ptw.element.is(":hidden")) {
+		  ptw.open();
+		  ptw.center();
+	   }
+	   rangeHour = multiSelectHourVal.length;
+		   var classH = "#buttnHoursGrid";
+	   var container = document.querySelector(classH);
+	   var matches = container.querySelectorAll("input[type='button']");
+	   if (multiSelectHourVal.length > 0) {
+
+		  for (var j = 0; j < matches.length; j++) {
+			 matches[j].classList.remove('k-button-solid-primary');
+		  }
+		  for (var j = 0; j < multiSelectHourVal.length; j++) {
+			 Schedule_addHours("hour_" + multiSelectHourVal[j], multiSelectHourVal[j], 'read');
+		  }
+
+		   }
+	   else {
+		  for (var j = 0; j <= 23; j++) {
+			 matches[j].classList.remove('k-button-solid-primary');
+		  }
+	   }
+
+	});
+
+	$('#SelectDaysBtn').off('click').on('click', function (e) {
+	   e.preventDefault();
+	   var classD = "";
+
+
+	   var ptw = $("#selectDaysWnd").data("kendoWindow");
+	   kendo.ui.progress(ptw.element, true);
+		   if (ptw.element.is(":hidden")) {
+		  ptw.open();
+		  ptw.center();
+
+	   }
+
+		   kendo.ui.progress(ptw.element, false);
+	   var arrayD = $("#Schedule_Days").val().split(",").map(s => s.trim());
+	   var id = "";
+	   if (arrayD[0].includes('+')) {
+		  id = "dayR_";
+		  classD = "#daysContainerR";
+
+	   }
+	   else {
+		  id = "day_";
+		classD = "#daysContainer";
+
+	   }
+	   var container = document.querySelector(classD);
+	   var matches = container.querySelectorAll("input[type='button']");
+
+	   if (multiSelectDayVal.length > 0) {
+
+		  for (var j = 0; j < 7; j++) {
+			 matches[j].classList.remove("k-button-solid-primary");
+		  }
+		  for (var jj = 0; jj < multiSelectDayVal.length; jj++) {
+			 Schedule_addDays(id + multiSelectDayVal[jj], multiSelectDayVal[jj], 'read');
+		  }
+		   }
+	   else {
+
+		  var classD = "#daysContainer";
+		  var classD2 = "#daysContainerR";
+		  var container = document.querySelector(classD);
+				  var container2 = document.querySelector(classD2);
+		  var matches = container.querySelectorAll("input[type='button']");
+		  var matches2 = container2.querySelectorAll("input[type='button']");
+		  for (var j = 0; j < 7; j++) {
+			 matches[j].classList.remove("k-button-solid-primary");
+			 matches2[j].classList.remove("k-button-solid-primary");
+		  }
+	   }
+
+
+	});
+
+
+
+	$('#closeStartingWnd').off('click').on('click', function (e) {
+	   e.preventDefault();
+	   setStartingFrom();
+		   var dialog = $("#stratingFromDetail").data("kendoWindow");
+	   dialog.close();
+	});
+
+	$('#closeCustomgWnd').off('click').on('click', function (e) {
+		   e.preventDefault();
+	   var dialog = $("#customDetail").data("kendoWindow");
+	   selectedCustom = "";
+	   dialog.close();
+	});
+
+	$('#editCustomBtn').off('click').on('click', function (e) {
+	   e.preventDefault();
+	   var sh = $("#StartingFromH").data("kendoNumericTextBox");
+	   var sd = $("#StartingFromD").data("kendoNumericTextBox");
+	   var sda = $("#StartingFromDA").data("kendoNumericTextBox");
+	   var sda1 = $("#StartingFromDA1").data("kendoNumericTextBox");
+	   var daysc = $("#DayNumberCustom").data("kendoNumericTextBox");
+	   
+		sh.value('');
+		sd.value('');
+		sda.value('');
+		sda1.value('');
+		daysc.value('');
+		var dropdown = $("#dropCustomDay").data("kendoDropDownList");
+		dropdown.value("1");
+
+	   if (selectedCustom != "") {
+		  var currentCustomConfig = $('#' + selectedCustom).data("dbValue").split(" ").map(s => s.trim());
+		  var first = second = ""
+		  if (currentCustomConfig) {
+			  if (currentCustomConfig.length > 0) {
+					first = currentCustomConfig[0];
+			  }
+			  if (currentCustomConfig.length == 2) {
+					second = currentCustomConfig[1];
+			  }
+		  }
+		  
+		  if (first && first.startsWith("H")) {
+			 var int = parseInt(first.replace("H", ""));
+			 sh.enable(true);
+			 sd.enable(false);
+			 sda.enable(false);
+			 sda1.enable(false);
+			 daysc.enable(false);
+			 sh.value(int);
+			 $("#dropCustomDay").data("kendoDropDownList").enable(false);
+			 document.getElementById("selStartingFromH").checked = true;
+			 document.getElementById("selStartingFromD").checked = false;
+			 document.getElementById("selDay").checked = false;
+			 document.getElementById("selStartingFromDA").checked = false;
+			 $("#selStartingFromH").prop("checked", true);
+
+		  }
+		  else if (first && first.startsWith("+H")) {
+			 var int = parseInt(first.replace("+H", ""));
+			 sh.enable(false);
+			 sd.enable(true);
+			 sda.enable(false);
+			 sda1.enable(false);
+			 daysc.enable(false);
+			 sd.value(int);
+			 document.getElementById("selStartingFromD").checked = true;
+			 document.getElementById("selDay").checked = false;
+			 document.getElementById("selStartingFromDA").checked = false;
+			 document.getElementById("selStartingFromH").checked = false;
+			 $("#dropCustomDay").data("kendoDropDownList").enable(false);
+			 $("#selStartingFromD").prop("checked", true);
+				  }
+		  else if (first && first.startsWith("W")) {
+			 var day = first.replace("W", "");
+			 var hour = parseInt(second.replace("H", ""));
+			 sh.enable(false);
+			 sd.enable(false);
+			 sda.enable(false);
+			 sda1.enable(false);
+			 daysc.enable(true);
+			 daysc.value(hour);
+			 document.getElementById("selDay").checked = true;
+			 document.getElementById("selStartingFromH").checked = false;
+			 document.getElementById("selStartingFromDA").checked = false;
+			 document.getElementById("selStartingFromD").checked = false;
+			 $("#dropCustomDay").data("kendoDropDownList").enable(true);
+			 $("#selDay").prop("checked", true);
+
+			 dropdown.value(day);
+		  }
+		  else if (first.startsWith("+D")) {
+			 var int = parseInt(first.replace("+D", ""));
+			 var int2 = parseInt(second.replace("H", ""));
+			 sh.enable(false);
+			 sd.enable(false);
+			 sda.enable(true);
+			 sda1.enable(true);
+			 daysc.enable(false);
+			 //sh.value(int);
+			 sda.value(int);
+			 sda1.value(int2);
+			 document.getElementById("selStartingFromDA").checked = true;
+			 document.getElementById("selDay").checked = false;
+			 document.getElementById("selStartingFromH").checked = false;
+			 document.getElementById("selStartingFromD").checked = false;
+			 $("#dropCustomDay").data("kendoDropDownList").enable(false);
+			 $("#selStartingFromDA").prop("checked", true);
+		  }
+		  Schedule_clickAddCustom();
+	   }
+
+
+	});
+
+	$('#removeCustomBtn').off('click').on('click', function (e) {
+	   e.preventDefault();
+	   var jj = 0;
+
+	   if (selectedCustom != "") {
+		  var y = selectedCustom.match(/(\d+)/)[0];
+		  var intY = parseInt(y);
+		  for (var j = intY; j < countOfCustom; j++) {
+			 jj = j+1;
+			 $("#addToCustV" + j).val($("#addToCustV" +jj).val())
+		  }
+		  $("#addToCust" + countOfCustom).remove();
+
+		  if (countOfCustom != 0) {
+			 --countOfCustom;
+		  }
+
+		  $("#" + selectedCustom).css("border", "");
+		  selectedCustom = "";
+		   }
+	});
+
+	$('#addCustomBtneH').off('click').on('click', function (e) {
+	   e.preventDefault();
+	   var ptw = $("#stratingFromDetail").data("kendoWindow");
+	   isStartEdit = false;
+	   if (selectedCustom != "") {
+		  $("#" + selectedCustom).css("border", "");
+		  selectedCustom = "";
+	   }
+	   var sh = $("#StartingFromH").data("kendoNumericTextBox");
+	   var sd = $("#StartingFromD").data("kendoNumericTextBox");
+		   var sda = $("#StartingFromDA").data("kendoNumericTextBox");
+	   var sda1 = $("#StartingFromDA1").data("kendoNumericTextBox");
+	   var daysc = $("#DayNumberCustom").data("kendoNumericTextBox");
+	   sh.enable(false);
+		   sd.enable(false);
+	   sda.enable(false);
+	   sda1.enable(false);
+	   daysc.enable(false);
+		   sh.value('');
+	   sd.value('');
+	   sda.value('');
+	   sda1.value('');
+		   daysc.value('');
+	   $("#dropCustomDay").data("kendoDropDownList").enable(false);
+	   document.getElementById("selStartingFromH").checked = false;
+	   document.getElementById("selStartingFromD").checked = false;
+	   document.getElementById("selDay").checked = false;
+	   document.getElementById("selStartingFromDA").checked = false;
+	   $("#dropCustomDay").data("kendoDropDownList").value("1");
+
+	   $("#onlyForCustom").css("display", "");
+	   $("#startlb1").text(" ");
+	   $("#startlb2").text("hours");
+
+	   kendo.ui.progress(ptw.element, true);
+	   if (ptw.element.is(":hidden")) {
+		  ptw.open();
+
+		  ptw.center();
+
+	   }
+	   kendo.ui.progress(ptw.element, false);
+	});
+
+	$('#okCustomgWnd').off('click').on('click', function (e) {
+	   e.preventDefault();
+
+	   var strFinal = "";
+	   var strDbFinal = "";
+	   for (var i = 1; i <= countOfCustom; i++) {
+		  var item = $("#addToCust" + i.toString() + "  > :input");
+		  if (i > 1 && strFinal != "") {
+			 strFinal += ", ";
+			 strDbFinal += ", ";
+		  }
+		  if (item.val() != "") {
+			 strFinal += item.val();
+			 strDbFinal += item.data("dbValue");
+		  }
+	   }
+	   $("#Schedule_CustomOrdersDesc").val(strFinal);
+	   $("#Schedule_CustomOrders").val(strDbFinal);
+	   var dialog = $("#customDetail").data("kendoWindow");
+		   $("#textCustom").empty();
+	   countOfCustom = 0;
+	   selectedCustom = "";
+	   dialog.close();
+	});
+
+
+	function CloseStartingFrom() {
+
+
+	   if ($("#Schedule_StartingFrom").val().includes('H') && $("#Schedule_StartingFrom").val().includes('D')) {
+		  document.getElementById("selStartingFromDA").checked = true
+		  document.getElementById("selStartingFromH").checked = false;
+		  document.getElementById("selStartingFromD").checked = false;
+		  document.getElementById("selDay").checked = false;
+		  $("#StartingFromD").prop("disabled", true);
+		  $("#StartingFromH").prop("disabled", true);
+		  $("#StartingFromDA").prop("disabled", false);
+		  $("#StartingFromDA1").prop("disabled", false);
+				  $("#DayNumberCustom").prop("disabled", true);
+		  $("#StartingFromD").val(null);
+		  $("#StartingFromH").val(null);
+
+		   }
+	   else if ($("#Schedule_StartingFrom").val().includes('D')) {
+		  document.getElementById("selStartingFromD").checked = true
+		  document.getElementById("selStartingFromH").checked = false;
+		  document.getElementById("selStartingFromDA").checked = false;
+		  document.getElementById("selDay").checked = false;
+		  $("#StartingFromD").prop("disabled", false);
+		  $("#StartingFromH").prop("disabled", true);
+				  $("#StartingFromDA").prop("disabled", true);
+		  $("#StartingFromDA1").prop("disabled", true);
+		  $("#DayNumberCustom").prop("disabled", true);
+		  $("#StartingFromH").val(null);
+		  $("#StartingFromDA").val(null);
+		  $("#StartingFromDA1").val(null);
+	   }
+	   else if ($("#Schedule_StartingFrom").val().includes('H')) {
+		  document.getElementById("selStartingFromH").checked = true;
+		  document.getElementById("selStartingFromD").checked = false;
+		  document.getElementById("selStartingFromDA").checked = false;
+		  document.getElementById("selDay").checked = false;
+		  $("#StartingFromD").prop("disabled", true);
+		  $("#StartingFromH").prop("disabled", false);
+				  $("#StartingFromDA").prop("disabled", true);
+		  $("#StartingFromDA1").prop("disabled", true);
+		  $("#DayNumberCustom").prop("disabled", true);
+		  $("#StartingFromD").val(null);
+		  $("#StartingFromDA").val(null);
+		  $("#StartingFromDA1").val(null);
+
+	   }
+	}
+	$('#closeStartingWnd').off('click').on('click', function (e) {
+	   e.preventDefault();
+	   var dialog = $("#stratingFromDetail").data("kendoWindow");
+	   if (selectedCustom != "") {
+		  $("#" + selectedCustom).css("border", "");
+		  selectedCustom = "";
+	   }
+
+	   dialog.close();
+	});
+	function CloseDays() {
+	   var multiselect = $("#MultiDays").data("kendoMultiSelect");
+	   var multiselectR = $("#MultiDaysR").data("kendoMultiSelect");
+	   tempDays = [];
+		   for (var j = 0; j < multiSelectDayVal.length; j++) {
+
+				  tempDays.push(multiSelectDayVal[j]);
+	   }
+	   if (temp_multyDk == 1) {
+		  document.getElementById("relativeH").checked = true;
+		  document.getElementById("absoluteH").checked = false;
+		  document.getElementById("btnsDayA").style.display = "none";
+		  document.getElementById("btnsDayR").style.display = "block";
+				  $("#multiA").css("display", "none");
+		  $("#multiR").css("display", "block");
+		  multiselect.enable(false);
+		  var selectedItemsFromMultiD = $("#MultiDaysR").data("kendoMultiSelect");
+		  selectedItemsFromMultiD.enable(false);
+		  selectedItemsFromMultiD.value(tempDays);
+
+	   } else {
+		  document.getElementById("absoluteH").checked = true;
+		  document.getElementById("relativeH").checked = false;
+		  document.getElementById("btnsDayA").style.display = "block";
+		  document.getElementById("btnsDayR").style.display = "none";
+				  $("#multiA").css("display", "block");
+		  $("#multiR").css("display", "none");
+		  multiselectR.enable(false);
+		  var selectedItemsFromMultiD = $("#MultiDays").data("kendoMultiSelect");
+		  selectedItemsFromMultiD.enable(false);
+		  selectedItemsFromMultiD.value(tempDays);
+	   }
+
+
+	   if (multiSelectDayVal.length == 0) {
+		  $("#colD").css("margin-bottom", "0px");
+		   }
+	   if (multiSelectDayVal.length <= 5) {
+		  $("#colD").css("margin-bottom", "0px");
+	   }
+
+		   if (multiSelectDayVal.length > 5) {
+		  if ($("#multiR").css("display") == "none") {
+			 $("#colD").css("margin-bottom", "0px");
+		  }
+		  else {
+			 $("#colD").css("margin-bottom", "0px");
+		  }
+	   }
+	}
+
+	$('#closeDaysWnd').off('click').on('click', function (e) {
+		   e.preventDefault();
+	   var dialog = $("#selectDaysWnd").data("kendoWindow");
+	   CloseDays();
+	   //if (document.getElementById("absoluteH").checked) {
+		   //   orderMultiselect("#MultiDays");
+	   //}
+	   //else {
+	   //   orderMultiselect("#MultiDaysR");
+		   //}
+	   if (multiSelectDayVal.length == 0) {
+		  $("#colD").css("margin-bottom", "0px");
+	   }
+		   if (multiSelectDayVal.length <= 5) {
+				  $("#colD").css("margin-bottom", "0px");
+	   }
+
+	   if (multiSelectDayVal.length > 5) {
+		  if ($("#multiR").css("display") == "none") {
+			 $("#colD").css("margin-bottom", "0px");
+		  }
+		  else {
+			 $("#colD").css("margin-bottom", "0px");
+		  }
+
+	   }
+		   dialog.close();
+	});
+
+	$('#closePatternWnd').off('click').on('click', function (e) {
+	   e.preventDefault();
+		   var dialog = $("#patternDetail").data("kendoWindow");
+
+	   dialog.close();
+	});
+
+	function CloseHours() {
+
+		   tempHours = [];
+	   for (var j = 0; j < multiSelectHourVal.length; j++) {
+		  tempHours.push(multiSelectHourVal[j]);
+	   }
+
+		   var selectedItemsFromMulti = $("#MultiHours").data("kendoMultiSelect");
+	   selectedItemsFromMulti.value(tempHours);
+	   $("#Schedule_HowManyTimes").val(0);
+	   $("#Schedule_HowManyTimes").val(tempHours.length);
+		   Schedule_ResetMultiHoursHeight(tempHours.length);
+
+	}
+
+	$('#closeHoursWnd').off('click').on('click', function (e) {
+	   e.preventDefault();
+		   var dialog = $("#selectHourWnd").data("kendoWindow");
+	 /*  CloseHours();*/
+	   dialog.close();
+	});
+
+	function patternOperation() {
+
+		   var drop1 = $("#dropPattern3").data("kendoDropDownList");
+	   var drop2 = $("#dropPattern2").data("kendoDropDownList");
+
+	   if (document.getElementById('executeP').checked == true) {
+		  if ($("#executePText2").val() == "" || $("#executePText3").val() == "" || drop1.value() == '' || drop2.value() == '') {
+			 $("#errPatt").css("display", "block");
+			 return false;
+		  }
+		  $("#Schedule_InTimesUnit").val(parseInt(drop1.value()));
+				  $("#Schedule_EveryTimesUnit").val(parseInt(drop2.value()));
+		  $("#Schedule_InTimesValue").val($("#executePText3").val());
+		  $("#Schedule_EveryTimesValue").val($("#executePText2").val());
+		  $("#Schedule_HowManyTimes").val(null);
+		  $("#patternSchedule").val("At interval of " + $("#executePText2").val() + " " + drop2.text() + " In " + $("#executePText3").val() + " " + drop1.text());
+
+	   }
+	   else if (document.getElementById('executeP2').checked == true) {
+		  if ($("#executePText").val() == "" || $("#executePText3").val() == "" || drop1.value() == '') {
+			 $("#errPatt").css("display", "block");
+			 return false;
+		  }
+		  $("#Schedule_InTimesUnit").val(parseInt(drop1.value()));
+		  $("#Schedule_InTimesValue").val($("#executePText3").val());
+				  $("#Schedule_HowManyTimes").val($("#executePText").val());
+		  $("#Schedule_EveryTimesUnit").val(null);
+		  $("#Schedule_EveryTimesValue").val(null);
+		  $("#patternSchedule").val("Execute " + $("#executePText").val() + " Times In " + $("#executePText3").val() + " " + drop1.text());
+
+	   }
+
+	   else if (document.getElementById('executeP3').checked == true) {
+		  if ($("#executePText").val() == "" || $("#executePText2").val() == "" || drop2.value() == '') {
+
+			 $("#errPatt").css("display", "block");
+			 return false;
+		  }
+		  $("#Schedule_InTimesValue").val(null);
+		  $("#Schedule_InTimesUnit").val(null);
+		  $("#Schedule_HowManyTimes").val($("#executePText").val());
+		  $("#Schedule_EveryTimesValue").val($("#executePText2").val());
+		  $("#Schedule_EveryTimesUnit").val(parseInt(drop2.value()));
+		  $("#patternSchedule").val("Execute " + $("#executePText").val() + " Times At interval of " + $("#executePText2").val() + " " + drop2.text());
+
+		   }
+	   else {
+		  $("#errPatt").css("display", "block");
+		  return false;
+	   }
+
+	   document.getElementById('executeP3').checked = false;
+	   document.getElementById('executeP2').checked = false;
+		   document.getElementById('executeP').checked = false;
+	   //$("#executePText").val("");
+	   //$("#executePText2").val("");
+	   //$("#executePText3").val("");
+	   $("#executePText3").attr("disabled", false);
+	   $("#executePText2").attr("disabled", false);
+	   $("#executePText").attr("disabled", false);
+	   drop1.enable(true);
+	   drop2.enable(true);
+		   $("#errPatt").css("display", "none");
+
+
+
+
+	}
+
+	$('#okPatternWnd').off('click').on('click', function (e) {
+	   e.preventDefault();
+	   var dialog = $("#patternDetail").data("kendoWindow");
+	   var ret = patternOperation();
+	   if(ret != false)
+		   dialog.close();
+	});
+	$('#okDaysWnd').off('click').on('click', function (e) {
+
+	   var multiselect = $("#MultiDays").data("kendoMultiSelect");
+	   var multiselectR = $("#MultiDaysR").data("kendoMultiSelect");
+		   multiSelectDayVal = [];
+		   for (var j = 0; j < tempDays.length; j++) {
+				  multiSelectDayVal.push(tempDays[j]);
+	   }
+	   if (multyDk == 1) {
+		  document.getElementById("relativeH").checked = true;
+		  document.getElementById("absoluteH").checked = false;
+		  document.getElementById("btnsDayA").style.display = "none";
+		  document.getElementById("btnsDayR").style.display = "block";
+				  $("#multiA").css("display", "none");
+		  $("#multiR").css("display", "block");
+		  multiselectR.enable(false);
+		  multiselectR.value(tempDays);
+		  temp_multyDk = 1;
+		  nameSelectedMulti= "#MultiDaysR";
+
+	   } else {
+		  document.getElementById("absoluteH").checked = true;
+		  document.getElementById("relativeH").checked = false;
+		  document.getElementById("btnsDayA").style.display = "block";
+				  document.getElementById("btnsDayR").style.display = "none";
+		  $("#multiA").css("display", "block");
+		  $("#multiR").css("display", "none");
+		  multiselect.enable(false);
+		  multiselect.value(tempDays);
+		  temp_multyDk = 0;
+		  nameSelectedMulti= "#MultiDays";
+	   }
+	   if (multiSelectDayVal.length == 0) {
+		  $("#colD").css("margin-bottom", "0px");
+		   }
+	   if (multiSelectDayVal.length <= 5) {
+		  $("#colD").css("margin-bottom", "0px");
+	   }
+
+	   if (multiSelectDayVal.length > 5) {
+		  if ($("#multiR").css("display")=="none") {
+			 $("#colD").css("margin-bottom", "0px");
+		  }
+		  else {
+			 $("#colD").css("margin-bottom", "0px");
+		  }
+
+	   }
+		   var dialog = $("#selectDaysWnd").data("kendoWindow");
+	   dialog.close();
+	});
+
+
+	$('#okHoursWnd').off('click').on('click', function (e) {
+		   e.preventDefault();
+	   multiSelectHourVal = [];
+	   for (var j = 0; j < tempHours.length; j++ ) {
+		  multiSelectHourVal.push(tempHours[j]);
+		   }
+	   //var policy = $("#Schedule_SchedPolicy").data("kendoDropDownList");
+	   //policy.value("0");
+	   var dialog = $("#selectHourWnd").data("kendoWindow");
+		   dialog.close();
+	});
+
+
+
+
+	Array.prototype.remove = function () {
+	   var what, a = arguments, L = a.length, ax;
+	   while (L && this.length) {
+		  what = a[--L];
+		  while ((ax = this.indexOf(what)) !== -1) {
+			 this.splice(ax, 1);
+		  }
+	   }
+	   return this;
+	};
+
+
+
+
+
+
+
+</script>
+

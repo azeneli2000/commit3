@@ -1,0 +1,147 @@
+﻿@{
+    string gridName = "report-template-grid";
+    string popUpWindowName = "IdOfEditWindow";
+   
+   ViewBag.Title = DicSvc.XLate("Report template");
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+</script>
+
+<div class="card h-100 m-1 p-2 " id="gridContainer">
+    <div id="@popUpWindowName"></div>
+
+    @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.ReportTemplateViewModel>()
+                .Name(gridName)
+                  .UmsDefaultSettings(DicSvc)
+                  .UmsDefaultToolbar("createNewItem", "ADD NEW TEMPLATE", "displayItemDetail('');", DicSvc)
+                .Columns(columns =>
+                {
+                    columns.Bound(e => e.ID).Visible(false);
+                    columns.Bound(e => e.Name);
+                    columns.Bound(e => e.Application);
+                    columns.Bound(e => e.Module);
+                    columns.Bound(e => e.CreationDate).Format("{0:dd/MM/yyyy}");
+                    columns.Bound(e => e.Author);
+                    columns.Bound(e => e.Filename);
+                    //columns.Command(command =>
+                    //{
+                    //    command.Edit().Text(" ").UpdateText(" ").CancelText(" ");
+                    //    command.Custom("deletecustom").Click("onDeleteItem").Text(" ");
+                    //}).Width(120);
+                })
+
+                .Events(ev => ev.DataBound("onDataBound"))
+                .DataSource(dataSource => dataSource
+                    .Ajax()
+                    .Model(model =>
+                    {
+                        model.Id(o => o.ID);
+                        model.Field(o => o.Name).Editable(false);
+                        model.Field(o => o.Application).Editable(false);
+                        model.Field(o => o.Module).Editable(false);
+                        model.Field(o => o.CreationDate).Editable(false);
+                        model.Field(o => o.Author).Editable(false);
+                        model.Field(o => o.Filename).Editable(false);
+                    })
+                     //.PageSize(20)
+                     //.Events(events => events.Error("error_handler_users"))
+                     .Read(read => read.Action("ReadReportTemplates", "ReportMaster"))
+                //.Update(update => update.Action("UpdateUsers", "SystemAdministration"))
+                //    .Create(create => create.Action("CreateTemplate", "ReportMaster")
+                )
+    )
+</div>
+
+<script type="text/javascript">
+
+    @{
+       string editItemTitle = "Edit Template";
+       string newItemTitle = "Add new Template";
+    }
+    var kndWnd;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                maxHeight:360,
+                title: '@DicSvc.XLate(editItemTitle)',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+
+        }
+
+    });
+
+
+    $(window).resize(function () {
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                for (var i = 0; i < kendoWindow.length; i++) {
+                    var win = $(kendoWindow[i]).data("kendoWindow");
+                    if (!win.element.is(":hidden")) {
+                        win.center();
+                        if (win.resize != undefined) {
+                            win.trigger('resize');
+                        }
+
+                    }
+                }
+            }
+        }, 100);
+    });
+
+    function displayItemDetail(itemID) {
+        var windowWidget = $(popUpWindowName).data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+        $.ajax({
+            url: '@Url.Action("GetReportTemplate", "ReportMaster")',
+            type: 'GET',
+            data: { id: itemID }
+        }).done(function (dataHtml) {
+            kendo.ui.progress(windowWidget.element, true);
+			var dialog = $(popUpWindowName ).data('kendoWindow');
+            if (itemID ==='') {
+                dialog.title('@DicSvc.XLate(newItemTitle)');
+            } else {
+                dialog.title('@DicSvc.XLate(editItemTitle)');
+            }
+            dialog.content(dataHtml).center().open();
+
+        });
+    }
+    //
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem( $(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+    }
+    function onGridKeyEnter(item) {
+        //replace Key
+        displayItemDetail(item.ID);
+    };
+
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+
+
+  
+</script>

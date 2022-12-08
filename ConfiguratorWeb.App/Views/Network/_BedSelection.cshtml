@@ -1,0 +1,149 @@
+﻿@model ConfiguratorWeb.App.Models.NetworkViewModel
+@{
+    Layout = null;
+}
+<div class="card" style="height:550px; padding: 15px 10px 0 10px;">
+    <input type="hidden" id="hidCurrNetworkBedSelection" value="@Model.Id" />
+    <input type="hidden" id="hidCurrTLDeviceID" value="@ViewBag.TLDeviceID" />
+    <div style="height:450px;">
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.LocationViewModel>()
+                    .Name("Location-grid")
+                    .Columns(columns =>
+                    {
+                        columns.Bound(e => e.ID).Visible(false);
+                        columns.Bound(e => e.LocationCode);
+                        columns.Bound(e => e.LocationName);
+
+                    })
+                        .Pageable(pager => pager
+                            .Input(true)
+                            .Numeric(true)
+                            .Info(true)
+                            .PreviousNext(true)
+                            .Refresh(true)
+                            .PageSizes(true)
+                            )
+                        .Sortable().Filterable().HtmlAttributes(new { style = "height:97%;margin:10px;" })
+                        .Sortable()
+                        .Scrollable()
+                        .ClientDetailTemplateId("bedGridTemplate")
+                        .DataSource(dataSource => dataSource
+                            .Ajax()
+                            .Model(model =>
+                            {
+                                model.Id(o => o.ID);
+                                model.Field(p => p.LocationCode);
+                                model.Field(p => p.LocationName);
+                            })
+
+                    .Read(read => read.Action("GetLocations", "BedLocation"))
+                )
+    .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+        )
+    </div>
+
+
+    <div class="button-container">
+        <div class="col-md-4 u-col-h-fixed">
+            <div id="errors"></div>
+        </div>
+        <div class="col-md-8 u-col-h-fixed">
+            <div>
+                <button id="btnSelectBeds" class="btnSave" type="button">@DicSvc.XLate("OK")</button>
+                <button id="btnCloseBedSelection" class="btnCancel" type="button">@DicSvc.XLate("CANCEL")</button>
+            </div>
+        </div>
+    </div>
+</div>
+    
+<script>
+
+
+  
+
+    function onBedGridDataBound(e) {
+        var items = this.dataSource.view();
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].Selected) {
+                var row = this.tbody.find("tr[data-uid='" + items[i].uid + "']");
+                this.select(row);
+                //row.find('input:checkbox').attr('checked', true);
+            }
+        }
+    }
+
+    $(document).ready(function () {
+
+        $('#btnSelectBeds').click(function () {
+            submitGridChanges();
+        });
+
+        $('#btnCloseBedSelection').click(function () {
+            $('#TLBedLocations').data('kendoWindow').close();
+        });
+    })
+        
+    function submitGridChanges() {
+        //Loop through locations
+        var grids = $('[id^=Bedsgrid_]');
+        var selectedItems = [];
+        for (var i = 0; i < grids.length; i++) {
+            var grid = $(grids[i]).data('kendoGrid');
+            var selectedRow = grid.select();
+            for (var k = 0; k < selectedRow.length; k++) {
+
+                selectedItems.push(grid.dataItem(selectedRow[k]));
+            }
+        }
+       
+        $.ajax({
+            url: '@Url.Action("UpdateBeds", "TelligenceDevice",new { networkID = Model.Id, TLdeviceID=ViewBag.TLDeviceID })',
+            type: 'POST',
+            data: JSON.stringify(selectedItems),
+              contentType: "application/json; charset=utf-8",
+              dataType: "json",
+        }).done(function (data) {
+            if (data.success) {
+                $('#TLBedLocations').data('kendoWindow').close();
+                $("#tellidevices-grid").data('kendoGrid').dataSource.read()
+            }
+           
+        });
+    }
+    
+
+</script>
+<script id="bedGridTemplate" type="text/kendo-tmpl">
+    @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.BedViewModel>()
+                            .Name("Bedsgrid_#=ID#")
+                            .HtmlAttributes(new { umsgridlocID="" })
+                            .Columns(columns =>
+                            {
+                                columns.Select().Width(50);
+                                columns.Bound(o => o.BedId).Visible(false);
+                                columns.Bound(o => o.BedCode).Width(150);
+                                columns.Bound(o => o.BedName);
+                            })
+                            .Events(e=>e.DataBound("onBedGridDataBound"))
+                            .DataSource(dataSource => dataSource
+                                .Ajax()
+                                .Model(model =>
+                                {
+                                    model.Id(o => o.BedId);
+                                    model.Field(p => p.Selected).Editable(true);
+                                    model.Field(p => p.BedCode).Editable(true);
+                                    model.Field(p => p.BedName).Editable(false);
+                                })
+                                .ServerOperation(false)
+                                .PageSize(10)
+                                .Read(read => read.Action("GetBedsForLocation", "BedLocation", new { locationID = "#=ID#", networkID = Model.Id }))
+                                .Update(update => update.Action("UpdateBeds", "TelligenceDevice"))
+                            )
+                            .Editable(ed => ed.Mode(GridEditMode.InLine))
+                            .Pageable()
+                            .Sortable()
+
+                            .ToClientTemplate()
+    //.NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+    )
+</script>

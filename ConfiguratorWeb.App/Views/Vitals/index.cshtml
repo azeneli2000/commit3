@@ -1,0 +1,210 @@
+﻿@{
+    string gridName = "vitals-grid";
+    ViewBag.Title = DicSvc.XLate("Vitals dataset");
+}
+
+<script>
+    var gridIdName = "@gridName";
+    var kndWnd;
+    var guidEmpty = "00000000-0000-0000-0000-000000000000";
+</script>
+
+<script src="~/lib/ace/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/mode-csharp.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/ext-language_tools.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/ext-error_marker.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/ext-keybinding_menu.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+
+<style>
+    .ace_editor {
+        width: 100%;
+        height: 350px;
+        border: 1px solid #dee2e6;
+    }
+    #sdItemEditWindow .ace_editor {
+        height: 300px;
+    }
+        .ace_editor .ace_text-input:disabled ~ .ace_scroller .ace_content {
+            background-color: #e9ecef !important;
+        }
+
+    .card-footer{
+        min-height:60px;
+    }
+
+    .k-list-item-text:empty{
+        height:18px;
+    }
+</style>
+
+<div class="h-100 text-center">
+    <div class="card h-100 m-1 p-2 text-left">
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.StandardDatasetViewModel>()
+                    .UmsDefaultToolbar("create_telligenceServer", DicSvc.XLate("ADD NEW DATASET"), "openDetail();", DicSvc)
+                    .ToolBar(toolbar =>
+                    {
+                        if (ViewBag.CanImport)
+                        {
+                            toolbar.Custom().Text(DicSvc.XLate("Import")).IconClass("k-icon k-i-upload").HtmlAttributes(new { id = "btnImport", @class= "btn-import" });
+                        }
+                    })
+                    .Name(gridName)
+                    .UmsDefaultSettings(DicSvc)
+                    .Navigatable(true)
+                     .Columns(columns =>
+                     {
+                         columns.Bound(e => e.sd_ID).Visible(false);
+
+                         columns.Bound(e => e.sd_Name);
+                         columns.Bound(e => e.sd_Timing).ClientTemplate("#: TimingName #");
+                         columns.Bound(e => e.sd_Type).ClientTemplate("#: TypeName #");
+                         columns.Bound(e => e.sd_Script).ClientTemplate("#if(sd_Script && sd_Script.length>15){ # # var sdScriptContent =sd_Script; #  # var dcontent = sdScriptContent.substring(0,15); # <span>#=kendo.toString(dcontent)# ...</span> #}else{ if(sd_Script==null) {# <span></span> #} else {# <span>#=sd_Script#</span> #}}#");
+                         columns.Bound(e => e.sd_IntervalScript).ClientTemplate("#if(sd_IntervalScript && sd_IntervalScript.length>15){ # # var sdScriptContent =sd_IntervalScript; #  # var dcontent = sdScriptContent.substring(0,15); # <span>#=kendo.toString(dcontent)# ...</span> #}else{ if(sd_IntervalScript==null) {# <span></span> #} else {# <span>#=sd_IntervalScript#</span> #}}#");
+                         columns.Bound(e => e.sd_Reminder).ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #= sd_Reminder ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" });
+                         columns.Bound(e => e.sd_IsPaged).ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled'  type='checkbox' #= sd_IsPaged ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" });
+                         columns.Bound(e => e.sd_Published).ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled'  type='checkbox' #= sd_Published ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" });
+                         columns.Template("<a target=\"_blank\" href=\"" + Url.Action("Export", "Vitals") + "?sdID=#:sd_ID#\" download=\"#=sd_Name.replace(/[\\//:*\\?\"<>\\|]/gi, \"_\")#.bin\" class=\"k-icon k-i-download\"></a>").HtmlAttributes(new { style = "text-align:center;" }).Width(50);
+
+                     })
+
+                     //.Events(ev => ev.Edit("onEdit").Cancel("onCancel").DetailInit("onInitDetailStandardDataset"))
+                     .Events(ev => ev.DataBound("onDataBound"))
+                     .DataSource(dataSource => dataSource
+                     .Ajax()
+                     .Model(model =>
+                     {
+                         model.Id(o => o.sd_ID);
+                         model.Field(o => o.sd_Name).Editable(false);
+                         model.Field(o => o.sd_Timing).Editable(false);
+                         model.Field(o => o.sd_Type).Editable(false);
+                         model.Field(o => o.sd_Script).Editable(false);
+                         model.Field(o => o.sd_IntervalScript).Editable(false);
+                         model.Field(o => o.sd_Reminder).Editable(false);
+                         model.Field(o => o.sd_IsPaged).Editable(false);
+
+                     })
+                     //.PageSize(50)
+                     //.Events(events => events.Error("error_handler_users"))
+                     .Read(read => read.Action("GetAllStandardDataset", "Vitals"))
+                     )
+
+
+        )
+
+    </div>
+    <div id="divVitalsDatasetEditWindow"></div>
+</div>
+<script id="delete-confirmation" type="text/x-kendo-template">
+    @{ await Html.RenderPartialAsync("_DeleteDialogConfirmWindow"); }
+</script>
+
+<script id="detail" type="text/kendo-tmpl">
+    <div class="vitalsStandardDataset-detail" data-uidparent="#=sd_ID#" style="width: 99%;display: inline-block;padding: 15px 0;"></div>
+</script>
+<script>
+      @{
+       string editItemTitle = DicSvc.XLate("Edit Vitals Dataset");
+    }
+
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $('#divVitalsDatasetEditWindow').usmKendoWindow({
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                },
+                title: '@editItemTitle',
+                height: 600,
+                width:'90%'
+            });
+        }
+
+        resetButtonImport();
+    });
+
+    function resetButtonImport() {
+        var btnImport = $("#vitals-grid .btn-import").get(0);
+        if (btnImport) {
+            var newBtnImport = $("<label class='k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base my-0 btn-import'><i class='k-icon k-i-upload mr-2'></i>@DicSvc.XLate("Import")<input multiple accept='.bin' type='file' id='btnImport' class='d-none' /></label>").get(0);
+            btnImport.parentNode.replaceChild(newBtnImport, btnImport);
+
+
+            $("#btnImport").change(function () {
+                var files = this.files;
+                if (files.length) {
+                    var $body = $("body");
+                    var fileData = new FormData();
+                    for (var i = 0; i < files.length; i++) {
+                        fileData.append("files", files[i]);
+                    }
+
+                    umsConfirm('@DicSvc.XLate("Confirm import")', '@DicSvc.XLate("By importing this dataset, all of its records will be deleted. Do you want to continue ?")', function () {
+
+                        kendo.ui.progress($body, true);
+
+                        $.ajax({
+                            url: "@Url.Action("Import", "Vitals")",
+                            type: "POST",
+                            contentType: false,
+                            processData: false,
+                            data: fileData,
+                            success: function (result) {
+                                if (result.success) {
+                                    result.message && umsAlert("@DicSvc.XLate("Import")", result.message);
+                                    $("#vitals-grid").data("kendoGrid").dataSource.read();
+                                }
+                                else if (result.message) {
+                                    umsErrorDialog("@DicSvc.XLate("Error occured")", result.message);
+                                }
+                                else {
+                                    umsErrorDialog("@DicSvc.XLate("Error occured")", "@DicSvc.XLate(CommonStrings.INTERNAL_SERVER_ERROR)");
+                                }
+                            },
+                            error: function (err) {
+                                umsErrorDialog("@DicSvc.XLate("Error occured")", err.statusText);
+                            },
+                            complete: function () {
+                                resetButtonImport();
+                                kendo.ui.progress($body, false);
+                            }
+                        });
+
+                    }, function () {
+                        resetButtonImport();
+                    });
+                }
+            });
+        }
+    }
+
+    function openDetail(dataItem) {
+        kendo.ui.progress($("#vitals-grid"), true);
+        var itemId = dataItem ? dataItem.sd_ID : guidEmpty;
+        $.ajax({
+            type: "GET",
+            url: '@Url.Action("GetStandardDataset", "Vitals")',
+            data: { id: itemId }
+          }).done(  function (data) {
+              var wnd = kndWnd.data("kendoWindow");
+                wnd.content('');
+                wnd.content(data);
+                wnd.center().open();
+            }).fail(function (xhr, textStatus, errorThrown) {
+            }
+        );
+        kendo.ui.progress($("#vitals-grid"), false);
+    }
+
+    function onGridKeyEnter(item) {
+        openDetail(item);
+    };
+
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+    }
+
+</script>

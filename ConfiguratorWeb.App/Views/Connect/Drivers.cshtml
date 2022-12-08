@@ -1,0 +1,171 @@
+﻿@{
+    string gridName = "drivers-grid";
+   
+   ViewBag.Title = DicSvc.XLate("Driver");
+   
+}
+<script>
+    var gridIdName = "@gridName";
+</script>
+
+<div id="driverEditWindow"></div>
+<div class="h-100 text-center">
+    <div class="card h-100 m-1 p-2 text-left">
+
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.DriverViewModel>()
+                      .Name(gridName)
+                      .UmsDefaultSettings(DicSvc)
+                      .UmsDefaultToolbar("create_driver", "ADD NEW DRIVER", "displayDriverDetailDialog('');", DicSvc)
+                      .UmsDefaultPager(DicSvc)
+                      .Columns(columns =>
+                      {
+                          columns.Bound(e => e.Id).Visible(false);
+                          columns.Bound(e => e.DriverName);
+                          columns.Bound(e => e.DriverVersion);
+                          columns.Bound(e => e.DriverVersionBuild);
+                          columns.Bound(e => e.DriverModel).Filterable(a =>
+                          {
+                              a.Search(true).Multi(true).CheckAll(true);
+                          }); //select existing values
+                          columns.Bound(e => e.Manufacturer);
+                          columns.Bound(e => e.DeviceTypeDesc);
+                          columns.Bound(e => e.Note);
+                          columns.Bound(e => e.AlarmSystemTypeDescription).Sortable(false)
+                               //.Filterable(a =>{a.Search(true).Multi(true).CheckAll(true);})
+                               ;
+                      })
+                      .Editable(GridEditMode.PopUp)
+                      .Events(ev => ev.DataBound("onDataBound").Edit("onDriverSelected") /*.Change("onDriverSelected")*/)
+                      .DataSource(dataSource => dataSource
+                          .Ajax()
+                          .PageSize(20)
+                          .Events(events => events.Error("error_handler_drivers").RequestEnd("onRequestEnd"))
+                          .Read(read => read.Action("ReadDrivers", "Connect"))
+                      
+                      ))
+    </div>
+
+</div>
+
+
+<div id="divDialogKeepSettings" style="display:none;">
+
+    <div class="row">
+        <div class="col-md-8 u-col-h-fixed">
+            @DicSvc.XLate("Keep Capabilities settings")
+        </div>
+        <div class="col-md-4 u-col-h-fixed">
+            <input type="checkbox" class="check-col" id="chkKeepCapabilities"   name="chkKeepCapabilities" />
+        </div>
+    </div>
+   <div class="row">
+      <div class="col-md-8 u-col-h-fixed">
+         @DicSvc.XLate("Keep SmartCentral Format String")
+      </div>
+      <div class="col-md-4 u-col-h-fixed">
+         <input type="checkbox" class="check-col" id="chkKeepFormatString"  name="chkKeepFormatString" />
+      </div>
+   </div>
+   <div class="position-absolute fixed-bottom">
+      <div class="row">
+         <div class="col-md-12 u-col-h-fixed">
+            <button type="button" id="btnCancelUpload" class="btn k-button k-buttonLarge float-right">@DicSvc.XLate("Cancel")</button>
+            <button type="button" id="btnConfirmUpload" class="btn k-button k-buttonLarge float-right">@DicSvc.XLate("Ok")</button>
+
+         </div>
+      </div>
+   </div>
+</div>
+
+<script>
+    var kndWnd = null;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $('#driverEditWindow').usmKendoWindow({
+                height: 600,
+                minWidth: '90%',
+                title: '@DicSvc.XLate("Edit Driver")',
+                close: function(e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+        }
+
+    });
+
+    var kndWndKeepSettings = null;
+    $(document).ready(function() {
+        if (!kndWndKeepSettings) {
+            kndWndKeepSettings = $('#divDialogKeepSettings').usmKendoWindow({
+                height: 200,
+                width: 350,
+                title: '@DicSvc.XLate("Driver Update")',
+                close: function(e) {
+                    //$('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+        }
+
+    });
+
+    $(window).resize(function () {
+        setTimeout(function () {
+            if (kndWnd) {
+                kndWnd.data("kendoWindow").center();
+            }
+        }, 100);
+    });
+    function onDataBound() {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick','tbody tr[data-uid]',
+            function(e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                displayDriverDetailDialog(item.Id);
+            });
+    }
+    function onDriverSelected(e) {
+        var item = e.sender.dataItem(e.sender.select());
+        displayDriverDetailDialog(item.Id);
+    }
+
+    function displayDriverDetailDialog(itemID) {
+
+        var windowWidget = $("#driverEditWindow").data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+        $.ajax({
+            url: '@Url.Action("GetDriver", "Connect")',
+            type: 'GET',
+            data: { id: itemID}
+        }).done(function (dataHtml) {
+            kendo.ui.progress(windowWidget.element, true);
+            var itemDialog = $('#driverEditWindow').data('kendoWindow');
+            itemDialog.content(dataHtml);
+            itemDialog.open();
+            itemDialog.center();
+        });
+    }
+
+    function onRequestEnd(e) {
+       //var grid = $('#' + gridIdName).getKendoGrid();
+       //debugger;
+       if (e.response && e.response.success != undefined && e.response.success == false ) {
+           var message = "An error occurred retrieving data.<br/>Check logs for details";
+          window.umsAlert("Error",message);
+       }
+    }
+    function error_handler_drivers(e) {
+       if (e.status && e.status == "error" ) {
+          //if (e.xhr && e.xhr.responseText) {
+          //   window.umsAlert("Error",e.xhr.responseText,600,400);
+          //} else {
+           var message = "An error occurred retrieving data.<br/>Check logs for details";
+          window.umsAlert("Error",message);
+          //}
+       }
+    }
+
+    function onGridKeyEnter(item) {
+        displayDriverDetailDialog(item.Id);
+    };
+
+</script>

@@ -1,0 +1,188 @@
+﻿@using Digistat.FrameworkStd.Model.Mobile
+@{
+    ViewBag.Title = DicSvc.XLate("Device Manager");
+}
+
+
+<div class="h-100 text-center ">
+    <div class="card h-100 m-1 p-2 text-left">
+        <div class="row">
+            <div class="col-md-12 ">
+                <h3>@DicSvc.XLate("Generate a QRCode for provisioning devices")</h3>
+            </div>
+        </div>
+        <div class="row">
+
+        </div>
+        <div class="row">
+            <div class="col-2 ">
+                <label name="MobileData" id="MobileData" class="mt-2">
+                    @DicSvc.XLate("Force mobile data")
+                </label>
+            </div>
+            <div class="col-3 text-left">
+                <input  class="check-col  k-checkbox k-checkbox-md k-rounded-md" type="checkbox" required id="chkMobileData" name="chkMobileData" /><label for="chkMobileData" class="k-checkbox-label" ></label>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-2 ">
+                <label name="WifiSSID" id="WifiSSID" class="mt-2">@DicSvc.XLate("Wifi SSID")</label>
+            </div>
+            <div class="col-3 text-left"><input type="text" class="form-control k-textbox" required id="txtWifiSSID" name="txtWifiSSID" value="" /> </div>
+        </div>
+        <div class="row">
+            <div class="col-2 ">
+                <label name="WifiPassword" id="WifiPassword" class="mt-2">@DicSvc.XLate("Wifi Password")</label>
+            </div>
+            <div class="col-3 text-left"><input type="password" class="form-control k-textbox" required id="txtWifiPassword" name="txtWifiPassword" value="" /> </div>
+        </div>
+        <div class="row">
+            <div class="col-2 ">
+                <label name="OwnerDownloadLocation" id="OwnerDownloadLocation" class="mt-2">@DicSvc.XLate("Download Location")</label>
+            </div>
+            <div class="col-3 text-left"><input type="text" class="form-control k-textbox" required id="txtOwnerDownloadLocation" name="txtOwnerDownloadLocation" value="" /> </div>
+        </div>
+        <div class="row">
+            <div class="col-2 ">
+                <label name="OwnerEnrollURL" id="OwnerEnrollURL" class="mt-2">@DicSvc.XLate("Enroll URL")</label>
+            </div>
+            <div class="col-3 text-left"><input type="text" class="form-control k-textbox" required id="txtOwnerEnrollURL" name="txtOwnerEnrollURL" value="" /> </div>
+        </div>
+        <div class="row">
+            <div class="col-2 ">
+                <label name="OwnerEnroll" id="OwnerEnroll" class="mt-2">@DicSvc.XLate("Enroll ID")</label>
+            </div>
+            <div class="col-3 text-left"><input type="text" class="form-control k-textbox" required id="txtOwnerEnroll" name="txtOwnerEnroll" value="" /> </div>
+        </div>
+        <div class="row">
+            <div class="col-auto ">
+                <button type="button" class="btn k-buttonLarge btn-primary" id="btnGenerateQR">@DicSvc.XLate("QR Code")</button>
+            </div>
+        </div>
+
+
+    </div>
+    @(Html.Kendo().Dialog()
+         .Name("qr")
+         .Width(420)
+         .Modal(true)
+         .Visible(false)
+         .Title(DicSvc.XLate("Provisioning QR Code"))
+         .Actions(actions =>
+         {
+            actions.Add().Text(DicSvc.XLate("CLOSE")).Primary(false);
+            actions.Add().Text(DicSvc.XLate("DOWNLOAD")).Action("onQRDownload").Primary(false);
+         })
+    )
+</div>
+<script>
+
+    function ShowQr(data) {
+        $('#qr').data("kendoDialog").content('<div id="qrCode"></div>');
+        $("#qrCode").kendoQRCode({
+            size: 350,
+            value:data
+        });
+
+        $('#qr').data("kendoDialog").open();
+        return $('#qr').data("kendoDialog");
+    };
+
+    function onQRDownload() {
+        var qrCode = $("#qrCode").getKendoQRCode();
+        qrCode.exportImage().done(function (data) {
+            kendo.saveAs({
+                dataURI: data,
+                fileName: "Digistat_Provision_QR.png"
+            });
+        });
+    };
+    
+
+    var valueLocation = "";
+    var valueEnroll = "";
+    var valueSSID = "";
+    var valuePassword = "";
+    var valueMobileData = false
+
+    $('#btnGenerateQR').click(function () {
+        valueLocation = $("#txtOwnerDownloadLocation").val();
+        valueEnrollURL = $("#txtOwnerEnrollURL").val();
+        valueEnroll = $("#txtOwnerEnroll").val();
+        valueSSID = $("#txtWifiSSID").val();
+        valuePassword = $("#txtWifiPassword").val();
+        valueMobileData = $("#chkMobileData").prop("checked");
+
+        if (valueLocation == "") {
+            window.umsAlert('@DicSvc.XLateJs("ERROR")', '@DicSvc.XLateJs("Missing download location")');
+            return;
+        }
+
+        if (valueEnrollURL == "") {
+            window.umsAlert('@DicSvc.XLateJs("ERROR")', '@DicSvc.XLateJs("Missing Enroll URL")');
+            return;
+        }
+
+        jsonProvisioner = {
+            "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME":
+                "com.ums.app.devicemanager/.DigistatAdminReceiver",
+
+            "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM":
+                "xbUPWnhrk8Mz0oM61jl4aot_PKcbDCjbj629s2oVLwI",
+
+            "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION":
+                valueLocation,
+        };
+
+        if ( !valueMobileData ) {
+            if (valueSSID != "") {
+                Object.assign(jsonProvisioner, {
+                    "android.app.extra.PROVISIONING_WIFI_SSID": valueSSID
+                }
+                );
+
+                if (valuePassword != "") {
+                    Object.assign(jsonProvisioner, {
+                        "android.app.extra.PROVISIONING_WIFI_PASSWORD": valuePassword
+                    }
+                    );
+
+                }
+
+            }
+        }
+        else {
+            Object.assign(jsonProvisioner, {
+                "android.app.extra.PROVISIONING_USE_MOBILE_DATA": true
+            }
+            );
+        }
+
+        if (valueEnroll != "") {
+            Object.assign(jsonProvisioner, {
+                "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
+                    "EnrollURL": valueEnrollURL,
+                    "Enroll": valueEnroll
+                }
+            }
+            );
+        }
+        else {
+            Object.assign(jsonProvisioner, {
+                "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
+                    "EnrollURL": valueEnrollURL
+                }
+            }
+            );
+        }
+
+        jsonString = JSON.stringify(jsonProvisioner);
+                
+        ShowQr(jsonString);
+
+
+    });
+
+</script>
+
+

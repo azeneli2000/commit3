@@ -1,0 +1,28 @@
+﻿@*
+       <div style="display: block;margin-top: -23px; width: 400px;  background: rgb(255, 255, 255); min-height: 150px;" tabindex="-1" margin-top -23px;>
+
+        <h3 id="question-message" style="margin: 35px 0px;">@ViewData["questionMessage"]</h3>
+        <hr style="display: block;">
+        <div style="text-align:center;">
+            <button type="button" class="btn btn-success delete-confirm">YES</button>
+            <button type="button" class="btn btn-danger delete-cancel" style="display: inline-block;">CANCEL</button>
+        </div>
+    </div>
+*@
+
+<div class="dialog-modal dialog-show" style="display: block;margin-top: -23px; width: 500px;  background: rgb(255, 255, 255); min-height: 152px;" tabindex="-1" margin-top -23px;>
+    <div class="row" style="margin: 13px 0 70px;">
+        <div class="col-md-2 u-col-h-fixed">
+            <div class="dialog-icon dialog-warning" style="display: block;">!</div>
+        </div>
+        <div class="col-md-10 u-col-h-fixed">
+            <h2 id="alert-message" style="font-size: 23px;margin-left: 15px;">{error-message-alert}</h2>
+        </div>
+    </div>
+    <hr class="dialog-spacer" style="display: block;margin-top: 13px;margin-bottom: 16px;">
+    <div style="text-align:right;">
+        <button type="button" class="dialog-confirm btn btn-danger delete-confirm">Delete</button>
+        <button type="button" class="dialog-cancel  btn btnKendo delete-cancel text-dark" style="display: inline-block;">Cancel</button>
+    </div>
+    <span class="dialog-close" style="display: none;">×</span>
+</div>

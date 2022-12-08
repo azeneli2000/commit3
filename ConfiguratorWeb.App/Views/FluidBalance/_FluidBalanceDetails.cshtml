@@ -1,0 +1,546 @@
+﻿@using ConfiguratorWeb.App.Models.FluidBalance
+@using System.Text;
+@using Digistat.FrameworkStd.Enums
+@model FluidBalanceViewModel
+@{
+   ViewData["Title"] = "_FluidBalanceDetails";
+   var strDialogID = "fluidBalanceForm";
+
+   var textOption = OptionType.Text;
+   StringBuilder objSbDelete = new StringBuilder();
+   objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete FluidBalance Item \"{0}\" "),
+      Model.Name);
+   objSbDelete.Append("?");
+}
+
+@{
+   Layout = null;
+   var strDetailsDivIdf = "FluidBalanceDetail";
+   string keyID = Model.Id.ToString();
+   string keyEmptyValueID = "0";
+   string formId = "form_" + keyID;
+
+   string gridIdName = "fluidbalance-grid";
+}
+<style>
+
+   .col-3 {
+      flex: 0 0 27%;
+      max-width: 38%;
+   }
+
+   .ace_editor {
+      width: 100%;
+      height: 384px;
+   }
+   .flagContainer {
+      display: flex;
+      flex-direction: row;
+      width: 15%;
+
+   }
+   .marginItems{
+      margin-top:3px;
+   }
+</style>
+
+
+
+<div class="card h-100 pt-1 pb-2">
+   <div class="card-body h-100 p-0 border-0 m-1" id="fluidBalanceDetailcontainer">
+      <form asp-controller="FluidBalance" id="@formId" asp-action="SaveDetail"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+            data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+
+         <input asp-for="Id" type="hidden" />
+         <div class="container-fluid">
+            <div class="row mt-3">
+               <div class="col-sm-1 u-col-h-fixed">
+                  <label asp-for="Name" class="label-name">@DicSvc.XLate("Name") *</label>
+               </div>
+               <div class="col-3">
+                  <div class="input-group">
+                     <input asp-for="Name" class="k-input k-textbox" style="position: relative;left: -14px;" required />
+                  </div>
+               </div>
+               <div class="col-sm-1" style=" position: relative; left: 30px;">
+                  <label asp-for="Sql" class="label-name">Sql</label>
+               </div>
+               <div class="col-sm-6 u-col-h-fixed">
+                  <div class="input-group">
+                     @Html.TextAreaFor(m => m.Sql, new { @style = "width:90%;height:200px;max-height:200px;border-color: #e4e4e4;" })
+                     <div id="aceEditor" class="border"> </div>
+                  </div>
+               </div>
+            </div>
+
+            <div class="row" style="position: relative!important;top: 17px!important;">
+               <div class="col-sm-1 u-col-h-fixed">
+                  <label asp-for="Description" class="label-name">@DicSvc.XLate("Description")</label>
+               </div>
+               <div class="col-sm-3 u-col-h-fixed">
+                  <div class="input-group">
+                     <textarea asp-for="Description" rows="5" class="k-textarea w-100" style="resize: none;"></textarea>
+                  </div>
+               </div>
+            </div>
+            <div class="row" style="position: relative!important;top: 110px!important;">
+               <div class="col-sm-1 u-col-h-fixed">
+                  <label asp-for="Labels" class="label-name">@DicSvc.XLate("Labels")</label>
+               </div>
+               <div class="col-sm-3 u-col-h-fixed">
+                  <div class="input-group">
+                     <textarea asp-for="Labels" rows="15" class="k-textarea w-100" style="resize: none;"  ></textarea>
+                  </div>
+               </div>
+
+            </div>
+
+            <div style=" position: relative; top: 130px; display: flex; flex-direction: column; left: 510px; height: 236px; width: 50%; justify-content: space-between; align-items: flex-end;">
+               <div style=" display: flex; flex-direction: row; justify-content: space-between; align-items: flex-end; width: 100%;position:relative;top:137px;">
+                  <div class="flagContainer" style="width: 43%;">
+                     <label asp-for="Mode" class="label-name" style=" margin-right: 18px; position: relative; top: 7px; left: 8px;">@DicSvc.XLate("Mode")</label>
+
+                     @Html.Kendo().DropDownListFor(m => m.Mode).DataTextField("Text").DataValueField("Value").BindTo(new List<SelectListItem>() {
+                     new SelectListItem() { Text = EnumModeType.ModeType.FluidInput.GetDisplayAttribute(), Value = ((int)EnumModeType.ModeType.FluidInput).ToString() },
+                     new SelectListItem() { Text = EnumModeType.ModeType.FluidOutput.GetDisplayAttribute(), Value = ((int)EnumModeType.ModeType.FluidOutput).ToString() },
+                     new SelectListItem() { Text = EnumModeType.ModeType.BloodInput.GetDisplayAttribute(), Value = ((int)EnumModeType.ModeType.BloodInput).ToString() },
+                     new SelectListItem() { Text = EnumModeType.ModeType.BloodOutput.GetDisplayAttribute(), Value = ((int)EnumModeType.ModeType.BloodOutput).ToString() },
+                     new SelectListItem() { Text = EnumModeType.ModeType.Other.GetDisplayAttribute(), Value = ((int)EnumModeType.ModeType.Other).ToString() } }).HtmlAttributes(new { style = "width: 536px;" })
+
+                  </div>
+                  <div class="flagContainer marginItems" style="width: 45%;">
+                     <label asp-for="Location.LocationName" class="label-name" style=" margin-right: 22px; top: 7px; position: relative; left: 8px;">@DicSvc.XLate("Location")</label>
+                     <input asp-for="Location.LocationName" class=" label-name form-control control-required" readonly="readonly" />
+                     <span class="input-group-append">
+                        <button id="btnLocation" onclick="openLocationsGrid();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Set Location">
+                           <span class="mdi mdi-pencil"></span>
+                        </button>
+                        <button id="btnClearLocation" onclick="clearLocationField();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Clear Location">
+                           <span class="mdi mdi-close"></span>
+                        </button>
+                     </span>
+                     @Html.HiddenFor(m => m.IdLocation)
+                  </div>
+               </div>
+               <div style=" display: flex; flex-direction: row; justify-content: space-between; align-items: flex-end; width: 100%;">
+                  <div class="flagContainer marginItems" style=" position: relative; left: 8px;">
+                     <label class="label-name" style="margin-right:9px;">@DicSvc.XLate("Once")</label>
+                     @Html.Kendo().CheckBoxFor(m => m.Once).Label("")
+                  </div>
+                  <div class="flagContainer marginItems" style="position: relative; right: 170px; ">
+                     <label class="label-name" style="margin-right: 9px;">@DicSvc.XLate("Permanent")</label>
+                     @Html.Kendo().CheckBoxFor(m => m.Permanent).Label("")
+                  </div>
+               </div>
+
+
+            </div>
+
+    
+
+
+         </div>
+      </form>
+   </div>
+
+   <div class="card-footer h-10 p-0 m-0 border-top bg-white">
+
+      @{
+         string postId = ""; //use in case of multi toolbar
+      }
+      @(Html.Kendo().ToolBar()
+                              .Name("toolbarDetailFluid")
+                              .UmsDefaultErrors(DicSvc, "errors")
+                              .Items(items =>
+                              {
+                                 if (keyID != "0")
+                                 {
+                                    items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode");
+                                 }
+                                 items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode");
+
+                              })
+                              .UmsDefaultSettings(DicSvc, postId)
+      )
+   </div>
+
+</div>
+
+<kendo-window name="popupLocations"
+              draggable="false"
+              scrollable="false"
+              visible="false"
+              width="600"
+              modal="true"
+              title="LOCATIONS"
+              height="500"
+              resizable="true">
+   <popup-animation enabled="false" />
+</kendo-window>
+
+<script type="text/javascript">
+
+   var editor;
+   var consolelog = false;
+   var actualmode = 0;
+   var id = @Model.Id;
+   var once = "";
+   var permanent = "";
+
+   var defaultValue = $("#Name").val();
+   var defaultDescValue = $("#Description").val();
+   var defaultLabelValue = $("#Labels").val();
+   var defaultPermValue = ""
+   var defaultOnceValue = ""
+   var defaultModeValue = $("#Mode").val();
+   var defaultSqlValue = $("#Sql").val();
+   var defaultLocation = $("#IdLocation").val();
+   var tempId = "";
+   var divName = '#fluidBalanceDetailcontainer';
+   var dialog = $('#@strDetailsDivIdf').data("kendoWindow");
+   var grid = $('#@gridIdName').data("kendoGrid");
+
+   function changeToEditMode() {
+      $("#btnSave").attr('disabled', true);
+       actualmode = 2;
+        $(".modify-mode").show();
+       $(".view-mode").hide();
+
+       umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("modify-mode");
+       if ($("#Id").val() == "0") {
+          $("#btnDelete").hide();
+       }
+        $(divName +' :input').attr('disabled', false);
+        $(divName +' :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(true);
+           }
+           if (editor) {
+              editor.setOptions({ readOnly: false });
+           }
+        });
+    }
+
+    function changeToViewMode() {
+      actualmode = 1;
+      $("#errors").html("");
+      $(".view-mode").show();
+      $(".modify-mode").hide();
+      umsHideAllEditSaveButton();
+      toolBarShowButtonByClass("view-mode");
+
+      $(divName + ' :input').attr('disabled', true);
+      $(divName +' :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                  cb.enable(false);
+            }
+         });
+    }
+    function setWindowMode() {
+        //customize according model key
+        if ('@keyID' !== '@keyEmptyValueID') {
+            actualmode = 1;
+        }
+        else {
+            actualmode = 2;
+        }
+    }
+
+    function setMode() {
+        if (actualmode === 2)
+            changeToEditMode();
+        else
+            changeToViewMode();
+    }
+
+   var changeFun = function () {
+      $("#btnSave").attr('disabled', true);
+      if ($("#Name").val() != defaultValue || $("#Description").val() != defaultDescValue || $("#Labels").val() != defaultLabelValue || $("#Mode").val() != defaultModeValue || $("#Sql").val() != defaultSqlValue || once != defaultOnceValue || permanent != defaultPermValue || $("#IdLocation").val() != defaultLocation) {
+         $("#btnSave").attr('disabled', false);
+      }
+   };
+   
+   $(document).ready(function () {
+
+     
+      setAceEditor();
+      dialog.bind("activate", setMode);
+      dialog.bind("resize", setMode);
+
+      if ($("#Once").is(":checked"))
+      {
+         defaultOnceValue = "true";
+         once = "true";
+      }
+      else
+      {
+         defaultOnceValue = "false";
+         once = "false";
+      }
+      if ($("#Permanent").is(":checked"))
+      {
+         defaultPermValue = "true";
+         permanent = "true";
+      }
+      else {
+         defaultPermValue = "false";
+         permanent = "false";
+      }
+
+      umsHideAllEditSaveButton();
+      setWindowMode();
+      //set up condition to know if it's a new item
+      setMode();
+
+      $('#btnEdit').off('click').on('click', function () {
+
+         changeToEditMode();
+
+      });
+
+      $('#btnCancel').off('click').on('click', function () {
+          if (tempId != "") {
+             $("#Id").val(tempId);
+          }
+         // IF is new add, close the dialog
+         if ('@keyID' == '@keyEmptyValueID') {
+               dialog.close();
+               return;
+         }
+
+         openDetail('@Model.Id');
+      });
+
+
+      $('#btnSave').off('click').on('click', function () {
+         actionSave();
+      });
+      $('#btnDelete').off('click').on('click', function () {
+         umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteItem, cancelDeleteItem);
+      });
+      $('#btnCopy').off('click').on('click', function () {
+         tempId = $("#Id").val();
+         $("#Id").val("0");
+         changeToEditMode();
+      });
+      $('#btnClose').off('click').on('click', function () {
+
+         dialog.close();
+      });
+      $("input[data-val-length-max]").each(function (index, element) {
+         element.setAttribute("maxlength", element.getAttribute("data-val-length-max"))
+      });
+
+      $("#@formId :input").on("input", changeFun);
+      $("#@formId :input").change(changeFun); //TODO:(CHECK) keep this for older browsers?
+
+      $("#Once").on("click", function () {
+         if (this.checked) { once = "true"; }
+         else { once = "false"; }
+
+      });
+
+      $("#Permanent").on("click", function () {
+         if (this.checked) { permanent = "true"; }
+         else { permanent = "false"; }
+
+      });
+   });
+
+   function actionSave() {
+      CheckItemNameLocationIsValid(function () {  
+         if (OnValidation()) {
+            $("#@formId").submit();
+         }
+      });
+   }
+
+   function CheckItemNameLocationIsValid(func) {
+      var itemName = $("#Name").val();
+      var locID = $("#IdLocation").val();
+      var itemID = $("#Id").val();
+      var intFBItemMode = $("#Mode").val();
+
+      if (itemName != '' && itemID != '') {
+         $.ajax({
+            url: '@Url.Action("CheckFBItemLocationAssociationIsValid", "FluidBalance")',
+            type: 'POST',
+            data: {
+               locationID: locID,
+               strFBItemName: itemName,
+               intFBItemMode,
+               FBItemID: itemID
+            }
+            //, async: false
+         }).done(function (response) {
+            if (response.success != undefined && response.success == false) {
+               umsErrorDialog('@DicSvc.XLate("An error occurred while saving.")', response.errorMessage, 200, 200);
+
+               //$("#errors").html("Error occurred " + response.errorMessage);//need it to perform validation.
+            } else {
+               func();
+            }
+         }).fail(function (response) {
+               umsErrorDialog('@DicSvc.XLate("An error occurred while saving.")', response.errorMessage, 200, 200);
+
+               //$("#errors").html("Error occurred " + response.errorMessage);//need it to perform validation.
+         });
+      }
+   }
+
+   function OnValidation() {
+      $("#errors").html("");
+      $("#errors").css("margin", "auto");
+      /*if ($("#errors").html() != "") {
+         $("#errors").html("");//no need to show the message in the error tag. so it's cleared.
+         return false;
+      }*/
+
+      var retValue = false;
+      var validator = $("#@formId").kendoValidator().data("kendoValidator");
+      if (!validator.validate() ) {
+         try {
+            var errors = validator.errors();
+         
+               $("#errors").html(buildValidationMessage(errors));
+         }
+         catch (e) {
+               $("#errors").html(e);
+         }
+      }
+      else {
+         $("#errors").html("");
+         retValue = true;
+      }
+
+         return retValue;
+   }
+
+   function OnFailure(response) {
+      window.umsAlert('@DicSvc.XLate("Error occurred")', response.errorMessage, 400, 300);
+   }
+   function toolBarShowButtonByClass(clas) {
+      var tb = $("#toolbarDetailFluid").data("kendoToolBar");
+      tb.umsShowButtonByClass(clas);
+   }
+   function umsHideAllEditSaveButton()
+   {
+      var tb = $("#toolbarDetailFluid").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+
+   function deleteItem() {
+      $.ajax({
+         url: '@Url.Action("DeleteDetail", "FluidBalance")',
+         type: 'POST',
+         data: { Id: '@Model.Id' }
+
+      }).done(function (data) {
+         if (data.success != undefined && data.success) {
+               dialog.close();
+               grid.dataSource.read();
+         } else {
+               $('#errors').html('not saved. reason:' + data.errorMessage);
+         }
+      }).fail(function (response) {
+         umsErrorDialog('@DicSvc.XLate("Error occurred")', response.errorMessage, 200, 200);
+      });
+
+   }
+
+   function cancelDeleteItem() {
+        /* do nothing */
+   }
+
+   function setAceEditor() {
+      //ace.require("ace/ext/language_tools");
+      editor = ace.edit('aceEditor');
+      editor.setOptions({
+         autoScrollEditorIntoView: true,
+         copyWithEmptySelection: true,
+         readOnly: true,
+         displayIndentGuides: true,
+         enableBasicAutocompletion: true,
+         enableSnippets: true,
+         enableLiveAutocompletion: false,
+         printMargin: false
+      });
+
+      editor.setTheme("ace/theme/chrome");
+      var codeMode = "ace/mode/sql";
+      editor.session.setMode(codeMode);
+
+      var textarea = $("#Sql").hide();
+      editor.getSession().setValue(textarea.val());
+      editor.getSession().on('change', function () {
+         textarea.val(editor.getSession().getValue());
+         changeFun();
+      //   if (textarea.val().length === 0) {
+      //      $('#' + editor.container.id).addClass("border-danger");
+      //   } else {
+      //      $('#' + editor.container.id).removeClass("border-danger");
+      //   }
+      });
+
+   }
+
+   function OnSuccess(response) {
+      if (response.success) {
+         grid.dataSource.read();
+         dialog.close();
+      }
+      else {
+         umsErrorDialog('@DicSvc.XLate("Error occurred")', response.errorMessage, 200, 200);
+      }
+   }
+
+   function openLocationsGrid() {
+        $.ajax({
+            url: '@Url.Action("GetLocations", "SystemConfiguration")',
+            type: 'GET',
+            data: { id: '@Model.IdLocation' }
+        }).done(function (data) {
+            var dialogAbout = $("#popupLocations");
+            dialogAbout.data("kendoWindow").content(data);
+            dialogAbout.data("kendoWindow").center().open();
+        });
+   }
+
+   //used by _LocationModal
+   function onDataBoundLoc(e) {
+      var that = this;
+      var grid = $("#loc-grid").data("kendoGrid");
+      if ($('#IdLocation').val() != '') {
+         grid.items().each(function () {
+            var data = grid.dataItem(this);
+            if (data.ID == $('#IdLocation').val()) {
+               grid.select(this);
+            }
+         });
+      }
+
+      $(that.tbody).off("click", "tr").on("click", "tr", function (e) {
+
+         //save grid and current search form state and current url
+         //var dataSource = grid.dataSource;
+
+         var keyVal = grid.dataItem($(e.currentTarget).closest("tr"))['LocationName'];
+         var keyId = grid.dataItem($(e.currentTarget).closest("tr"))['ID'];
+         $("#Location_LocationName").val(keyVal);
+         $("#IdLocation").val(keyId);
+         $("#Location_LocationName").trigger("input");
+         $('#popupLocations').data("kendoWindow").close();
+		 $("#@formId input").trigger("change");
+      });
+   }
+
+   function clearLocationField() {
+      $("#Location_LocationName").val("");
+      $("#IdLocation").val("");
+      $("#@formId input").trigger("change");
+   }
+</script>

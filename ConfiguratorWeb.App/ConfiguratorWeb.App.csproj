@@ -1,0 +1,266 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <StartupObject>ConfiguratorWeb.App.Program</StartupObject>
+    <AssemblyVersion>8.0.0.0</AssemblyVersion>
+    <FileVersion>8.0.0.0</FileVersion>
+    <Version>8.0.0-alpha</Version>
+    <LangVersion>default</LangVersion>
+    <Platforms>AnyCPU;x86</Platforms>
+    <PackageReleaseNotes></PackageReleaseNotes>
+    <RazorLangVersion>3.0</RazorLangVersion>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
+    <GenerateAssemblyVersionAttribute>true</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>true</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyCopyrightAttribute>true</GenerateAssemblyCopyrightAttribute>
+    <GenerateAssemblyTrademarkAttribute>false</GenerateAssemblyTrademarkAttribute>
+    <Deterministic>False</Deterministic>
+    <NoWarn>1701;1702;NU1701;NU1608;</NoWarn>
+    <WarningLevel>1</WarningLevel>
+    <ShouldCreateLogs>True</ShouldCreateLogs>
+    <AdvancedSettingsExpanded>False</AdvancedSettingsExpanded>
+    <UpdateAssemblyVersion>True</UpdateAssemblyVersion>
+    <UpdateAssemblyFileVersion>True</UpdateAssemblyFileVersion>
+    <UpdateAssemblyInfoVersion>False</UpdateAssemblyInfoVersion>
+    <AssemblyVersionSettings>None.None.None.IncrementOnDemand</AssemblyVersionSettings>
+    <UpdatePackageVersion>False</UpdatePackageVersion>
+    <AssemblyInfoVersionType>SettingsVersion</AssemblyInfoVersionType>
+    <InheritWinAppVersionFrom>None</InheritWinAppVersionFrom>
+    <AssemblyFileVersionSettings>None.None.None.IncrementOnDemand</AssemblyFileVersionSettings>
+    <!--<SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</SourceRevisionId>-->
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
+    <GenerateAssemblyVersionAttribute>true</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>true</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyCopyrightAttribute>true</GenerateAssemblyCopyrightAttribute>
+    <GenerateAssemblyTrademarkAttribute>false</GenerateAssemblyTrademarkAttribute>
+    <Deterministic>False</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup>
+     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+     <NoWarn>1701;1702;NU1701;NU1608;1591;NETSDK1138;CS0168;MSB3277;CS1998</NoWarn>
+     <PackageTags />
+     <Description />
+     <NeutralLanguage>en</NeutralLanguage>
+     <PlatformTarget>AnyCPU</PlatformTarget>
+     <DebugType>full</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    
+    <Compile Remove="DAS_drivers_cache\**" />
+    <Content Remove="DAS_drivers_cache\**" />
+    <EmbeddedResource Remove="DAS_drivers_cache\**" />
+    <None Remove="DAS_drivers_cache\**" />
+  </ItemGroup>
+
+   <ItemGroup>
+      <Compile Remove="Enums\DriverType.cs" />
+   </ItemGroup>
+
+   <ItemGroup>
+      <Content Remove="bundleconfig.json" />
+   </ItemGroup>
+
+   <ItemGroup>
+      <None Remove="logs\internal-nlog.txt" />
+      <None Remove="Swagger\index.html" />
+   </ItemGroup>
+
+   <ItemGroup>
+      <EmbeddedResource Include="Swagger\index.html" />
+   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CronExpressionDescriptor" Version="2.16.0" />
+    <PackageReference Include="CronScheduler.Extensions" Version="3.0.1" />
+
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.2.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.0.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.0.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="4.0.1" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.1.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.2.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Filters" Version="7.0.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="6.2.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="6.2.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.2.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.2.3" />
+    <PackageReference Include="Telerik.UI.for.AspNet.Core" Version="2022.1.301" />
+  </ItemGroup>
+
+   <ItemGroup>
+      <ProjectReference Include="..\..\DigistatFramework\Digistat.Dal\Digistat.Dal.csproj" />
+      <ProjectReference Include="..\..\DigistatFramework\Digistat.ExternalLogger.Nlog\Digistat.ExternalLogger.Nlog.csproj" />
+      <ProjectReference Include="..\..\DigistatFramework\Digistat.FrameworkStd\Digistat.FrameworkStd.csproj" />
+      <ProjectReference Include="..\..\DigistatFramework\Digistat.FrameworkWebExtensions\Digistat.FrameworkWebExtensions.csproj" />
+      <ProjectReference Include="..\..\DigistatFramework\DigistatWebComponents\DigistatWebComponents.csproj" />
+      <ProjectReference Include="..\Configurator.Std\Configurator.Std.csproj">
+         <Private>true</Private>
+      </ProjectReference>
+   </ItemGroup>
+   <ItemGroup>
+      <Content Update="Views\CDSS\index.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\CDSS\_RuleDetail.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\ConnectPlus\_PortServerDetails.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\OnlineValidation\Index.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Shared\_LayoutEmpty.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Telligence\Import.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Telligence\Devices.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Telligence\ListWithGrid.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Telligence\Systems.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Telligence\Servers.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Telligence\_TLXmlRpcSettings.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Telligence\_TLXmlRpcDevices.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Telligence\_TLxmlRpcSystems.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Telligence\_DeviceDetail.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Telligence\_SystemDetail.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Telligence\_ServerDetail.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Template\ListWithGridOldMenu.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Vitals\index.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Vitals\_SDScoreDescriptionDetail.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Vitals\_SDSubItemDetail.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Vitals\_SDItemDetail.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Template\ListWithGrid.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Template\_ItemDetail.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Template\_TLXmlRpcDevices.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Template\_TLXmlRpcSettings.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+      <Content Update="Views\Template\_TLxmlRpcSystems.cshtml">
+         <Pack>$(IncludeRazorContentInPack)</Pack>
+      </Content>
+   </ItemGroup>
+
+   <ItemGroup>
+      <Folder Include="Cache\Drivers_cache\" />
+      <Folder Include="Views\OnlineValidation\EditorTemplates\" />
+      <Folder Include="Views\Shared\CustomTemplates\" />
+      <Folder Include="wwwroot\lib\kendo-ui\vsdoc\" />
+      <Folder Include="wwwroot\favicon\" />
+      <Folder Include="wwwroot\swagger\ui\" />
+   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="bundleconfig.json" />
+    <None Include="wwwroot\css\materialdesignicons\css\materialdesignicons.css.map" />
+    <None Include="wwwroot\css\materialdesignicons\css\materialdesignicons.min.css.map" />
+    <None Include="wwwroot\css\materialdesignicons\fonts\materialdesignicons-webfont.woff2" />
+    <None Include="wwwroot\css\materialdesignicons\license.md" />
+    <None Include="wwwroot\css\materialdesignicons\README.md" />
+    <None Include="wwwroot\css\materialdesignicons\scss\materialdesignicons.scss" />
+    <None Include="wwwroot\css\materialdesignicons\scss\_animated.scss" />
+    <None Include="wwwroot\css\materialdesignicons\scss\_core.scss" />
+    <None Include="wwwroot\css\materialdesignicons\scss\_extras.scss" />
+    <None Include="wwwroot\css\materialdesignicons\scss\_functions.scss" />
+    <None Include="wwwroot\css\materialdesignicons\scss\_icons.scss" />
+    <None Include="wwwroot\css\materialdesignicons\scss\_path.scss" />
+    <None Include="wwwroot\css\materialdesignicons\scss\_variables.scss" />
+  </ItemGroup>
+
+   <ItemGroup>
+      <Reference Include="UMS.XmlRpcNETStd">
+         <HintPath>..\..\UMS.XmlRCPNetStd\bin\net6.0\UMS.XmlRpcNETStd.dll</HintPath>
+      </Reference>
+   </ItemGroup>
+
+   <ItemGroup>
+      <Compile Update="Properties\Resources.Designer.cs">
+         <DesignTime>True</DesignTime>
+         <AutoGen>True</AutoGen>
+         <DependentUpon>Resources.resx</DependentUpon>
+      </Compile>
+   </ItemGroup>
+
+   <ItemGroup>
+      <EmbeddedResource Update="Properties\Resources.resx">
+         <Generator>ResXFileCodeGenerator</Generator>
+         <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+   </ItemGroup>
+
+   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+      <TypeScriptCompileOnSaveEnabled>False</TypeScriptCompileOnSaveEnabled>
+   </PropertyGroup>
+
+   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+      <TypeScriptCompileOnSaveEnabled>False</TypeScriptCompileOnSaveEnabled>
+   </PropertyGroup>
+
+   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+      <TypeScriptTarget>ES2015</TypeScriptTarget>
+      <TypeScriptJSXEmit>None</TypeScriptJSXEmit>
+      <TypeScriptModuleKind>ES6</TypeScriptModuleKind>
+      <TypeScriptCompileOnSaveEnabled>False</TypeScriptCompileOnSaveEnabled>
+      <TypeScriptNoImplicitAny>False</TypeScriptNoImplicitAny>
+      <TypeScriptRemoveComments>False</TypeScriptRemoveComments>
+      <TypeScriptOutFile />
+      <TypeScriptOutDir />
+      <TypeScriptGeneratesDeclarations>False</TypeScriptGeneratesDeclarations>
+      <TypeScriptNoEmitOnError>True</TypeScriptNoEmitOnError>
+      <TypeScriptSourceMap>True</TypeScriptSourceMap>
+      <TypeScriptMapRoot />
+      <TypeScriptSourceRoot />
+   </PropertyGroup>
+
+
+
+</Project>

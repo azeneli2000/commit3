@@ -1,0 +1,286 @@
+﻿
+@using ConfiguratorWeb.App.Extensions
+@{
+    string[] actions = new string[] { "Close" };
+    ViewBag.Title = DicSvc.XLate("Telligence Device");
+    string gridName = "telligence-devices-grid";
+}
+@section Head
+{
+    <style type="text/css">
+        #divTLSystemDetail .beds {
+            width: 40%;
+            float: left;
+        }
+
+            #divTLSystemDetail .beds > div {
+                float: left;
+                width: 94%;
+                display: none;
+            }
+
+            #divTLSystemDetail .beds.device-type-0 > div:not([data-ports]),
+            #divTLSystemDetail .beds.device-type-40 div:not([data-ports]) {
+                display: block;
+            }
+
+            #divTLSystemDetail .beds.device-type-41 > div[data-ports],
+            #divTLSystemDetail .beds.device-type-42 div[data-ports] {
+                display: block;
+            }
+    </style>
+}
+
+<script>
+    var gridIdName = "@gridName";
+    var _networkId = "@ViewBag.NetworkId";
+</script>
+<script id="bedColumnTemplate" type="text/x-kendo-template">
+   #
+   var strClass = '' ;
+   if(BedCount==0) {
+   strClass ='bg-warning';
+   }
+   #
+   # if(NetworkID && NetworkID!=0) { #
+   <button type="button" class="btn w-100 #=strClass#" onclick='showBeds(#=NetworkID#,#=ID#);'><i class="mdi mdi-bed-empty"></i> #=BedCount#</button>
+   # } else {#
+   @DicSvc.XLate("No Network")
+   # } #
+</script>
+<script>
+    var bedColtemplate = kendo.template($('#bedColumnTemplate').html());
+
+</script>
+
+<script id="bedCountColumnTemplate" type="text/x-kendo-template">
+   #
+   var strClass = '' ;
+   if(BedCount==0) {
+   strClass ='text-warning';
+   }
+   #
+   # if(NetworkID && NetworkID!=0) { #
+   <div class="pl-3 #=strClass#"><i class="mdi mdi-bed-empty"></i> #=BedCount#</div>
+   # } else {#
+   <div class="pl-3">
+      @DicSvc.XLate("No Network")
+   </div>
+   # } #
+</script>
+<script>
+    var bedCountColtemplate = kendo.template($('#bedCountColumnTemplate').html());
+</script>
+
+<div id="TLdeviceEditWindow"></div>
+
+@(Html.Kendo().Window()
+                         .Name("divPortServerStatus")
+                         .Title(DicSvc.XLate("Port Server Status"))
+                         .Width("90%")
+                         .Height(470)
+                         .Modal(true)
+                         .Visible(false)
+   .HtmlAttributes(new {@class="overflow-hidden"})
+   )
+
+<div class="h-100 text-center ">
+    <div id="TLBedLocations"></div>
+    <div class="card h-100 m-1 p-2 text-left">
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.TelligenceDeviceViewModel>()
+               .Name(gridName)
+               .UmsDefaultSettings(DicSvc)
+               .UmsDefaultToolbar("create_TLDevice", "ADD NEW TELLIGENCE DEVICE", "displayTLDeviceDetail('');", DicSvc)
+               .Columns(columns =>
+               {
+                   columns.Bound(e => e.ID).Visible(false);
+
+                   columns.Bound(e => e.tl_ty_.ty_telGUID).Title(DicSvc.XLate("System GUID")).Filterable(f => f.Multi(true));
+                   columns.Bound(e => e.TLDeviceID).Title(DicSvc.XLate("Device ID"));
+                   columns.Bound(e => e.TLDeviceName);
+                   columns.Bound(e => e.tl_IPAddress);
+                   columns.Bound(e => e.tl_MACAddress);
+                   columns.Bound(e => e.TLLocationDescriptor);
+                   columns.Bound(e => e.tl_DeviceType).Filterable(a =>
+                   {
+                       a.Search(true).Multi(true).CheckAll(true);
+                   }).ClientTemplate("#=DeviceTypeDescription#"); //select existing values
+                   columns.Bound(e => e.HasNetwork).ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #= HasNetwork ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" });
+                   columns.Bound(e => e.tl_psv_ID).ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #= tl_psv_ID!=0 ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" });
+                   columns.Bound(e => e.BedCount)
+                       .HtmlAttributes(new { @class = "umsPreventClick", style = "text-align:left;" })
+                       .HeaderHtmlAttributes(new { style = "text-align:left;" }).Width(115)
+
+                    .ClientTemplate("#=bedCountColtemplate(data)#");
+               })
+               .Events(ev => ev.DataBound("onDataBound"))
+               .DataSource(dataSource => dataSource
+                   .Ajax()
+                   .Model(model =>
+                   {
+                       model.Id(o => o.ID);
+                       model.Field(o => o.TLDeviceName).Editable(false);
+                       model.Field(o => o.tl_IPAddress).Editable(false);
+                       model.Field(o => o.tl_MACAddress).Editable(false);
+                       model.Field(o => o.TLDeviceID).Editable(false);
+                       model.Field(o => o.TLLocationDescriptor).Editable(false);
+                       model.Field(o => o.HasNetwork).Editable(false);
+                       model.Field(o => o.tl_DeviceType).Editable(false);
+                       model.Field(o => o.HasPortServer).Editable(false);
+                   })
+
+                   .Read(read => read.Action("ReadTelligenceDevicesWithBeds", "Telligence"))
+               //.Create(create => create.Action("CreateDevice", "Telligence"))
+               )
+
+
+      )
+    </div>
+    <div id="telligenceDeviceWindow"></div>
+    <div id="bedSelectionDialog"></div>
+</div>
+<script id="delete-confirmation" type="text/x-kendo-template">
+   @{ await Html.RenderPartialAsync("_DeleteDialogConfirmWindow"); }
+</script>
+
+<script>
+    function onGridKeyEnter(item) {
+        displayTLDeviceDetail(item);
+    };
+
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+
+
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+        if (_networkId!=="0") {
+           debugger;
+           var devId = 1;
+           //var grid = $('#' + gridIdName).data("kendoGrid");
+           devId = grid.dataSource.data().filter(function(x) { return x.NetworkID == _networkId; });
+           if (devId && devId.length>0) {
+              displayTLDeviceDetail(devId[0]);
+           }
+           _networkId = "0";
+        }
+    }
+    function closeBedDialog() {
+        $('#bedSelectionDialog').data('kendoWindow').close()
+    }
+
+
+    @{
+       string editItemTitle = DicSvc.XLate("Edit Telligence Device");
+       string secondPopUpWindowTitle = DicSvc.XLate("DOMAIN SELECTION");
+    }
+    var kndWnd ;
+    var kndWndBed;
+    var kndWndBedDetails;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $('#telligenceDeviceWindow').usmKendoWindow({
+
+                title: '@editItemTitle',
+                height: 550,
+                minWidth: '90%'
+            });
+
+        }
+        if (!kndWndBed) {
+            kndWndBed = $('#TLBedLocations').usmKendoWindow({
+                title: '@secondPopUpWindowTitle',
+                height: '500px',
+                minWidth: '90%'
+            });
+        }
+
+         if (!kndWndBedDetails) {
+            kndWndBedDetails = $('#bedSelectionDialog').usmKendoWindow({
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                },
+                title: '@DicSvc.XLate("BED SELECTION")',
+                height: '500px',
+                width:'700px'
+            });
+        }
+
+    });
+
+
+    function displayTLDeviceDetail(item) {
+        var strItem = '0';
+        if (item) {
+            strItem = item.ID;
+        }
+        var windowWidget = $("#telligenceDeviceWindow").data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+            $.ajax({
+            url: '@Url.Action("GetDevice", "Telligence")',
+            type: 'GET',
+                data: { id: strItem },
+           async: false
+            }).done(function (dataHtml) {
+            var itemDialog = $('#telligenceDeviceWindow').data('kendoWindow');
+            itemDialog.content('');
+            itemDialog.content(dataHtml);
+            if (itemDialog.element.is(":hidden")) {
+               
+                itemDialog.center();
+                itemDialog.open();
+            }
+            });
+        kendo.ui.progress(windowWidget.element, false);
+    }
+
+
+
+    function showBeds(networkID,devID) {
+        //debugger;
+        $.ajax({
+            url: '@Url.Action("DisplayBedLocation", "Telligence")?networkId=' + networkID + '&TLdeviceID=' + devID,
+            contentType: 'application/json; charset=utf-8',
+            type: 'GET'
+
+        }).done(function(data) {
+            var kwBed = $('#TLBedLocations').data("kendoWindow");
+            kwBed.content(data);
+            kwBed.center().open();
+        });
+    }
+
+
+    function showPSstatus(itemID) {
+        $.ajax({
+            url: '@Url.Action("GetPortServerStatusView", "ConnectPlus")',
+            type: 'GET',
+            data: { ID: itemID },
+            async: false
+        }).done(function (dataHtml) {
+            var dialog = $("#divPortServerStatus").data('kendoWindow');
+            dialog.title('@DicSvc.XLate("Port Server Status")');
+            dialog.content(dataHtml).center().open();
+        });
+
+        return false;
+    }
+
+</script>

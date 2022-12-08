@@ -1,0 +1,577 @@
+﻿@model ConfiguratorWeb.App.Models.DeviceDriverViewModel
+@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@inject IDictionaryService DicSvc
+
+@{
+   StringBuilder objSbDelete = new StringBuilder();
+   objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Item \"{0}\" on \"{1}\" "), "{DeviceName}", Model.ComputerName);
+   objSbDelete.Append("?");
+}
+@{
+   Layout = null;
+   string keyID = Model.Id.ToString();
+   string keyEmptyValueID = "0";
+   string formId = "form_" + keyID;
+}
+@{
+   string gridEditName = "bedassociation-grid_" + Model.Id;
+   string customparametersGrid = "CustomParameters";
+}
+
+<style>
+   /* By default the text is hidden, re-position the text */
+   span.k-loading-text {
+      text-indent: 0;
+      top: 38%;
+      left: 47%;
+      background-color: #7bd2f6;
+   }
+</style>
+
+<script type="text/javascript">
+   function onActivate(e) {
+
+   }
+</script>
+
+<div class="h-100 ">
+   <div class="card h-90 m-0 p-0  text-left " id="divItemDetail">
+      <form asp-controller="Connect" asp-action="SaveDeviceDriverDetail" id="@formId"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccess" class="mb-3"
+            data-ajax="true" data-ajax-method="POST">
+
+         <div asp-validation-summary="ModelOnly"></div>
+         <input asp-for="Id" type="hidden" />
+
+         <kendo-tabstrip name="tabstrip_@Model.Id" on-activate="onActivate">
+            <scrollable enabled="true" />
+            <popup-animation>
+               <open effects="fade:in" />
+            </popup-animation>
+            <items>
+               <tabstrip-item text="@DicSvc.XLate("General")" selected="true" id="tabstrip-@Model.Id-general">
+                  <content>
+                     @{await Html.RenderPartialAsync("_TabDeviceDriverGeneral", Model);}
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLate("Optional")" id="tabstrip-@Model.Id-optional">
+                  <content>
+                     @{await Html.RenderPartialAsync("_TabDeviceDriverOptional", Model);}
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLate("Patient Resolve ( \"Central\" only )")" id="tabstrip-@Model.Id-patientresolve">
+                  <content>
+                     @{await Html.RenderPartialAsync("_TabDeviceDriverPatientResolve", Model);}
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLate("Communication parameters")" id="tabstrip-@Model.Id-communicationparameters">
+                  <content>
+                     @{await Html.RenderPartialAsync("_TabDeviceDriverCommunicationParameters", Model);}
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLate("Bed association")" id="tabstrip-@Model.Id-bedassociation">
+                  <content>
+                     @{await Html.RenderPartialAsync("_TabDeviceDriverBedAssociation", Model);}
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLate("Log Config")" id="tabstrip-@Model.Id-logconfig">
+                  <content>
+                     @{await Html.RenderPartialAsync("_TabDeviceDriverLogConfig", Model);}
+                  </content>
+               </tabstrip-item>
+            </items>
+         </kendo-tabstrip>
+      </form>
+   </div>
+
+   <div class="card-footer h-10 p-0 m-0 border-0 bg-white">
+      @{
+         string postId = "";
+      }
+      @(
+         Html.Kendo().ToolBar()
+            .Name("toolbarDetail")
+            .UmsDefaultInfo(DicSvc)
+            .UmsDefaultErrors(DicSvc, "errors")
+            .Items(items =>
+            {
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode").Hidden(true);
+            })
+            .UmsDefaultSettings(DicSvc, postId)
+      )
+   </div>
+</div>
+
+@(
+   Html.Kendo().Window()
+      .Name("dialog_" + keyID)
+      .Height(200)
+      .Width(600)
+      .Actions(act => act.Close())
+      .Visible(false)
+      .Resizable()
+      .Title("Upload")
+)
+
+<div id="dasBrokerSelectionDialog"></div>
+
+<script type="text/javascript">
+
+    function OnSuccessUpload(response) {       
+        if (response.success) {
+
+            var grid = $("#devicedrivers-grid").data("kendoGrid");
+            grid.dataSource.read();
+
+            var popupWindow = $('#dialog_@Model.Id').data("kendoWindow");
+            popupWindow.close();
+
+            window.umsAlert("Success", "Files successfully uploaded.");
+
+        } else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+   }
+
+    function OnFailureUpload(response) {        
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+    function ValidateTabs() {
+        $("#tabstrip_@Model.Id").find("span.k-link").removeClass("tab-invalid");
+        var invalidTabs = [];
+        $("input.k-invalid").each(function () {
+            var idInvalid = $(this).attr('id');
+            var tabContentId = $("#" + idInvalid).closest("div[role='tabpanel']").attr("id");
+
+            var tabId = $("#tabstrip_@Model.Id").find("li[aria-controls='" + tabContentId + "']").attr("id");
+            $("#" + tabId + " span.k-link").addClass("tab-invalid");
+
+            if ($.inArray(tabId, invalidTabs) < 0) {
+                //add to array
+                invalidTabs.push(tabId);
+            }
+        });
+        if (invalidTabs.length > 0)
+            $("#" + invalidTabs[0]).trigger("click");
+    }
+
+</script>
+
+<script type="text/javascript">
+
+    var consolelog = false;
+    var actualmode=0;
+    var divName = '#divItemDetail';
+    var customparametersGridModelId = '#@customparametersGrid';
+    var dialog = $(popUpWindowName).data("kendoWindow");
+    var grid = $('#' + gridIdName).data("kendoGrid");
+
+    function changeToEditMode() {
+        actualmode = 2;
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("modify-mode");
+        $('#@gridEditName').removeClass('readonly-mode');
+        $(customparametersGridModelId).removeClass('readonly-mode');
+        if ($('#LogEnabled').is(':checked')) {
+           $(divName +' :input').attr('disabled', false);
+        } else {
+           $(divName +' :input:not(.log-config)').attr('disabled', false);
+        }
+        $(divName +' :input').each(function () {
+
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(true);
+            } else {
+                cb = $(this).data("kendoNumericTextBox");
+                if (cb) {
+                    cb.enable(true);
+                }
+            }
+        });
+
+        if ('@keyID' !== '@keyEmptyValueID') {
+            showConnectionTypeTabstrip($("#ConnectionType_@Model.Id").data("kendoDropDownList").dataItem().Value);
+        }
+        if ('@keyID' == '@keyEmptyValueID') {
+           $('#btnDelete').hide();
+        }
+    }
+
+    function changeToViewMode() {
+        actualmode = 1;
+        $(".view-mode").show();
+        $(".modify-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("view-mode");
+        $('#@gridEditName').addClass('readonly-mode');
+        $(customparametersGridModelId).addClass('readonly-mode');
+        $(divName + ' :input').attr('disabled', true);
+
+        $(divName +' :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+
+                cb.enable(false);
+                if (consolelog)console.log(this.id);
+            } else {
+                cb = $(this).data("kendoNumericTextBox");
+                if (cb) {
+                    cb.enable(false);
+                }
+            }
+        });
+   }
+
+    function setWindowMode() {
+        //customize according model key
+        if ('@keyID' !== '@keyEmptyValueID') {
+            actualmode = 1;
+        } else {
+            //$('#BedName').attr('readonly', false);
+            actualmode = 2;
+        }
+    }
+
+    function setMode() {
+        if (actualmode === 2)
+            changeToEditMode();
+        else
+            changeToViewMode();
+    }
+
+    var dasBrokerWnd;
+    $(document).ready(function () {
+        if (!dasBrokerWnd) {
+            dasBrokerWnd = $('#dasBrokerSelectionDialog').usmKendoWindow({
+                height: '550px',
+                width: '700px'
+            }).getKendoWindow();
+       }
+
+        umsHideAllEditSaveButton();
+        setWindowMode();
+
+        //disable patient resolve tab beds type is not central
+        var tabstrip = $("#tabstrip_@Model.Id").data("kendoTabStrip");
+        if ('@Model.IsDriverCentralType()' == 'True') {
+            tabstrip.enable("li#tabstrip-@Model.Id-patientresolve");
+        } else {
+            tabstrip.disable("li#tabstrip-@Model.Id-patientresolve");
+        }
+
+        $('#LogEnabled').click(function (e) {
+            if ($(this).is(':checked')) {
+                $(".log-config").each(function (index) {
+                    $(this).removeAttr('disabled');
+                });
+                $('#LogEnabled').attr("checked", "checked");
+            } else {
+                $(".log-config").each(function (index) {
+                    $(this).attr('disabled', 'disabled');
+                });
+                $('#LogEnabled').removeAttr('checked');
+            }
+        });
+
+        //set up condition to know if it's a new item
+        setMode();
+        $('#btnEdit' + '@postId').off('click').on('click', function () {
+            if(consolelog)console.log("btnEdit called");
+            changeToEditMode();
+        });
+        $('#btnCancel' + '@postId').off('click').on('click', function () {
+            if (consolelog)console.log("btnCancel called");
+            // IF is new add, close the dialog
+            if ('@keyID'=='@keyEmptyValueID') {
+                dialog.close();
+                return;
+            }
+
+            //TODO: reload data
+            openDetail(@keyID);
+            changeToViewMode();
+        });
+        $('#btnSave'+'@postId').off('click').on('click', function() {
+           if (consolelog)
+              console.log("btnSave called");
+            actionSave();
+        });
+        var devName = $("#IdDriverRepository_@Model.Id.ToString()").getKendoDropDownList().text()||"@Model.Id.ToString()";
+        $('#btnDelete').off('click').on('click', function () {
+           if (consolelog)
+              console.log("btnDelete called");
+
+           umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()'.replace("{DeviceName}",devName), deleteItem, cancelDeleteItem);
+        });
+
+        $('#btnCopy').off('click').on('click', function () {
+           if (consolelog)
+              console.log("btnCopy called");
+
+           var title = '@DicSvc.XLate("Confirm copy")';
+           var message = '@DicSvc.XLate("In copied items, bed configuration will be cleared. All other parameters (custom, communication etc...) are kept as they already are in original item and must be modified manually.")';
+           umsConfirm(title, message, copyDeviceDriver, cancelCopyDeviceDriver);
+        });
+
+        $('#btnClose' + '@postId').off('click').on('click', function () {
+           if (consolelog)
+              console.log("btnClose called");
+            dialog.close();
+        });
+        $("input[data-val-length-max]").each(function (index, element) {
+            element.setAttribute("maxlength", element.getAttribute("data-val-length-max"));
+        });
+    });
+
+    function actionSave()
+    {
+        if (OnValidation()) {
+            kendo.ui.progress.messages = {
+                loading: "Saving..."
+            };
+            kendo.ui.progress($("#@formId"),true);
+            setTimeout(function(){
+                $("#@formId").submit();
+                kendo.ui.progress($("#@formId"),false);
+            }, 100);
+        }
+    }
+    function OnValidation() {
+        var bedassociationGridModelId = '#bedassociation-grid_@Model.Id';
+        var bedGrid = $(bedassociationGridModelId).getKendoGrid();
+
+        var conTypeList = $("#ConnectionType_@Model.Id").data("kendoDropDownList");
+        var selectedConTypeVal = "0";
+
+        if (conTypeList ) {
+           if (conTypeList.dataItem() != undefined) {
+              selectedConTypeVal= conTypeList.dataItem().Value;
+           } else {
+              selectedConTypeVal= conTypeList.value();
+           }
+        }
+
+         var data = bedGrid.dataSource.data();
+         var dirty = $.grep(data, function(item) {
+             return item.dirty;
+         });
+         $("#BedAssociationChanged")[0].value=JSON.stringify(dirty, null, 2);
+
+        var dataCP = $(customparametersGridModelId).getKendoGrid().dataSource.data();
+        $("#CustomParametersJson")[0].value=window.kendo.stringify(dataCP);
+
+        kendo.ui.progress.messages = {
+            loading: "Validating..."
+        };
+        kendo.ui.progress($("#@formId"),true);
+        var retValue = true;
+
+        var customErrMsg = [];
+        var customFieldValidation = function() {
+            var retFV = true;
+            //Only if we have field not validable by Model
+            try {
+
+               var customParameterArray = $('#CustomParameters').data('kendoGrid').dataSource.data().map(cp => cp.Name)
+               var isCustomParamDuplicate = customParameterArray.some(function (item, idx) {
+                  return customParameterArray.indexOf(item) != idx
+               });
+
+               if (isCustomParamDuplicate) {
+                  const toFindDuplicates = arry => arry.filter((item, index) => arry.indexOf(item) !== index);
+                  const duplicateNames = toFindDuplicates(customParameterArray).join(', ');
+                  customErrMsg.push("@DicSvc.XLate("Comunication custom parameter with same name is not allowed: ")" + duplicateNames);
+                  retFV = false;
+               } else {
+                  retFV = true;
+               }
+               return retFV;
+            } catch (e) {
+               console.error("Error during custom field validation.")
+               return false;
+            }
+        }
+
+        var validator = $("#@formId").kendoValidator({
+           rules: {
+              smartCableNoAutostart: function(input) {
+                 if (input[0].id == 'SerialPort_SmartCableID' && selectedConTypeVal == 1) {
+                    if ($('#AutoStartDriver').is(':checked') && $('#SerialPort_SmartCableID').val().length > 0) {
+                       return false;
+                    }
+                 }
+                 return true;
+              },
+              validateip: function(input) {
+                 if (input[0].id == 'ComputerName') {
+                    if (input.val().length > 0 && input.val().indexOf('.') > 0) {
+                       var match = input.val().match(/^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/);
+
+                       // all of the input must have a value
+                       return match != null;
+                    }
+                 }
+                 return true;
+              },
+              noComputerNameAndNoSmartCable: function(input) {
+                 if (input[0].id == 'ComputerName') {
+                    if (input.val().length === 0 && $('#SerialPort_SmartCableID').val().length === 0) {
+                       return false;
+                    }
+                 }
+                 return true;
+              },
+              yesComputerNameAndYesSmartCable: function(input) {
+                 if (input[0].id == 'ComputerName' || input[0].id == 'SerialPort_SmartCableID') {
+                    if ($('#ComputerName').val().length > 0 && $('#SerialPort_SmartCableID').val().length > 0) {
+                       if ( selectedConTypeVal == 1 ) {
+                          return false;
+                       }
+                    }
+                 }
+                 return true;
+              },
+              SocketTypeNoComputerNameAndYesSmartCable: function(input) {
+                 if (input[0].id == 'ComputerName') {
+                    if ($('#ComputerName').val().length === 0 && selectedConTypeVal == 0 ) {
+                       return false;
+                    }
+                 }
+                 return true;
+              },
+              SerialPortRange: function(input) {
+                 if (selectedConTypeVal == 1) {
+                    if (input[0].id == 'SerialPort_SerialPort') {
+                       if (input[0].value < 1 || input[0].value > 2048) {
+                          return false;
+                       }
+                    }
+                    return true;
+                 } else {
+                    return true;
+                 }
+                 //[Range(1, 2048, ErrorMessage = "Value for {0} must be between {1} and {2}.")]
+              }
+           },
+           messages: {
+              smartCableNoAutostart:
+                 '@DicSvc.XLate("If a SmartCableID is set, AutoStart must be set to off",Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+              validateip:
+                 '@DicSvc.XLate("This is not a valid IP address", Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+              noComputerNameAndNoSmartCable:
+                 '@DicSvc.XLate("The DASNode ID is required", Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+              yesComputerNameAndYesSmartCable:
+                 '@DicSvc.XLate("Only one field between [DASNode ID] and [SmartCable] should be filled", Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+              SocketTypeNoComputerNameAndYesSmartCable:
+                 '@DicSvc.XLate("the DASNode ID is required", Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+              SerialPortRange:'@DicSvc.XLate("Value for SerialPort must be between 1 and 2048.", Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+    }
+        }).data("kendoValidator");
+        if (!validator.validate() || !customFieldValidation()) {
+            retValue = false;
+            try {
+                var errors= validator.errors();
+                errors.push.apply(errors, customErrMsg);
+                $("#errors").html(buildValidationMessage(errors));
+            } catch (e) {
+                $("#errors").html(e);
+            }
+            ValidateTabs();
+        }
+        else {
+            $("#errors").html("");
+            validator.destroy();
+            retValue = true;
+        }
+        kendo.ui.progress($("#@formId"),false);
+        return retValue;
+    }
+    function OnSuccess(response) {
+        if (response.success) {
+            grid.dataSource.read();
+            dialog.close();
+        } else {
+            window.umsAlert("Error occured", response.errorMessage.replace(/\r\n/g, "<br />"), 400, 300);
+        }
+    }
+    function OnFailure(response) {
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+    function toolBarShowButtonByClass(clas) {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsShowButtonByClass(clas);
+    }
+    function umsHideAllEditSaveButton()
+    {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsHideAllEditSaveButton();
+    }
+    function deleteItem() {
+        $.ajax({
+            url: '@Url.Action("DeleteDeviceDriver", "Connect")',
+            type: 'POST',
+            data: { id: '@keyID' }
+
+        }).done(function (data) {
+            if (data.success != undefined && data.success) {
+                dialog.close();
+                grid.dataSource.read();
+            } else {
+                $('#errors').html('not saved. reason:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+    }
+    function cancelDeleteItem() {
+       /* do nothing */
+    }
+    function isDeviceTypeCentral() {
+       var retVal = false;
+       var driverTypeItem = $("#DriverType_@Model.Id").data("kendoDropDownList").dataItem();
+       if (driverTypeItem) {
+          if (driverTypeItem.Text === '@UIHtmlHelper.GetDeviceTypeCentral(DicSvc)') {
+             retVal = true;
+          }
+       }
+       return retVal;
+    }
+    function checkWarning() {
+       $("#u-info").html('');
+       if (!isDeviceTypeCentral()) {
+          var bedassociationGridModelId = '#bedassociation-grid_@(Model.Id)';
+          var bedGrid = $(bedassociationGridModelId).getKendoGrid();
+          var numOfBeds = bedGrid.dataSource.data().filter(function(x) { return x.Enabled === true; }).length;
+          if (numOfBeds === 0) {
+             $("#u-info").html(buildWarningMessage(["<span class='alert alert-warning'>@DicSvc.XLate("no Beds associated")</span>"]));
+          }
+       }
+    }
+   function copyDeviceDriver() {
+
+      var copyDescription = "Copy of " + ($('#DeviceName').val() === '' ? $("#Id").val() : $('#DeviceName').val().slice(0, 42));
+      $("#Id").val("0");
+      $('#DeviceName').val(copyDescription);
+
+      // set disable flag to all bed associated
+      $('#BedLinkAssociationSerialize').val('');
+      for (var i = 0; i < $('#bedassociation-grid_@Model.Id').data('kendoGrid').dataSource.data().length; i++) {
+         var bed = $('#bedassociation-grid_@Model.Id').data('kendoGrid').dataSource.data()[i];
+         if (bed.Enabled)
+            bed.set('Enabled', false);
+      }
+
+      changeToEditMode();
+   }
+   function cancelCopyDeviceDriver() {
+      /* do nothing */
+   }
+
+</script>

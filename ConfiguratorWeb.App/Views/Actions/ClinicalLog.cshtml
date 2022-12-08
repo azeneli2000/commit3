@@ -1,0 +1,247 @@
+﻿@{
+   string gridName = "ClinicalLog";
+   string popUpWindowName = "IdOfEditWindow";
+   
+   int maxDays = 7;
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+
+    function btnApplyFilter(parameters) {
+
+       var range = $('#daterangepicker').getKendoDateRangePicker().range();
+       if (range.end != undefined && range.start != undefined) {
+          var grid = $('#' + gridIdName).getKendoGrid();
+          var filter = {
+             logic: "and",
+             filters: [
+                { field: "DateTime", operator: "gte", value: range.start },
+                { field: "DateTime", operator: "lte", value: kendo.date.addDays(range.end, 1) }
+             ]
+          };
+          //debugger;
+          var patientId = $('#patientId').val();
+          if (patientId != undefined && patientId.trim().length>0/*&& kendo.parseInt(patientId) > 0*/) {
+             filter.filters.push({ field: "Patient.PatientCode", operator: "eq", value: patientId });
+          }
+          grid.dataSource.filter(filter);
+       }
+    }
+
+    function onBeforeReadData(e) {
+       var range = $('#daterangepicker').getKendoDateRangePicker().range();
+       var patientId = $('#patientId').val();
+       //debugger;
+       if (!(patientId != undefined && patientId.trim().length>0/*&& kendo.parseInt(patientId) > 0*/)) {
+          if (range.end != undefined && range.start != undefined) {
+             if (range.start <= kendo.date.addDays(range.end, -@maxDays)) {
+                window.umsAlert("Alert", "@DicSvc.XLateJs($"Too many days selected.\r\nMax {maxDays} days")");
+                e.preventDefault();
+             }
+          } else {
+             e.preventDefault();
+          }
+       }
+    }
+</script>
+<style>
+   
+   #daterangepicker > span:nth-child(1) > label,
+   #daterangepicker > span:nth-child(3) > label{
+      font-size: 16px !important;
+      font-weight: 400 !important;
+      font-family: Tahoma !important;
+      position: absolute;
+      padding-top: 4px !important;
+      
+   }
+   #daterangepicker > span:nth-child(3),
+   #daterangepicker > span:nth-child(1) {
+      padding-top: 0px;
+   }
+   #daterangepicker > span:nth-child(1) > label{
+      margin-left: -10px;
+   }
+   #daterangepicker > span:nth-child(2) {
+      margin-left: 18px;
+   }
+   #daterangepicker > span:nth-child(3) > label{
+      margin-left: 5px;
+   }
+   #daterangepicker > span:nth-child(1) > span {
+      margin-left: 30px;
+   }
+   #daterangepicker > span:nth-child(3) > span {
+      margin-left: 35px;
+   }
+</style>
+<div class="card h-100 m-1 p-2 border-0" id="gridContainer">
+   
+   <div class="row mb-0 py-0" style=" margin-top: -35px">
+      <div class="col-12" style="margin-bottom: 5px">
+         <div style="display: inline-block">
+            @(Html.Kendo().DateRangePicker()
+               .Name("daterangepicker")
+               .Range(r => r.Start(DateTime.Today.AddDays(-3)).End(DateTime.Today))
+               .Max(DateTime.Today)
+            )
+         </div>
+         <div style="display: inline-block;margin-top: -18px; ">   
+            <div style="display: inline-flex;  margin-left: 45px; ">
+               <span>@DicSvc.XLateHtml("Patient Code")</span>
+            </div>
+            <div style="display: inline-flex; padding-top: 15px; margin-left: 20px; width: 15%;">
+               @(Html.Kendo().TextBox().Name("patientId")
+                  .HtmlAttributes(new { @class = "", title = "empty for all" , placeholder="patient code"})
+               )
+            </div>
+            <div style="display: inline-flex;padding-top:45px">
+               <button id="btnApplyFilter" class="k-button k-button-md k-button-solid k-button-solid-base k-rounded" onclick="btnApplyFilter();">@DicSvc.XLateHtml("Apply")</button>
+            </div>
+            <div style="display: inline-flex;padding-top:15px">
+    
+               <span style="margin-left: 10px; padding-top: 6px;overflow: hidden;text-overflow: ellipsis">@DicSvc.XLateHtml($"Due to the size of the database, if patient is empty, it accept a range of up to {maxDays} days")</span>
+            </div>
+         </div>
+      </div>
+   </div>
+   
+
+   <div id="@popUpWindowName"></div>
+   @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.ClinicalLogQueue>()
+      .Name(gridName)
+      .UmsDefaultSettings(DicSvc)
+      .UmsDefaultToolbar("", "", "", DicSvc)
+      //Uncomment for use Pager
+      .UmsDefaultPager(DicSvc)
+      .AutoBind(false)
+      //.Events(ev => ev.DataBound("onDataBound"))
+      //.HtmlAttributes(new { style = "display: none !important;" })
+      .Columns(columns =>
+      {
+         columns.Bound(e => e.Id).Visible(false);
+         columns.Bound(e => e.DateTime).Format("{0:dd/MM/yyyy HH:mm:ss}").Width(170).Filterable(false);
+         columns.Bound(e => e.Priority).Width(120).Title(DicSvc.XLateHtml("Priority")).Filterable(c => c.Multi(true).Search(true).DataSource(
+            dataSource => dataSource
+               .Ajax()
+               .Read(read => read.Action("ReadClinicalLogsPriority", "Actions"))
+            ));
+         //columns.Bound(e => e.PatientRef).Width(135).Filterable(false).Title(DicSvc.XLateHtml("Patient Id")).HtmlAttributes(new {style = "text-align:right;padding-right:1.25em !important;"});
+         columns.Template("<span>#if(data.Patient){# #:data.Patient.PatientCode# #}#</span>").Width(100).Title(DicSvc.XLateHtml("P. Code"));//.HtmlAttributes(new {style = "text-align:right;padding-right:1.25em !important;"});
+         columns.Template("#if(data.Patient){ var fullname=data.Patient.FamilyName.concat(' ', data.Patient.GivenName); # <span title='#:fullname#'>#:fullname# </span>#}#")
+            .Width(200).Title(DicSvc.XLateHtml("P. Name")).HtmlAttributes(new {style = "white-space: nowrap;overflow: hidden;text-overflow: ellipsis;"});
+         columns.Bound(e => e.ComputerName).Width(140).Title(DicSvc.XLateHtml("Host"));
+         columns.Bound(e => e.Task).Width(140).Filterable(c => c.Multi(true).Search(true).DataSource(
+            dataSource => dataSource
+               .Ajax()
+               .Read(read => read.Action("ReadClinicalLogsTask", "Actions"))
+            ));
+
+         columns.Bound(e => e.User).Width(100);
+         columns.Bound(e => e.Message);
+      })
+      .Sortable(c => c.SortMode(GridSortMode.MultipleColumn).ShowIndexes(true))
+      //.Events(e => e.DataBound("onGridDataBound"))
+      .Selectable(s => s.Enabled(false))
+      .DataSource(dataSource => dataSource
+         .Ajax()
+         .Sort(sort => sort.Add("DateTime").Descending())
+         //Uncomment for use Pager
+         .PageSize(50) //if pager is not enabled, remove this row
+         .Events(events => events.Error("error_handler_users"))
+         .Events(e=>e.RequestStart("onBeforeReadData"))
+         .Read(read => read.Action("ReadClinicalLogs", "Actions"))
+      ))
+</div>
+
+<script type="text/javascript">
+
+    @{
+       string editItemTitle = "Edit_Item_PopUpWindow_Title";
+       string newItemTitle = "Add_Item_PopUpWindow_Title";
+    }
+    var kndWnd;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                maxHeight:500,
+                title: '@DicSvc.XLate(editItemTitle)',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+
+        }
+   
+        gridSizeOffset = 65;
+        $(window).trigger('resize');
+    });
+
+
+    $(window).resize(function () {
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                for (var i = 0; i < kendoWindow.length; i++) {
+                    var win = $(kendoWindow[i]).data("kendoWindow");
+                    if (!win.element.is(":hidden")) {
+                        win.center();
+                        if (win.resize != undefined) {
+                            win.trigger('resize');
+                        }
+
+                    }
+                }
+            }
+        }, 100);
+    });
+
+    function displayItemDetail(itemID) {
+        @*var windowWidget = $(popUpWindowName).data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+        $.ajax({
+            url: '@Url.Action("GetDevice", "Actions")',
+            type: 'GET',
+            data: { id: itemID }
+        }).done(function (dataHtml) {
+            kendo.ui.progress(windowWidget.element, true);
+			var dialog = $(popUpWindowName ).data('kendoWindow');
+            if (itemID ==='') {
+                dialog.title('@DicSvc.XLate(newItemTitle)');
+            } else {
+                dialog.title('@DicSvc.XLate(editItemTitle)');
+            }
+            dialog.content(dataHtml).center().open();
+
+        });*@
+    }
+    //
+    function onDataBound(e) {
+        //var grid = this;
+        //grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+        //    function (e) {
+        //        var item = grid.dataItem( $(e.target).closest('tr'));
+        //        onGridKeyEnter(item);
+        //    });
+    }
+    function onGridKeyEnter(item) {
+        //replace Key
+        //displayItemDetail(item.ID);
+    };
+
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+</script>

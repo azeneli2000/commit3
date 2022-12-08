@@ -1,0 +1,506 @@
+﻿@model ConfiguratorWeb.App.Models.StandardDatasetViewModel
+@using System.Text;
+@{
+    Layout = null;
+    string strDialogID = "divVitalsDataset";
+    StringBuilder objSbDelete = new StringBuilder();
+    objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Dataset \"{0}\" "),
+       Model.sd_Name);
+    var canUnpublish = Model.sd_ID != Guid.Empty && Model.sd_Published && !ViewBag.HasRecords;
+    var canPublish = Model.sd_ID != Guid.Empty && !canUnpublish && !Model.sd_Published;
+}
+<div class="h-100 p-0">
+    <div class="card h-90 pt-0 pb-2" id="@strDialogID">
+        <form asp-controller="Vitals" id="form_StandardDataset_@Model.sd_ID" asp-action="@(Model.sd_Published ? "SaveDatasetPublished" : "SaveDataset")"
+              data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+              data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress"
+              data-published="@(Model.sd_Published ? "true" : "")">
+            <div id="Results"></div>
+
+
+
+            @Html.HiddenFor(m => m.sd_ID)
+
+
+            <kendo-tabstrip name="tabstrip_@Model.sd_ID">
+                <scrollable enabled="true" />
+                <popup-animation>
+                    <open effects="fade:in" />
+                </popup-animation>
+                <items>
+                    <tabstrip-item text="@DicSvc.XLate("General")" selected="true" id="tabstrip-@Model.sd_ID-general">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabDatasetDetail", Model);}
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Items")" id="tabstrip-@Model.sd_ID-items">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabDatasetItemList", Model);}
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Interval Script")" id="tabstrip-@Model.sd_ID-intervalscript">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabIntervalScript", Model);}
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Score Script")" id="tabstrip-@Model.sd_ID-scorescript">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabScoreScript", Model);}
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Score description Script")" id="tabstrip-@Model.sd_ID-scoredescriptionscript">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabScoreDescriptionScript", Model);}
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Score Descriptions")" id="tabstrip-@Model.sd_ID-scoredescriptions">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabScoreDescriptions", Model);}
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Enabled")" id="tabstrip-@Model.sd_ID-enabled">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabEnabledByDefault", Model);}
+                        </content>
+                    </tabstrip-item>
+                </items>
+            </kendo-tabstrip>
+
+
+        </form>
+    </div>
+    <div class="card-footer h-10 p-0 m-0 border-0 bg-white">
+        @{
+            string postId = ""; //use in case of multi toolbar
+        }
+        @(Html.Kendo().ToolBar()
+                  .Name("toolbar")
+                  .UmsDefaultInfo(DicSvc)
+                  .UmsDefaultErrors(DicSvc, "errors")
+
+                  .Items(items =>
+                  {
+                      if (Model.sd_ID != Guid.Empty)
+                      {
+                          items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+                          if (canUnpublish)
+                          {
+                              items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Unpublish")).Id("btnUnpublish").UmsHtmlButtonGeneric("view-mode").Hidden(true);
+                          }
+                          else if (canPublish)
+                          {
+                              items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Publish")).Id("btnPublish").UmsHtmlButtonGeneric("view-mode").Hidden(true);
+                          }
+                          //items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode").Hidden(true);
+                      }
+                  })
+                  .UmsDefaultSettings(DicSvc, postId)
+            )
+    </div>
+</div>
+<script>
+
+    $(document).ready(function () {
+
+        initializeTextAreaCSharp();
+
+        if ('@(Model.sd_ID)' == guidEmpty) {
+          var tabstrip = $("#tabstrip_@Model.sd_ID").data("kendoTabStrip");
+          //disable items tabstrip in case item detail in not saved
+          tabstrip.disable(tabstrip.tabGroup.children("li:eq(1)"), true); // enable tab 0 (detail tab)
+        }
+        if ('@Model.sd_Type' == '@Digistat.FrameworkStd.Enums.Vitals.DatasetType.Score') {
+          $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").enable($("#tabstrip-@Model.sd_ID-scorescript"));
+          $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").enable($("#tabstrip-@Model.sd_ID-scoredescriptionscript"));
+          $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").enable($("#tabstrip-@Model.sd_ID-scoredescriptions"));
+        } else {
+          $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").disable($("#tabstrip-@Model.sd_ID-scorescript"));
+          $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").disable($("#tabstrip-@Model.sd_ID-scoredescriptionscript"));
+          $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").disable($("#tabstrip-@Model.sd_ID-scoredescriptions"));
+        }
+        if ('@Model.sd_Timing' == '@Digistat.FrameworkStd.Enums.Vitals.Timing.Variable') {
+          $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").enable($("#tabstrip-@Model.sd_ID-intervalscript"));
+        } else {
+          $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").disable($("#tabstrip-@Model.sd_ID-intervalscript"))
+        }
+
+        setWindowMode();
+        $('.btnEdit').off('click').on('click', function () {
+            changeToEditMode();
+        })
+        $('.btnCancel').off('click').on('click', function () {
+            kendo.ui.progress($("#divVitalsDatasetEditWindow"), true);
+            var currentID = $('#sd_ID').val();
+            if (currentID && currentID != guidEmpty) {
+                openDetail({ sd_ID: $('#sd_ID').val() });
+            }
+            else {
+                dialog.close();
+            }
+            kendo.ui.progress($("#divVitalsDatasetEditWindow"), false);
+        });
+         $('.btnClose').off('click').on('click', function () {
+             dialog.close();
+             $(this).closest(".k-state-focused").focus();
+         });
+
+         $('#btnDelete').click(function () {
+             umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteDataset, cancelDeleteDataset);
+        });
+
+        function deleteDataset() {
+            kendo.ui.progress($("#divVitalsDatasetEditWindow"), true);
+        $.ajax({
+            url: '@Url.Action("DeleteDataset", "Vitals")',
+            type: 'POST',
+            data: { id: '@(Model.sd_ID)' },
+            async: false
+
+        }).done(function (data) {
+            dialog.close();
+            var grid = $("#vitals-grid").data("kendoGrid");
+            grid.dataSource.read();
+            }).fail(function (response) {
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+                });
+            kendo.ui.progress($("#divVitalsDatasetEditWindow"), false);
+    }
+
+        function cancelDeleteDataset() {
+
+        /* do nothing */
+    }
+
+        $('#btnSave').off('click').on('click', function () {
+            kendo.ui.progress($("#divVitalsDatasetEditWindow"), true);
+        if (OnValidation()) {
+            $("#form_StandardDataset_@(Model.sd_ID)").submit();
+            }
+            kendo.ui.progress($("#divVitalsDatasetEditWindow"), false);
+        });
+
+        @if (canPublish)
+        {
+            <text>
+        $("#btnPublish").off('click').on('click', function () {
+            umsConfirm('@DicSvc.XLate("Confirm publish")', '@DicSvc.XLate("By publishing this dataset, you will no longer be able to modify its configuration and all of its records will be deleted. Do you want to continue ?")', function () {
+                var $btn = $(this).prop("disabled", false).addClass("k-state-disabled");
+                kendo.ui.progress($("#divVitalsDatasetEditWindow"), true);
+                $.ajax({
+                    url: '@Url.Action("Publish", "Vitals")',
+                    type: 'POST',
+                    data: { id: '@(Model.sd_ID)' }
+                }).done(function (data) {
+                    if (!data.success) {
+                        $btn.prop("disabled", true).removeClass("k-state-disabled");
+                        kendo.ui.progress($("#divVitalsDatasetEditWindow"), false);
+                        umsErrorDialog("Error occured", data.errorMessage.replaceAll("\r\n", "<br/>"), 200, 200);
+                    } else {
+                        openDetail({ sd_ID: '@(Model.sd_ID)' });
+                        kendo.ui.progress($("#divVitalsDatasetEditWindow"), false);
+                       var grid = $("#" + gridIdName).data("kendoGrid");
+                       grid.dataSource.read();
+                    }
+                }).fail(function (response) {
+                    $btn.prop("disabled", true).removeClass("k-state-disabled");
+                    kendo.ui.progress($("#divVitalsDatasetEditWindow"), false);
+                    umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+                });
+            }, function () { });
+
+        });
+            </text>
+        }
+        else if (canUnpublish)
+        {
+            <text>
+        $("#btnUnpublish").off('click').on('click', function () {
+            var $btn = $(this).prop("disabled", false).addClass("k-state-disabled");
+            kendo.ui.progress($("#divVitalsDatasetEditWindow"), true);
+            $.ajax({
+                url: '@Url.Action("Unpublish", "Vitals")',
+                type: 'POST',
+                data: { id: '@(Model.sd_ID)' }
+            }).done(function (data) {
+                if (!data.success) {
+                    $btn.prop("disabled", true).removeClass("k-state-disabled");
+                    kendo.ui.progress($("#divVitalsDatasetEditWindow"), false);
+                    umsErrorDialog("Error occured", data.errorMessage, 200, 200);
+                } else {
+                    openDetail({ sd_ID: '@(Model.sd_ID)' });
+                    kendo.ui.progress($("#divVitalsDatasetEditWindow"), false);
+                    var grid = $("#" + gridIdName).data("kendoGrid");
+                    grid.dataSource.read();
+                }
+            }).fail(function (response) {
+                $btn.prop("disabled", true).removeClass("k-state-disabled");
+                kendo.ui.progress($("#divVitalsDatasetEditWindow"), false);
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            });
+        });
+            </text>
+        }
+
+    });
+
+    function initializeTextAreaCSharp() {
+        $.each($("textarea.c-sharp[id]:not([csharp])"), function (_, tArea) {
+            var $tArea = $(tArea).hide(),
+                editorId = $tArea.attr("id") + "-editor",
+                _ = $tArea.after("<div id='" + editorId + "'></div>"),
+                editor = ace.edit(editorId);
+            editor.setOptions({
+                autoScrollEditorIntoView: true,
+                copyWithEmptySelection: true,
+                readOnly: true,
+                displayIndentGuides: true,
+                enableBasicAutocompletion: true,
+                enableSnippets: true,
+                enableLiveAutocompletion: false,
+                printMargin: false
+            });
+
+
+            editor.setTheme("ace/theme/chrome");
+            editor.session.setMode("ace/mode/csharp");
+
+            editor.getSession().setValue($tArea.val());
+            editor.getSession().on("change", function () {
+                $tArea.val(editor.getSession().getValue());
+                $tArea.trigger('change');
+            });
+
+            $tArea.data("editor", editor).attr("csharp", "true");
+        });
+    }
+
+    function changeToEditMode() {
+        var isPublished = $("#@(strDialogID) [data-published]").attr("data-published") == "true";
+        var selector = "#@(strDialogID)" + (isPublished ? " .panel-enabled-by-default" : "");
+        actualmode = 2;
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+        toolBarAllEditSaveButton();
+        toolBarShowButtonByClass("modify-mode");
+
+        $(selector + " :input").attr('disabled', false);
+        $(selector + " :input").each(function () {
+            var kControl = $(this).data("kendoDropDownList") || $(this).data("kendoNumericTextBox") || $(this).data("kendoTimePicker");
+            kControl && kControl.enable(true);
+        });
+
+        if (!isPublished) {
+            setOcrChange();
+            setTimingAndReminder();
+            $("#create_datasetitem, #create_scoredescription").removeClass("k-state-disabled");
+            $("#vitalsScoreDescriptions_grid_@Model.sd_ID").data("kendoGrid").refresh();
+
+            $.each($("textarea"), function (_, tArea) {
+                var $tArea = $(tArea),
+                    editor = $tArea.data("editor");
+                if (editor && editor.setOptions) {
+                    editor.setOptions({ readOnly: false });
+                }
+            });
+        }
+
+        var dpDatasetType = $("#VitalsDatasetType_@Model.sd_ID").data("kendoDropDownList");
+        $("#sd_HL7_Score").prop("disabled", !dpDatasetType || dpDatasetType.text() != "@Digistat.FrameworkStd.Enums.Vitals.DatasetType.Score");
+
+        $("#divVitalsDataset #sd_EnabledByDefault").trigger("change");
+    }
+    function changeToViewMode() {
+        actualmode = 1;
+        $(".view-mode").show();
+        $(".modify-mode").hide();
+        toolBarAllEditSaveButton();
+        toolBarShowButtonByClass("view-mode");
+        $("#@(strDialogID) :input:not([type='hidden'])").attr('disabled', true);
+        $("#@(strDialogID) :input").each(function () {
+            var kControl = $(this).data("kendoDropDownList") || $(this).data("kendoNumericTextBox") || $(this).data("kendoTimePicker");
+            kControl && kControl.enable(false);
+        });
+
+        $('#LocationIds').data('kendoMultiSelect').enable(false);
+
+        $("#create_datasetitem, #create_scoredescription").addClass("k-state-disabled");
+        $("#vitalsScoreDescriptions_grid_@Model.sd_ID").data("kendoGrid").refresh();
+
+        initializeTextAreaCSharp();
+    }
+
+    var actualmode;
+    function setWindowMode() {
+
+        if ('@(Model.sd_ID)' !== guidEmpty) {
+            actualmode = 1;
+        } else {
+            actualmode = 2;
+        }
+        setMode();
+    }
+    function setMode() {
+        if (actualmode === 2)
+            changeToEditMode();
+        else
+            changeToViewMode();
+        dialog.center().resize();
+    }
+
+    function toolBarShowButtonByClass(clas) {
+        var tb = $("#toolbar").data("kendoToolBar");
+        tb.umsShowButtonByClass(clas);
+    }
+    function toolBarAllEditSaveButton() {
+        var tb = $("#toolbar").data("kendoToolBar");
+        tb.umsHideAllEditSaveButton();
+    }
+
+    var dialog = $("#divVitalsDatasetEditWindow").data("kendoWindow");
+    dialog.bind("activate", setMode);
+    dialog.bind("resize", setMode);
+
+     function OnValidation() {
+         var validator = $("#form_StandardDataset_@(Model.sd_ID)").kendoValidator().data("kendoValidator");
+            if (!validator.validate()) {
+                var errors = validator.errors();
+                $("#errors").html(buildValidationMessage(errors));
+                return false;
+            }
+            else {
+                $("#errors").html("");
+            }
+            return true;
+    }
+
+    function OnSuccess(response) {
+        if (response.success) {
+            var grid = $("#" + gridIdName).data("kendoGrid");
+            grid.dataSource.read();
+            dialog.close();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+
+    function OnFailure(response) {
+        //debugger;
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+    function setTimingAndReminder() {
+       //debugger;
+       var cbTiming = $("#VitalsTimings_@Model.sd_ID").data("kendoDropDownList");
+       if (cbTiming) {
+          var aNoTimingVal = [
+            '@((int)Digistat.FrameworkStd.Enums.Vitals.Timing.Free)',
+            '@((int)Digistat.FrameworkStd.Enums.Vitals.Timing.Variable)'
+          ];
+
+          var aNoReminder = [
+            '@((int)Digistat.FrameworkStd.Enums.Vitals.Timing.Free)'
+          ];
+
+          var aNoIntervalScript = [
+            '@((int)Digistat.FrameworkStd.Enums.Vitals.Timing.Free)',
+            '@((int)Digistat.FrameworkStd.Enums.Vitals.Timing.Fixed)'
+          ];
+
+          var bHasTiming = aNoTimingVal.indexOf(cbTiming.value()) == -1 && cbTiming.value() != "0";
+          var bHasReminder = aNoReminder.indexOf(cbTiming.value()) == -1;
+          var bHasIntervalScript = cbTiming.value() != "0" && aNoIntervalScript.indexOf(cbTiming.value()) == -1;
+          var chkReminder = $("#sd_Reminder");//.is(":checked");
+          if (chkReminder) {
+
+            chkReminder.attr("disabled", bHasReminder?false:true);
+            if (!bHasReminder) {
+                chkReminder.prop("checked", false).trigger("change");
+            }
+           }
+          var numTimer = $("#sd_DefaultInterval").data("kendoDropDownList");
+           if (numTimer) {
+               numTimer.enable(bHasTiming);
+               var value = numTimer.value() || "10";
+               var firstItem = numTimer.dataSource.at(0);
+               if (bHasTiming) {
+                   if (firstItem.Value == "") {
+                       numTimer.dataSource.data().remove(firstItem);
+                   }
+                   numTimer.value(value);
+               }
+               else {
+                   if (firstItem.Value != "") {
+                       numTimer.dataSource.insert(0, { Text: "", Value: "" });
+                   }
+                   numTimer.value("");
+               }
+          }
+
+          if (bHasIntervalScript) {
+            $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").enable($("#tabstrip-@Model.sd_ID-intervalscript"));
+          } else {
+            $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").disable($("#tabstrip-@Model.sd_ID-intervalscript"))
+          }
+       }
+    }
+
+    function onDatasetType() {
+      var dpDatasetType = $("#VitalsDatasetType_@Model.sd_ID").data("kendoDropDownList");
+      if (dpDatasetType) {
+        if (dpDatasetType.text() == "@Digistat.FrameworkStd.Enums.Vitals.DatasetType.Score") {
+          var isNew = @((Model.sd_ID == Guid.Empty).ToString().ToLower());
+          $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").enable($("#tabstrip-@Model.sd_ID-scorescript"));
+          $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").enable($("#tabstrip-@Model.sd_ID-scoredescriptionscript"));
+          !isNew && !$("#tabstrip_@Model.sd_ID").data("kendoTabStrip").enable($("#tabstrip-@Model.sd_ID-scoredescriptions"));
+          $("#sd_HL7_Score").prop("disabled", false);
+        } else {
+          $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").disable($("#tabstrip-@Model.sd_ID-scorescript"));
+          $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").disable($("#tabstrip-@Model.sd_ID-scoredescriptionscript"));
+          $("#tabstrip_@Model.sd_ID").data("kendoTabStrip").disable($("#tabstrip-@Model.sd_ID-scoredescriptions"));
+          $("#sd_HL7_Score").prop("disabled", true).val("");
+        }
+      }
+    }
+
+    function setOcrChange() {
+      var chkOcr = $("#sd_Ocr");
+      var dpOcrDevices = $("#VitalsOcrDevices_@Model.sd_ID").data("kendoDropDownList");
+      var ocrCheckImg = $('#UseOcrImage');
+
+      if (dpOcrDevices) {
+        dpOcrDevices.trigger('change');
+      }
+
+      if (chkOcr.is(":checked")) {
+        ocrCheckImg.attr('disabled', false);
+        dpOcrDevices.enable(true);
+      } else {
+        ocrCheckImg.attr('disabled', true);
+        if (ocrCheckImg.is(":checked")) {
+          ocrCheckImg.prop("checked", false).trigger("change");
+        }
+        dpOcrDevices.enable(false);
+      }
+   }
+
+
+   function toggleScoreScriptExamples() {
+      $('#divScoreScriptExamples').toggle();
+   }
+
+   function toggleIntervalScriptExamples() {
+      $('#divIntervalScriptExamples').toggle();
+   }
+
+   function toggleScoreDescriptionScriptExamples() {
+      $('#divScoreDescriptionScriptExamples').toggle();
+   }
+
+   function toggleItemScriptExamples() {
+      $('#divItemScriptExamples').toggle();
+   }
+
+
+
+</script>

@@ -1,0 +1,123 @@
+﻿@model object
+
+@{
+    ViewBag.Title = DicSvc.XLate("Change MessageCenter");
+    Layout = "_Layout";
+    string product = ViewBag.Product;
+}
+
+<div class="jumbotron jumbotron-fluid">
+    <div class="container bg-light text-center">
+        <h1 class="display-4">Change MessageCenter</h1>
+        <p class="lead">@DicSvc.XLate($"MessageCenter will be changed in all running {product} workstation")</p>
+        <hr class="my-4">
+        <div class="row">
+            <div class="col-4 text-right">@DicSvc.XLate("Actual")</div>
+            <div class="col-8 text-left">@(ViewBag.MessageCenter + ":" + ViewBag.Istance )</div>
+        </div>
+        <div class="row">
+            <div class="col-4 text-right">@DicSvc.XLate("Message Center")</div>
+            <div class="col-8 text-left"><input type="text" class="form-control k-textbox" required id="txtMessageCenter" value="@ViewBag.MessageCenter" /> </div>
+        </div>
+        <div class="row">
+            <div class="col-4 text-right"><label for="txtIstance" class="required"> @DicSvc.XLate("Istance")</label></div>
+            <div class="col-8 text-left"><input type="number" class="form-control k-textbox" id="txtIstance" required validationMessage="Istance is required"  value="@ViewBag.Istance" /> </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col text-center mb-4">
+
+                <button id="showDialogBtn" class="btn btn-danger btn-lg" onclick="askConfirm();">YES, SEND MESSAGE</button>
+            </div>
+        </div>
+        
+        <div id="res" class="collapse">
+            <div class="progress">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+            </div>
+        </div>
+        <div id="resOk" class="collapse bg-success text-white">
+            @DicSvc.XLate("Message sent correctly")
+        </div>
+        <div id="resKo" class="collapse bg-danger text-white">
+            Error sending message
+        </div>
+    </div>
+    @(Html.Kendo().Dialog()
+          .Name("dialog")
+          .Title("Change MessageCenter")
+          .Content($"<p class='text-danger'><i class='mdi mdi-36px mdi-alert-octagon'></i>Are you Sure you want to change Message Center in every {product} workplace?<p>")
+          .Width(400)
+          .Modal(true)
+          .Visible(false)
+          .Closable(false)
+          .Actions(actions =>
+          {
+              actions.Add().Text("Cancel").Action("onCancel");
+              actions.Add().Text("OK").Action("onOK").Primary(true);
+          })
+              
+     )
+</div>
+<script>
+    var dialog = $("#dialog");
+    var showBtn = $("#showDialogBtn");
+    function askConfirm() {
+        var validator = $(".container").kendoValidator({
+            }).data("kendoValidator");
+        if (!validator.validate() ) {
+            retValue = false;
+            try {
+                var errors= validator.errors();
+                //$("#errors").html(buildValidationMessage(errors));
+            } catch (e) {
+                $("#errors").html(e);
+            }
+        }
+        else {
+            dialog.data("kendoDialog").open();
+            showBtn.fadeOut();
+        }
+
+
+        
+    }
+    function onCancel(e) {
+        showBtn.fadeIn();
+    }
+
+    function onOK(e) {
+        //kendoConsole.log("action :: OK");
+        sendMessage();
+    }
+    function sendMessage() {
+        $('#resOk').collapse('hide');
+        $('#resKo').collapse('hide');
+        if (!$('#res').is(':visible')) {
+            $('#res').show();
+            $.ajax({
+                    url: '@Url.Action("ChangeMessageCenterToAll", "Actions")',
+                    type: 'POST',
+                    data: {
+                        newMC: '' + $('#txtMessageCenter').val(), 
+                        newIstance: '' + $('#txtIstance').val()
+                    }
+                })
+                .done(
+                    function() {
+                        $('#resOk').collapse('show');
+                    })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    var errMsg = "@DicSvc.XLate("Error sending message:{0} - {1}")";
+                    $('#resKo').html(String.format(errMsg, errorThrown, jqXHR.responseText ));
+                    $('#resKo').collapse('show');
+                })
+                .always(function()
+                {
+                    $('#res').hide();
+                });
+        } else {
+            $('#res').show();
+        }
+    }
+</script>

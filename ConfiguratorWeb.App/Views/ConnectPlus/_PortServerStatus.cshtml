@@ -1,0 +1,123 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@inject IDictionaryService DicSvc
+@{ 
+   Layout = null;
+   int intPSID = ViewBag.PSSID;
+}
+<style>
+
+    .devConnected {
+        /*background-color: #0DB4B3;*/
+        background-color: #6cbc24;
+    }
+
+    .devUnknown, .devDisconnected {
+        background-color: #D0021B;
+    }
+
+    .devNoCable {
+        /*background-color: #989898;*/
+        background-color: #e5e5e5;
+    }
+
+    .devDeviceOff {
+        /*background-color: #CE6736;*/
+        background-color: #569fef;
+    }
+
+</style>
+<script>
+    function PortStatusDataBound(e) {
+        
+        var columnIndex = this.wrapper.find(".k-grid-header [data-field=" + "State" + "]").index();
+        var rows = e.sender.tbody.children();
+        rows.each(function (index, row) {
+            var dataItem = e.sender.dataItem(row);
+            var cssClass = 'devNoCable';
+            switch (dataItem.State) {
+                case 'DEV_RECOGNIZED':
+                    cssClass = 'devConnected';
+                    break;
+                case 'DEV_UDISCONNECTED':
+                case 'PS_DISCONNECTED':
+                case 'CABLE_NOT_RECOGNIZED':
+                    cssClass = 'devDisconnected';
+                    break;
+                case 'SEARCHING':
+                    cssClass = 'devDeviceOff';
+                    break;
+                case 'DEV_NOT_RECOGNIZED':
+                    cssClass = 'devUnknown';
+                    break;
+            }
+            $(row).children('td:eq(' + columnIndex + ')').addClass(cssClass);
+        })
+        
+        
+    }
+
+
+    $(document).ready(function () {
+        $('#btnPortServerStatusClose').off('click').on('click', function () {
+            $('#divPortServerStatus').data('kendoWindow').close();
+        })
+    })
+
+</script>
+<div class="h-100 ">
+    <div class="card h-90 m-0 p-0 border-0 text-left"  id="divItemStatus">
+
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.PortServerStatusViewModel>()
+                .Name("portserver-grid_" + intPSID.ToString())
+                .UmsDefaultSettings(DicSvc)
+                  .HtmlAttributes(new { @style = "height:350px;max-height:350px; " })
+                .Columns(columns =>
+                {
+                    columns.Bound(e => e.ID).Visible(false);
+                    columns.Bound(e => e.DeviceDescription).Title("&nbsp;");
+                    columns.Bound(e => e.CableId).Width(150);
+                    columns.Bound(e => e.LastUpdate).Width(130).Format("{0: dd/MM/yyyy HH:mm}");
+                    columns.Bound(e => e.State).Width(150).Filterable(f => f.Multi(true));
+                    columns.Bound(e => e.Bed.BedId).ClientTemplate("#= (Bed ? [Bed.Location.LocationName, Bed.BedName].join(' - ') : '') #").Title(DicSvc.XLate("Bed Name")).Filterable(false).Sortable(false).Width(150);
+                })
+
+                .Pageable(pager => pager
+                    .Refresh(true)
+                    .PreviousNext(false)
+                    .Numeric(false)
+                    .PageSizes(false)
+                )
+                .Events(ev => ev.DataBound("PortStatusDataBound"))
+                .DataSource(dataSource => dataSource
+                    .Ajax()
+                    .Model(model =>
+                    {
+                        model.Id(o => o.ID);
+
+                    })
+                    .Read(read => read.Action("GetPortServerStatus", "ConnectPlus", new { psID = intPSID.ToString() }))
+                )
+
+        )
+    </div>
+    <div class="card-footer h-10 p-0 m-0 mt-1 border-0 bg-white">
+
+        @{
+            string postId = ""; //use in case of multi toolbar
+        }
+        @(Html.Kendo().ToolBar()
+                      .Name("toolbarDetail")
+                      .UmsDefaultErrors(DicSvc, "errors")
+                      .Items(items =>
+                      {
+                          items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Close")).Id("btnPortServerStatusClose").UmsHtmlButtonGeneric("view-mode");
+                      })
+                      .UmsDefaultSettings(DicSvc, postId)
+        )
+    </div>
+</div>
+
+
+
+
+

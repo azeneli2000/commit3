@@ -1,0 +1,18 @@
+﻿
+@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces
+@inject IDictionaryService DicSvc
+@{
+    Layout = null;
+}
+@(Html.Kendo().ToolBar()
+                      .Name("toolbarDetail")
+                      .UmsDefaultErrors(DicSvc, "errors")
+
+                      //.Items(items =>
+                      //{
+
+                      //    items.Add().Type(CommandType.Button).Text(DicSvc.XLate("PUPPA")).Id("btnSaveT").HtmlAttributes(new { @class = "k-secondary btn-success view-mode " });
+                      //})
+                      .UmsDefaultSettings(DicSvc, "")
+)

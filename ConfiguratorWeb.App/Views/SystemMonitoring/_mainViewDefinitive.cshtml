@@ -1,0 +1,717 @@
+﻿
+@using Digistat.FrameworkStd.Model
+
+@{
+   ViewBag.Title = "";
+
+   var listViewName = "MainListView";
+
+}
+<style>
+   .monitoringactive {
+      color: green !important;
+      font-weight: bold;
+   }
+
+   .monitoringwarning {
+      color: orange !important;
+      font-weight: bold;
+   }
+
+/*   .k-checkbox-label[for=ShowErrorsOnly] {
+      position: relative;
+      left: 42%;
+   }*/
+
+   hr {
+      margin-top: 0rem;
+      margin-bottom: 0rem;
+      border-top: 1px solid black;
+   }
+
+   #MainListView {
+      position: relative;
+      min-height: 400px;
+      padding: 10px 5px;
+      margin-bottom: 10px;
+      font: small-caption;
+      font-size: small;
+      height: auto;
+      overflow: hidden;
+   }
+
+   .card-bodyMonitoring {
+      height: 350px;
+      overflow: auto;
+   }
+
+   .card-main {
+      float: left;
+      width: 50%;
+      padding: 0.5%;
+   }
+
+   .modalcard-main {
+      width: 100%;
+      height: 100%;
+      padding: 10px;
+   }
+
+   .modalcard-bodyMonitoring {
+      height: 100%;
+      overflow: auto;
+      padding: 0.5%;
+      text-align: center;
+   }
+
+   .mainRow {
+      width: 100%;
+   }
+
+   .stop-scrolling {
+      height: 100%;
+      overflow: hidden;
+   }
+
+   .card-title {
+      margin-top: 2px;
+   }
+
+
+</style>
+
+<script type="text/javascript">
+   setTimeout(function () {
+      $('#refreshButton').prop("disabled", false);
+   }, 5000);
+
+   function GridDateTimeFilterStatus(control) {
+      $(control).kendoDateTimePicker({ format: "dd/MM/yyyy HH:mm:ss", timeFormat: "HH:mm:ss" });
+      //$(control).kendoDateTimePicker();
+   }
+
+   function onDataBounSystem(e) {
+      //checkErrorSsystem();
+   }
+
+
+
+
+   function checkErrorSystem() {
+
+      var grid = $('#MonitoringResultsGrid').data('kendoGrid');
+
+      grid.dataSource.page(1);
+
+      if ($("#ShowErrorsOnly").is(':checked')) {
+
+
+         grid.dataSource.transport.options.read.url = '@Url.Action("GetMonitoringResults", "SystemMonitoring",new {value = true })';
+
+
+      }
+      else {
+
+               grid.dataSource.transport.options.read.url = '@Url.Action("GetMonitoringResults", "SystemMonitoring",new {value = false })';
+
+      }
+      grid.dataSource.read();
+
+
+   }
+
+   $("#ShowErrorsOnly").off('click').on('click', function () {
+
+      checkErrorSystem();
+   });
+
+   function MainViewRefresh() {
+      mainTableCounter = 0;
+      $("#MainListView").css("height", "300px");
+
+      $("#MainListView").data("kendoListView").dataSource.read();
+      $("#MonitoringResultsGrid").data("kendoGrid").dataSource.read();
+
+   }
+
+   mainAutorefresh = new MonitoringAutoRefresh(5000, $("#MonitoringServicesAutorefresh"), $('#MonitoringServicesCountdownRefresh'));
+
+
+   var todayMain = new Date();
+   var activeStatClass = "";
+   var activeStatClassCard = "";
+   var activeStatClassMdi = "";
+   var whorstState = "";
+   var cssClass = "";
+   var mainTableCounter = 0;
+   var mainListViewName = "@listViewName";
+
+   function setStatus(data) {
+
+      var status = data.StatusValue;
+
+      if (status == "2") {
+         activeStatClass = "monitoringactive";
+         activeStatClassCard = "border-success";
+         cssClass = "success";
+         activeStatClassMdi = "mdi-check-bold";
+      }
+      if (status == "0") {
+         activeStatClass = "text-danger";
+         activeStatClassCard = "border-danger";
+         cssClass = "danger";
+         activeStatClassMdi = "mdi-bell";
+
+      }
+      if (status == "1") {
+         activeStatClass = "monitoringwarning";
+         activeStatClassCard = "border-warning";
+         cssClass = "warning";
+         activeStatClassMdi = "mdi-alert-outline";
+
+      }
+
+   }
+
+
+
+   function GetAnomalyIcon(status) {
+      if (status == null || status == "") {
+         return "";
+      }
+
+      var iconStyle = "mdi-check-bold";
+
+      if (status.toLowerCase() == "warning") {
+         iconStyle = "mdi-alert-outline";
+      }
+      else if (status.toLowerCase() == "error") {
+         iconStyle = "mdi-bell";
+      }
+
+      return iconStyle;
+   }
+
+</script>
+
+<script>
+
+   var expandedItem = null;
+   function onToggleTile(e) {
+      $('body').toggleClass('stop-scrolling');
+
+      var tile = $(e.target).closest("div[id*='_card']");
+      var listView = $("#@listViewName").data("kendoListView");
+      var obj = listView.dataItem(tile);
+      if (obj != null) {
+         $('body').append(
+            $('<div>').prop({
+               id: "popupCard"
+            })
+         );
+
+         var win = $("#popupCard").kendoWindow({
+            title: false,
+            modal: true,
+            maxWidth: "90%",
+            maxHeight: "90%",
+            minWidth: "90%",
+            minHeight: "90%",
+            width: "90%",
+            height: "90%"
+
+         }).data("kendoWindow");
+
+         expandedItem = obj;
+         expandedItem.expanded = true;
+         debugger;
+         var scriptTemplate = kendo.template($("#templateMonitoring").html());
+
+         win.content(scriptTemplate({ data: expandedItem, Data: expandedItem.Data }));
+         win.center().open();
+
+         for (var j = 0; j < expandedItem.Data.Components.length; j++) {
+            var component = expandedItem.Data.Components[j];
+            for (var k = 0; k < component.Tables.length; k++) {
+               var table = component.Tables[k];
+               var compName = expandedItem.Data.Name.replace(/^[^a-z]+|[^\w:.-]+/gi, "");
+               var tableName = table.Name.replace(/^[^a-z]+|[^\w:.-]+/gi, "");
+               var idTable2 = "modal" + "@listViewName" + '_' + compName + '_' + tableName + "1";
+
+               var idTable_handle2 = idTable2 + "_handle";
+               addGrid(idTable2, idTable_handle2, table);
+            }
+         }
+      } else {
+         expandedItem.expanded = false;
+         expandedItem = null;
+
+         var win = $("#popupCard").data("kendoWindow");
+         win.content("");
+         win.close();
+
+         $("#popupCard").remove();
+      }
+   }
+
+   function onMainDataBound(e) {
+
+      onDataBoundDynamicGrid(e);
+      $("#MonitoringResultsContainer").css('visibility', 'visible');
+
+      @*todayMain = new Date();
+      $("#lastRefresh").text('@DicSvc.XLate("Last Update")' + ": " + kendo.toString(todayMain, "T"));*@
+
+   }
+
+   function onListViewServiceRequestEnd(e) {
+
+
+
+      var val = '@DicSvc.XLate("Next Update")' + ": ...";
+      if (mainAutorefresh != undefined) {
+         mainAutorefresh.timeoutMilliSec = 20000;//300000; //5 minutes
+      }
+
+      if (e.response.result != undefined && e.response.result.success) {
+         todayMain = new Date();
+         var x = kendo.toString(todayMain, "T");
+         todayMainws = x.split(":");
+         todayMain = todayMainws.slice(0, -1).join(':');
+         $("#lastRefresh").text('@DicSvc.XLate("Last Update")' + ": " + kendo.toString(todayMain, "T"));
+         var next = new Date(e.response.result.NextUpdate);
+   
+         var d1 = new Date();
+         var diff = Math.ceil(Math.abs(next - d1));
+         if (next.getFullYear() != 1 && (diff / 1000 < e.response.result.UpdateFreq * 2 * 60)) {
+            var y = kendo.toString(next, "T");
+            todayMainws = y.split(":");
+            next = todayMainws.slice(0, -1).join(':');
+            val = '@DicSvc.XLate("Next Update")' + ": " + kendo.toString(next, "T");
+            if (mainAutorefresh != undefined) {
+               mainAutorefresh.timeoutMilliSec = diff;
+            }
+         }
+      }
+
+      if (mainAutorefresh != undefined) {
+         mainAutorefresh.SetRefreshInterval(MainViewRefresh);
+      }
+
+       $("#nextServiceRefresh").text(val);
+
+      $("#MainListView").css("height", "auto");
+
+   }
+
+</script>
+
+
+<script type="text/x-kendo-tmpl" id="templateMonitoring">
+   #
+   setStatus(data);
+   var idPrefix = "";
+   if (data.expanded) {
+   idPrefix = "modal";
+   }
+   var dataName = Data.Name.replace(/\s/g, "_");
+   var idCard = idPrefix + dataName + "_card";
+   var idStatus = Data.Status;
+
+   #
+
+   <div id="#:idCard#" class="#:idPrefix#card-main">
+      <div class="card #:activeStatClassCard#" style="height:100%;">
+         <div class="card-head bg-#:cssClass# p-2" style="text-align:center;">
+            <h5 class="card-title w-100 #if(cssClass=='warning'){#text-dark#}else{#text-light#}# ">
+               <i class="float-left mdi mdi-18px mr-2 #:activeStatClassMdi#"></i>#:Data.Name#
+               <i class="float-right mdi mdi-18px mr-2 #if(data.expanded){#mdi-arrow-collapse#}else{#mdi-arrow-expand#}#" onclick='onToggleTile(event)' style="cursor:pointer;" />
+            </h5>
+         </div>
+         <div class="#:idPrefix#card-bodyMonitoring">
+
+            #
+            if(data.Data.Anomalies.length > 0)
+            {
+
+            #
+
+            <div style="font-weight:bold; padding-bottom: 5px; padding-top:5px;">@DicSvc.XLate("Issues")</div>
+            <hr style="width:100%;text-align:left;margin-left:0;color:black;padding-bottom:7px;">
+            #
+            for(var j = 0; j< data.Data.Anomalies.length; j++)
+            {
+
+            #
+
+            <div class="row" style="align-items: baseline;text-align:right;">
+               @*<div class="col-1">#:data.Data.Anomalies[j].Severity#</div>*@
+               <div class="col-1" style="padding:0px;text-align:center;"><i class=" mdi mdi-18px #:GetAnomalyIcon(data.Data.Anomalies[j].Severity)#"></i></div>
+               <div class="col-3" style="font-weight:bold;padding-right:0px;text-align:center;">#:data.Data.Anomalies[j].Id#</div>
+               <div class="col-8" style="text-align:left;padding-right:0px;">#:data.Data.Anomalies[j].Description#</div>
+            </div>
+            #
+            }
+            #
+            @*<hr style="width:100%;text-align:left;margin-left:0;color:black;padding-bottom:21px;">*@
+
+            #
+            }
+
+            if(data.Data.Components.length > 0)
+            {
+
+            for(var k = 0; k < data.Data.Components.length; k++)
+            {
+
+            if(data.Data.Components[k].Indicators.length >0 || data.Data.Components[k].Tables.length >0)
+            {
+            #
+
+
+            <div style="font-weight:bold; padding-bottom: 5px; padding-top: 5px;">#:data.Data.Components[k].Name#</div>
+            <hr style="width:100%;text-align:left;margin-left:0;color:black;padding-bottom:7px;">
+
+            #
+            }
+            if(data.Data.Components[k].Indicators.length > 0)
+            {
+
+            for(var i = 0; i < data.Data.Components[k].Indicators.length; i++)
+            {
+            #
+
+            <div class="row" style="padding-bottom: 1px!important;padding-top:5px;">
+               #if( data.Data.Components[k].Indicators[i].ChartEnabled)
+               {
+               var idChart = prefixChart + chartCounter.toString();
+               var name = data.Data.Name;
+               var lastupdate = data.Data.ReceivingTimeUTC;
+               var indicator = data.Data.Components[k].Indicators[i].Name;
+               var component = data.Data.Components[k].Name;
+               var lastupdateDate = new Date(lastupdate);
+               var today = new Date();
+               var diffHours = Math.abs(today - lastupdateDate) / 36e5;
+               @*var diffHours = 48;*@
+               @*name='DAS3';
+                  indicator='Driver Added';
+                  component='DASBroker Indicators';*@
+               if (diffHours > 48) {
+               #
+               <div class="col-sm-1" style="padding:0px;text-align:center;">
+               </div>
+               #
+               }
+               else{
+               #
+               <div class="col-sm-1" style="padding:0px;text-align:center;">
+                  <i class="mdi mdi-chart-line mdi-18px" id="#:idChart#" title="@DicSvc.XLate("Indicator Chart") " onclick="showChart('${name}','${indicator}','${component}',1,'${diffHours}')" style="cursor:pointer!important"></i>
+               </div>
+               #
+               }
+               ++chartCounter;
+               }
+               else
+               {
+               #
+               <div class="col-sm-1" style="padding:0px">
+
+               </div>
+               #
+               }
+               var indicatorVal = data.Data.Components[k].Indicators[i].Value;
+               if(data.Data.Components[k].Indicators[i].Type == "DATE" && indicatorVal != null  && indicatorVal != "" )
+               {
+               indicatorVal = kendo.toString(new Date(data.Data.Components[k].Indicators[i].Value),"G");
+               }
+               else if(data.Data.Components[k].Indicators[i].Type == "NUMBER"  && indicatorVal != null  && indicatorVal != "")
+               {
+               idicatorVal = parseFloat(indicatorVal).toLocaleString();
+               }
+               #
+               <div class="col-sm-5" style="font-weight:600;text-align:right;padding-right:0px">#:data.Data.Components[k].Indicators[i].Name#</div>
+               <div class="col-sm-6" style="text-align:center;padding-right:0px">#: indicatorVal #</div>
+
+            </div>
+
+            #
+            }
+            #
+            @*<hr style="width:100%;text-align:left;margin-left:0;color:black;padding-bottom:21px;">*@
+
+            #
+            }
+
+            if(data.Data.Components[k].Tables.length >0)
+            {
+            for(var w =0; w < data.Data.Components[k].Tables.length; w++)
+            {
+            var finalCounter;
+            if (data.expanded) {
+            finalCounter = 1;
+            } else {
+            mainTableCounter += 1;
+            finalCounter = mainTableCounter;
+            }
+            var compName =  data.Data.Name.replace(/^[^a-z]+|[^\w:.-]+/gi, "");
+            var tableName = data.Data.Components[k].Tables[w].Name.replace(/^[^a-z]+|[^\w:.-]+/gi, "");
+            var idTable = idPrefix + mainListViewName +'_'+ compName +'_'+ tableName + finalCounter;
+            var idTable_handle = idTable +"_handle"
+            #
+
+            <div id="#:idTable#">
+               <div id="#:idTable_handle#"></div>
+            </div>
+            #
+            }
+
+            }
+
+            }
+            }
+
+            if(data.Data.ReceivingTimeUTC != null)
+            {
+            var dateTileFooter = new Date(data.Data.ReceivingTimeUTC);
+            #
+            <hr style="width:100%;text-align:left;margin-left:0;opacity: 0.21;padding-bottom:7px;">
+            <div style="width:100%;text-align:center;opacity: 0.84;">
+               <div style="font-weight:bold; padding-bottom: 5px; padding-top:5px;">@DicSvc.XLate("Last Update")</div>
+               #=kendo.toString(dateTileFooter,"G")#
+            </div>
+            #
+            }
+            #
+         </div>
+      </div>
+   </div>
+
+   #
+
+
+   #
+</script>
+<div class="float-left">
+   <div id="nextServiceRefresh" style="margin-right: 10px; font-weight:bold;height:22px;"></div>
+   @Html.Kendo().CheckBox().Name("MonitoringServicesAutorefresh").Checked(false).Label(DicSvc.XLate("Auto update", Digistat.FrameworkStd.Enums.StringParseMethod.Html))
+   &nbsp;&nbsp;
+   <span id="MonitoringServicesCountdownRefresh" style="margin-left:10px;"></span>
+</div>
+<div style="float: right;height: 46px;">
+   <button class="k-button k-rounded k-button-md" style="width:90px;float: right; border:1px solid;" disabled="disabled" id="refreshButton">@DicSvc.XLate("Refresh")</button>
+   <div id="lastRefresh" style="float: right;margin: 8px; font-weight:bold;"></div>
+
+</div>
+
+<div class="h-100 text-center">
+
+   @(
+   Html.Kendo().ListView<ConfiguratorWeb.App.Models.SystemMonitoring.MonitoringInfo>
+   ()
+   .Name(listViewName)
+   .TagName("div").HtmlAttributes(new { @class = "mainRow" })
+   .ClientTemplateId("templateMonitoring")
+   .DataSource(source=>
+   {
+   source.Custom()
+   .Transport(transport =>
+   {
+   transport.Read("GetServices", "SystemMonitoring");
+   })
+
+
+   .Schema(schema => { schema.Data("result.Data"); })
+   .Events(cev => cev.RequestEnd("onListViewServiceRequestEnd"));
+   }
+
+   //.DataSource(dataSource => dataSource
+   //   .Ajax()
+   //   .Model(model =>
+   //   {
+   //      model.Id(o => o.Data.Name);
+   //      model.Field(o => o.StatusValue);
+   //      model.Field(o => o.Data.Anomalies);
+   //      model.Field(o => o.Data.Components);
+   //      model.Field(o => o.Data.CurrentUser);
+   //      model.Field(o => o.Data.Module);
+   //      model.Field(o => o.Data.ReceivingTimeUTC);
+   //      model.Field(o => o.Data.SubModules);
+   //      model.Field(o => o.Data.Type);
+   //   })
+
+   //   //.Events(events => events.Error("error_handler_so"))
+   //   .Read(read => read.Action("GetServices", "SystemMonitoring"))
+   )
+      .Events(ev => ev.DataBound("onMainDataBound"))
+   )
+
+
+
+   <div id="MonitoringResultsContainer" style="margin-top: 50px; visibility:hidden;">
+      <div class="row">
+         <div class="col-6 card-title" style=" font-size: medium; font-weight: bold; text-align: right;">@DicSvc.XLate("System Status")</div>
+         <div class="col-6" style="text-align: right;">
+            @Html.Kendo().CheckBox().Name("ShowErrorsOnly").Checked(true).Label(DicSvc.XLate("Show Errors Only", Digistat.FrameworkStd.Enums.StringParseMethod.Html))
+         </div>
+      </div>
+
+      @(Html.Kendo().Grid<Digistat.FrameworkStd.Model.Monitoring.MonitoringResult>
+   ()
+   .Name("MonitoringResultsGrid")
+   .Columns(columns =>
+   {
+      columns.Bound(d => d.ID).Visible(false);
+      columns.Bound(d => d.mre_ResultTimeUTC).Title(DicSvc.XLate("DateTime")).ClientTemplateId("GridToolbarTemplateSystemStatusDate").Width("20%").Filterable(x => x.UI("GridDateTimeFilterStatus"));
+      columns.Bound(d => d.mre_Value).Title(DicSvc.XLate("Events")).Filterable(true).ClientTemplateId("GridToolbarTemplateSystemStatus").Width("80%");
+   })
+   .Events(ev => ev.DataBound("onDataBounSystem"))
+     .Navigatable(true)
+   .Sortable()
+       .Filterable(filterable => filterable
+        .Extra(true)
+        .Operators(operators => operators
+            .ForDate(str => str.Clear()
+            
+            .IsGreaterThan("Is after")
+                .IsGreaterThanOrEqualTo("Is after or equal to")
+                .IsLessThan("Is before")
+                .IsLessThanOrEqualTo("Is before or equal to")
+            ))
+        )
+   .Scrollable()
+   .Pageable(pageable => pageable
+   .Input(false)
+   .Numeric(true)
+   .Info(false)
+   .PreviousNext(true))
+   .DataSource(dataSource => dataSource
+
+   .Ajax()
+
+   //.Filter(f => f.Add(a => a.mre_Value).IsNotEqualTo("No Errors"))
+   .Model(model =>
+   {
+      model.Id(p => p.ID);
+      model.Field(p => p.ID);
+      model.Field(p => p.mre_ResultTimeUTC);
+      model.Field(p => p.mre_Value);
+   }
+
+   )
+   .PageSize(10)
+   .Read(read => read.Action("GetMonitoringResults", "SystemMonitoring", new { value = true }))
+   ).NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+   )
+   </div>
+</div>
+
+<script id="GridToolbarTemplateSystemStatus" type="text/x-kendo-template">
+   #if(mre_Value != "")
+      {
+
+        var splittedElements = mre_Value.split("\n");
+        for (var j=0; j < splittedElements.length; j++)
+         {
+               var item = splittedElements[j];
+
+         #
+               <span>#:item#</span>
+               </br>
+         #}#
+   #}else{#
+            <span>No Errors</span>
+      #}#
+</script>
+<script id="GridToolbarTemplateSystemStatusDate" type="text/x-kendo-template">
+   #
+   var localDate =new Date(mre_ResultTimeUTC.getTime() - mre_ResultTimeUTC.getTimezoneOffset()*60*1000); 
+
+   #<span>#=kendo.toString(localDate,"G")#</span>#
+   #
+</script>
+<script>
+
+
+   $("#refreshButton").click(function (e) {
+
+      $('#refreshButton').prop("disabled", true);
+      setTimeout(function () {
+         $('#refreshButton').prop("disabled", false);
+      }, 5000);
+
+      MainViewRefresh();
+
+      e.preventDefault();
+   });
+
+
+   function showChart(name, indicator, component, hour, diffHours) {
+
+      var windowWidgetChart = $("#chart").data("kendoWindow");
+
+      kendo.ui.progress(windowWidgetChart.element, true);
+         $.ajax({
+            url: '@Url.Action("InstantiateChart", "SystemMonitoring")',
+            type: 'GET',
+            data: {
+               nameAppliaction: name,
+               indicator: indicator,
+               component: component,
+               hour: hour,
+               diffHours: diffHours
+
+            },
+
+         })
+            .done(function (dataHtml) {
+               $("html").css("overflow-y", "hidden");
+               var itemDialog = $('#chart').data('kendoWindow');
+               itemDialog.content('');
+               itemDialog.content(dataHtml);
+            if (itemDialog.element.is(":hidden")) {
+               itemDialog.center();
+                     itemDialog.open();
+
+               }
+            })
+            .fail(function (dataHtml) {
+                  var itemDialog = $('#chart').data('kendoWindow');
+               itemDialog.content('');
+               itemDialog.content(dataHtml);
+               if (itemDialog.element.is(":hidden")) {
+                     itemDialog.open();
+                     itemDialog.center();
+               }
+            });
+      kendo.ui.progress(windowWidgetChart.element, false);
+   }
+   var kndWndfChart;
+   $(document).ready(function () {
+         if (!kndWndfChart) {
+            kndWndfChart = $('#chart').usmKendoWindow({
+               title: '',
+               height: "600px",
+               maxWidth: "85%",
+               minWidth: "85%",
+               //width: "1300px",
+               close: function (e) {
+                  $("html").css("overflow-y", "auto");
+               }
+
+            });
+         }
+
+         $("#MonitoringServicesAutorefresh").off('click').on('click', function () {
+            if ($("#MonitoringServicesAutorefresh").is(':checked')) {
+
+               mainAutorefresh.SetRefreshInterval(MainViewRefresh);
+            }
+            else {
+               mainAutorefresh.Stop();
+            }
+
+         });
+   });
+
+  
+</script>

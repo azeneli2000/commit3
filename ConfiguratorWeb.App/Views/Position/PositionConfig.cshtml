@@ -1,0 +1,164 @@
+﻿@{
+  string gridName = "position-grid";
+  string PositionCode = string.IsNullOrWhiteSpace(ViewBag.PositionCode) ? null : ViewBag.PositionCode;
+
+  ViewBag.Title = DicSvc.XLate("Position configuration");
+}
+<script>
+    var gridIdName = "@gridName";
+
+
+    var kndWndBedDetails;
+    $(document).ready(function () {
+        if (!kndWndBedDetails) {
+            kndWndBedDetails = $('#bedSelectionDialog').usmKendoWindow({
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                },
+                title: '@DicSvc.XLate("DOMAIN SELECTION")',
+                height: '500px',
+                width:'700px'
+            });
+        }
+    });
+
+
+    function closeBedDialog() {
+        $('#bedSelectionDialog').data('kendoWindow').close()
+    }
+
+</script>
+
+<div class="h-100 text-center ">
+  <div class="card h-100 m-1 p-2 text-left">
+
+    @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.PositionViewModel>()
+      .UmsDefaultToolbar("create_position", DicSvc.XLate("ADD NEW POSITION"), "openPositionDetail();", DicSvc)
+      .Name(gridName)
+      .Navigatable(true)
+      .Columns(columns =>
+      {
+        columns.Bound(e => e.PositionCode).Title("Position Code");
+        columns.Bound(e => e.Description);
+        columns.Bound(e => e.LinkedBedNumber).Title("Linked Bed")
+         .Sortable(false)
+         .Filterable(false)
+         .ClientTemplate("<div align=center>#if(LinkedBedNumber > 0) {#<label>#=LinkedBedNumber#</label><span class='mdi mdi-bed-empty mdi-24px'></span>#}else{#<span class='mdi mdi-exit-run mdi-24px'></span>#}#</div>");
+      })
+      .UmsDefaultPager(DicSvc)
+        .UmsDefaultSettings(DicSvc)
+        .Events(ev => ev.DataBound("onDataBound"))
+        .DataSource(dataSource => dataSource
+          .Ajax()
+          .Model(model =>
+          {
+            model.Id(o => o.PositionCode);
+            model.Field(o => o.PositionCode).Editable(false);
+            model.Field(o => o.Description).Editable(false);
+            model.Field(o => o.LinkedBedNumber).Editable(false);
+          }).PageSize(50)
+          .Read(read => read.Action("RetrievePositions", "Position"))
+        )
+    )
+  </div>
+  <div id="PositionEditWindow"></div>
+  <div id="bedSelectionDialog"></div>
+</div>
+
+
+<script>
+  
+    @{
+       string editItemTitle = DicSvc.XLate("Edit Position");
+    }
+    var kndWnd;
+    var defLocWnd;
+    $(document).ready(function() {
+      if (!kndWnd) {
+        kndWnd = $('#PositionEditWindow').usmKendoWindow({
+          close: function (e) {
+            $('#' + gridIdName).data("kendoGrid").table.focus();
+          },
+          title: '@editItemTitle',
+          height: 550,
+          width:'90%'
+        });
+      }
+      if ('@PositionCode') {
+        openPositionDetail({'positionCode':'@PositionCode'});
+      }
+    });
+
+  function openPositionDetail(dataItem) {
+    var strPositionCode = '';
+      if (dataItem && dataItem !== "") {
+        strPositionCode = dataItem.PositionCode;
+      }
+      $.ajax({
+        type: "GET",
+        url: '@Url.Action("RetrievePosition", "Position")',
+        data: { positionCode: strPositionCode }
+      }).done(  function (data) {
+        var wnd = kndWnd.data("kendoWindow");
+        wnd.content('');
+        wnd.content(data);
+        wnd.center().open();
+      }).fail(function (xhr, textStatus, errorThrown) {
+      });
+    }
+
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+    }
+
+    function onCancel(e) {
+
+        var grid = e.sender;
+        grid.refresh();
+    }
+
+    function onGridError(e) {
+        if (e.errors) {
+            debugger;
+        }
+    }
+  
+    function OnSuccess(response) {
+        if (response.success) {
+            var grid = $("#" + gridIdName).data("kendoGrid");
+            grid.dataSource.read();
+        }
+        else {
+          window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+
+    function OnFailure(response) {
+      window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+    $(window).resize(function(){
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                var win = $(kendoWindow).data("kendoWindow");
+                win.center();
+                win.trigger('resize');
+                if (typeof(setMode) != "undefined") {
+                    setMode();
+                }
+            }
+        }, 100);
+    });
+    function onGridKeyEnter(item) {
+        openPositionDetail(item);
+    };
+</script>
+
+
+

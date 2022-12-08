@@ -1,0 +1,557 @@
+﻿@model ConfiguratorWeb.App.Models.DriverViewModel
+@using Digistat.FrameworkStd.Interfaces;
+@inject IDigistatEnvironmentService EnvSvc
+@{
+   Layout = null;
+   string[] actions = new string[] { "Close" };
+   string gridCapabilityName = "capabilities-grid";
+   string gridEventCatalogName = "eventcatalog-grid_" + Model.Id;
+   string formId = "formDriverDetail";
+   ViewBag.CDSS_HARDWARE_ID ="ASCOM CDSS SERVER";
+   ViewBag.CDSS_ID ="driver00-CDSS-read-only-000000000000";
+   bool isCdssServer = (Model.HardwareRelease == ViewBag.CDSS_HARDWARE_ID);
+}
+<script>
+   var IsCdssServerLoaded = ('@isCdssServer' === '@true');
+    var _detailsStartMode = 0;
+
+    /* On Activate of a tab, try to resize the div and eventually the grid     */
+    var onActivate = function (e) {
+        // access the activated item via e.item (Element)
+        var tabStrip = $("#tabstrip_@Model.Id").kendoTabStrip().data("kendoTabStrip");
+        var idx = tabStrip.select().index();
+        switch (idx) {
+        case 0:
+            //tabstrip-@Model.Id-specifications
+            break;
+        case 1:
+            break;
+        case 2:
+            //$("#eventcatalog-grid_@Model.Id").height($("#eventcatalog-div_@Model.Id").height() - 30)
+            //$("#eventcatalog-grid_@Model.Id").data("kendoGrid").resize();
+            break;
+        default:
+        }
+
+    };
+
+
+
+</script>
+<style>
+
+   html,
+   body,
+   #tabstrip-parent,
+   #tabstrip {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      border-width: 0;
+   }
+   /*div.k-loading-image
+   {
+      display: none;
+   }*/
+   div.k-loading-mask
+   {
+      z-index: 300000; /* must be larger than the z-index:2 of #container */
+   }
+   span.k-loading-text
+   {
+      text-indent: 0;
+      top: 58%;
+      left: 48%;
+      background-color: #007bff;
+      color: white;
+   }
+</style>
+<div class="h-95">
+   <div class="card h-95 pt-1 pb-2 mb-2">
+
+      <form asp-controller="Connect" asp-action="SaveDriverDetail" id="@formId"
+            class=" card-body h-90 p-0 border-0 "
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+            data-ajax="true" data-ajax-method="POST">
+
+         <input type="hidden" name="Id" id="Id" value="@Model.Id" />
+         <input type="hidden" name="Version" id="Version" value="@Model.Version" />
+         <input type="hidden" id="Current" value="@Model.Current" />
+         <input type="hidden" id="ValidToDate" value="@Model.ValidToDate" />
+         <input type="hidden" id="IsWrapper" name="IsWrapper" value="@Model.IsWrapper" />
+         <input type="hidden" id="DriverVersionBuild" name="DriverVersionBuild" value="@Model.DriverVersionBuild" />
+         <input type="hidden" id="FormatStyle" value="@Model.FormatStyle" />
+         <input type="hidden" id="RemappedEvents" name="RemappedEvents" value="@Model.RemappedEvents" />
+         <input type="hidden" id="HardwareRelease" name="HardwareRelease" value="@Model.HardwareRelease" />
+         <input type="hidden" id="SoftwareRelease" name="SoftwareRelease" value="@Model.SoftwareRelease" />
+         @*<input type="hidden" id="UseDynamicParameters" name="UseDynamicParameters" value="@Model.UseDynamicParameters" />*@
+         <input type="hidden" id="AlarmSupport" name="@Model.AlarmSupport" value="@Model.AlarmSupport" />
+         <input type="hidden" id="BinariesCacheIdentifier" name="BinariesCacheIdentifier" value="@Model.BinariesCacheIdentifier" />
+         <input type="hidden" id="IsBinFile" value="@Model.IsBinFile" />
+         <input type="hidden" id="FileCount" name="FileCount" value="@Model.FileCount" />
+         <input type="hidden" id="DeviceType" name="DeviceType" value="@Model.DeviceType" />
+         <input type="hidden" id="DefaultCommConfiguration" name="DefaultCommConfiguration" value="@System.Net.WebUtility.HtmlEncode(Model.DefaultCommConfiguration)" />
+         <input type="hidden" id="KeepCapabilities" name="KeepCapabilities" value="@false" />
+         <input type="hidden" id="KeepSmartCentralFormatString" name="KeepSmartCentralFormatString" value="@false" />
+
+         <div asp-validation-summary="ModelOnly"></div>
+
+         <kendo-tabstrip name="tabstrip_@Model.Id" on-activate="onActivate" style="margin-top: -3px">
+
+            <scrollable enabled="true" />
+            <popup-animation enabled="false">
+               <open effects="fade:in" />
+            </popup-animation>
+            <items>
+               <tabstrip-item text="@DicSvc.XLate("Specifications")" selected="true" id="tabstrip-@Model.Id-specifications">
+                  <content>
+                     @{await Html.RenderPartialAsync("_TabDriverSpecifications", Model);}
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLate("Capabilities")" id="tabstrip-@Model.Id-capabilities">
+                  <content>
+                     @{await Html.RenderPartialAsync("_TabDriverCapabilities", Model);}
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLate("Smart Central Format String")" id="tabstrip-@Model.Id-vitalsignformatstring">
+                  <content>
+                     @{await Html.RenderPartialAsync("_TabDriverVitalSignsFormatString", Model);}
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLate("Event Catalog")" id="tabstrip-@Model.Id-eventcatalog">
+                  <content>
+                     @{await Html.RenderPartialAsync("_TabDriverEventCatalog", Model);}
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLate("Info")" id="tabstrip-@Model.Id-info">
+                  <content>
+                     @{await Html.RenderPartialAsync("_TabDriverInfo", Model);}
+                  </content>
+               </tabstrip-item>
+            </items>
+
+         </kendo-tabstrip>
+
+      </form>
+   </div>
+   <div class="card-footer h-10 p-0 m-0 border-0 bg-white">
+
+      @(Html.Kendo().ToolBar()
+            .Name("toolbarDetail")
+            .UmsDefaultErrors(DicSvc, "errors")
+            .Items(
+                items =>
+                {
+
+                    items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Upload")).Id("btnUpload").UmsHtmlButtonGeneric("hidden-mode btnGreen")@*.Hidden()*@;
+                    items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode");
+                    items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Download")).Id("btnDownload").UmsHtmlButtonGeneric("view-mode");
+                    items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Export")).Id("btnExport").UmsHtmlButtonGeneric("view-mode");
+                }
+            )
+            .UmsDefaultSettings(DicSvc, "")
+
+      )
+   </div>
+</div>
+<kendo-window name="dialog_@Model.Id"
+              title="Upload"
+              draggable="true"
+              resizable="true"
+              visible="false"
+              modal="true"
+              width="600"
+              height="300"
+              scrollable="true"
+              actions="actions">
+   <popup-animation enabled="false" />
+</kendo-window>
+
+<script type="text/javascript">
+    var itemDialog;
+    var isUS =@if(EnvSvc.PreventDeviceEventRemapping){<text>true;</text>}else{<text>false;</text>}
+
+    function reloadDriverDetailDialog(itemID) {
+
+        itemDialog = $("#driverEditWindow").data("kendoWindow");
+        kendo.ui.progress(itemDialog.element, true);
+        $.ajax({
+            url: '@Url.Action("GetDriver", "Connect")',
+            type: 'GET',
+            data: { id: itemID }
+        }).done(function(dataHtml) {
+           kendo.ui.progress(itemDialog.element, true);
+           itemDialog.content('');
+           itemDialog.content(dataHtml);
+        });
+    }
+
+    $(document).ready(function() {
+       if (IsCdssServerLoaded) {
+          
+          $('#tabstrip-@Model.Id-eventcatalog').addClass('d-none');
+       }
+        itemDialog = $("#driverEditWindow").data("kendoWindow");
+        @*if ('@Model.Id' != '' && ('@Model.BinariesCacheIdentifier' == '' ||'@Model.Id' == '@Model.BinariesCacheIdentifier' )) {
+            changeToViewMode();
+        } else {
+            changeToEditMode();
+        }*@
+
+
+        @if (string.IsNullOrEmpty(Model.Id) || !string.IsNullOrEmpty(Model.BinariesCacheIdentifier)) {
+            <text>
+            changeToEditMode();
+            </text>
+        } else
+        {
+           <text>
+        changeToViewMode();
+            </text>
+        }
+
+        @if(Model.HasContentInStream && string.IsNullOrEmpty(Model.BinariesCacheIdentifier))
+        {
+            <text>
+                $('#btnExport').attr('disabled', false);
+                $('#btnDownload').attr('disabled', false);
+            </text>
+        } else
+        {
+            <text>
+                $('#btnExport').attr('disabled', true);
+                $('#btnDownload').attr('disabled', true);
+            </text>
+        }
+       //debugger;
+       if (isUS) {
+          $('#ecImport').hide();
+       }
+
+
+        $('.btnEdit').click(function () {
+            changeToEditMode();
+        });
+        $('.btnCancel').click(function () {
+                if ('@Model.Id'!=='') {
+                    reloadDriverDetailDialog('@Model.Id');
+                    changeToViewMode();
+                } else {
+                    var itemDialog = $("#driverEditWindow").data("kendoWindow");
+                    itemDialog.close();
+                }
+            });
+        $('.btnClose').click(function () {
+            $('#driverEditWindow').data('kendoWindow').close();
+        })
+
+       
+    });
+
+    function changeToEditMode() {
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+        $('#spec-div_@Model.Id :input[readonly=readonly]').attr('readonly', false);
+        $('#info-div_@Model.Id :input[readonly=readonly]').attr('readonly', false);
+        $('#@gridCapabilityName').removeClass('readonly-mode');
+        $('#@gridEventCatalogName').removeClass('readonly-mode');
+
+        toolBarAllEditSaveButton();
+        toolBarShowButtonByClass("modify-mode");
+
+        $('#formDriverDetail :input').not(".always-enabled").attr('disabled', false);
+        $('#formDriverDetail :input').not(".always-enabled").each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(true);
+            } else {
+                cb = $(this).data("kendoUpload");
+                if (cb && !isUS && !IsCdssServerLoaded) {
+                    cb.enable(true);
+                }
+                
+            }
+        });
+
+        if ('@Model.Id' == '') {
+           $('#btnDelete').hide();
+        }
+        if (IsCdssServerLoaded) {
+           $('#btnDelete').hide();
+           $('#btnDownload').hide();
+           $('#btnExport').hide();
+           //$('#btnUpload').hide();
+           //$('#driverFilesContainer > div').addClass('d-none');
+           //debugger;
+           //$('#RunAsDLL').attr('readonly', true);
+           $('#RunAsDLL').attr('disabled', true);
+        }
+
+        $('#btnInfoDriverName').off('click').on('click', function () {
+            window.umsAlert('@DicSvc.XLate("Driver Name")', '@DicSvc.XLate("Driver Name could be shown to the user within a Technical Alarm; therefore it shall be a user-friendly name (e.g. NOT \"Driver1\", \"DriverPumps\", etc.)")');
+        });
+
+    }
+    function changeToViewMode() {
+
+        $(".view-mode").show();
+        $(".modify-mode").hide();
+        $('#spec-div_@Model.Id :input:not([readonly=readonly])').attr('readonly', true);
+        $('#info-div_@Model.Id :input:not([readonly=readonly])').attr('readonly', true);
+        //$('#capabilities-grid :checkbox').attr('disabled', true);
+        $('#@gridCapabilityName').addClass('readonly-mode');
+        $('#@gridEventCatalogName').addClass('readonly-mode');
+        toolBarAllEditSaveButton();
+        toolBarShowButtonByClass("view-mode");
+
+        $('#formDriverDetail :input').not(".always-enabled").attr('disabled', true);
+        $('#formDriverDetail :input').not(".always-enabled").each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(false);
+            }
+        });
+        if (IsCdssServerLoaded) {
+           $('#btnDelete').hide();
+           //$('#btnUpload').hide();
+           //$('#btnDownload').hide();
+           $('#btnExport').hide();
+
+        }
+        $('#btnInfoDriverName').off('click');
+    }
+    var actualmode;
+    function setWindowMode() {
+        if ('@Model.Id' !== '') {
+            actualmode = 1;
+        } else {
+            actualmode = 2;
+        }
+        setMode();
+    }
+    function setMode() {
+        if (actualmode === 2)
+            changeToEditMode();
+        else
+            changeToViewMode();
+        dialog.center().resize();
+    }
+    function toolBarShowButtonByClass(clas) {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsShowButtonByClass(clas);
+    }
+    function toolBarAllEditSaveButton() {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsHideAllEditSaveButton();
+    }
+    $('#btnSave').click(function () {
+         //debugger;
+         kendo.ui.progress.messages = {
+            loading: "Validating..."
+         };
+         kendo.ui.progress($("#@formId"),true);
+         $("#@formId").focus();
+         setTimeout(function(){
+            if (OnValidation()) {
+                kendo.ui.progress($("#@formId"),false);
+                kendo.ui.progress.messages = {
+                    loading: "Saving..."
+                };
+                kendo.ui.progress($("#@formId"),true);
+                setTimeout(function(){
+                    $("#@formId").submit();
+                    kendo.ui.progress($("#@formId"),false);
+                }, 100)    ;
+
+            } else {
+               kendo.ui.progress($("#@formId"),false);   
+            }
+         }, 100);
+    });
+    $('#btnExport').click(function () {
+        //debugger;
+        window.location.href = "@Url.RouteUrl(new { Controller = "Connect", Action = "ExportDriverFiles" })/?id=" + '@Model.Id';
+
+    });
+    $('#btnDownload').click(function () {
+        //debugger;
+        window.location.href = "@Url.RouteUrl(new { Controller = "Connect", Action = "DownloadDriverFiles" })/?id=" + '@Model.Id';
+
+    });
+    $('#btnDelete').click(function () {
+        umsConfirm('@DicSvc.XLate("Confirm Driver Delete", Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+            '@DicSvc.XLate("Do you really want to delete this Driver and all related Device Driver?",Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+            deleteDriver, cancelDeleteDriver);
+    });
+
+    function deleteDriver() {
+        $.ajax({
+            url: '@Url.Action("DeleteDriver", "Connect")',
+            type: 'POST',
+            data: { id: '@Model.Id' },
+            async: false
+
+        }).done(function (data) {
+            $('#driverEditWindow').data('kendoWindow').close();
+            var grid = $("#" + gridIdName).data("kendoGrid");
+            grid.dataSource.read();
+            }).fail(function (response) {
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+
+    }
+
+    function cancelDeleteDriver() {
+        //do nothing
+    }
+    var eventCatalogGridDetached;
+   function OnValidation() {
+      
+      if ($('#driverFilesContainer .k-upload-sync').hasClass('border border-danger')) {
+         $("#errors").html(buildValidationMessage(["please correct the selected files"]));
+         return false;
+      }
+      //debugger;
+      var capabilityGrid = $("#@gridCapabilityName").data("kendoGrid");
+      var eventCatalogGrid = $("#@gridEventCatalogName").data("kendoGrid");
+      //var c =$("#@gridCapabilityName").detach();
+      eventCatalogGridDetached =$("#@gridEventCatalogName").detach();
+
+      var data = capabilityGrid.dataSource.data();
+      var dirty = $.grep(data, function(item) {
+         return item.dirty;
+      });
+
+      
+      $("#CapabilitiesSerialize")[0].value=JSON.stringify(data, null, 2);
+      $("#CapabilitiesChanged")[0].value=JSON.stringify(dirty, null, 2);
+      try {
+         data = eventCatalogGrid.dataSource.data();
+         dirty = $.grep(data, function(item) {
+            return item.dirty;
+         });
+      } catch (e) {
+         dirty = [];
+      } 
+      
+      $("#EventCatalogChanged")[0].value=JSON.stringify(dirty, null, 2);
+      $("#EventCatalogSerialize")[0].value=JSON.stringify(data, null, 2);
+
+      var validator = $("#formDriverDetail").kendoValidator().data("kendoValidator");
+      if (!validator.validate()) {
+            var errors = validator.errors();
+            $("#errors").html(buildValidationMessage(errors));
+            //c.appendTo("#wrapperCapabilities");
+            eventCatalogGridDetached.appendTo("#eventcatalog-div_@Model.Id");
+            return false;
+      } else {
+         $("#errors").html("");
+         //validator.destroy();
+      }
+
+      //c.appendTo("#wrapperCapabilities");
+      var validationFailed = false;
+
+      //Event remapping validation
+
+      if (typeof (eventCatalogGrid) != 'undefined') {
+
+
+         $.each(eventCatalogGrid.items(),
+            function(idx, remappedEvent) {
+               var newClass = $($(remappedEvent).find("input[data-field-id=NewClass]")).val();
+               var newLevel = $($(remappedEvent).find("input[data-field-id=NewLevel]")).val();
+
+               //Check if both or none values are set for NewClass and NewLevel
+               if ((newClass == "-1") != (newLevel == "-1")) {
+                  $("#errors").html("Event Class and Event Level must b both configured! [Row " + (idx + 1) + "]");
+                  validationFailed = true;
+                  //Exit loop
+                  //c.appendTo("#wrapperCapabilities");
+                  eventCatalogGridDetached.appendTo("#eventcatalog-div_@Model.Id");
+                  return false;
+               }
+            }
+         );
+      }
+      return !validationFailed;
+   }
+
+
+
+    function OnSuccess(response) {
+        //debugger;
+        if (response.success) {
+            var grid = $("#drivers-grid").data("kendoGrid");
+            grid.dataSource.read();
+            $('#driverEditWindow').data('kendoWindow').close();
+        }
+        else {
+            if (response.show) {
+                kendo.alert(response.errorMessage);
+            } else {
+                eventCatalogGridDetached.appendTo("#eventcatalog-div_@Model.Id");
+                window.umsAlert("Error occured", response.errorMessage, 400, 300);
+                //kendo.alert('@DicSvc.XLate("An error occurred")');
+            }
+        }
+    }
+
+    function OnFailure(response) {
+        debugger;
+        eventCatalogGridDetached.appendTo("#eventcatalog-div_@Model.Id");
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+    function OnSuccessUpload(response) {
+        if (response.success) {
+
+            var grid = $("#drivers-grid").data("kendoGrid");
+            grid.dataSource.read();
+
+            var popupWindow = $('#dialog_@Model.Id').data("kendoWindow");
+            popupWindow.close();
+        }
+        else {
+            if (response.show) {
+
+            } else {
+
+            }
+        }
+    }
+    function OnFailureUpload(response) {
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+    function ValidateTabs() {
+        $("#tabstrip_@Model.Id").find("span.k-link").removeClass("tab-invalid");
+        var invalidTabs = [];
+        $("input.k-invalid").each(function () {
+            var idInvalid = $(this).attr('id');
+            var tabContentId = $("#" + idInvalid).closest("div[role='tabpanel']").attr("id");
+
+            var tabId = $("#tabstrip_@Model.Id").find("li[aria-controls='" + tabContentId + "']").attr("id");
+            $("#" + tabId + " span.k-link").addClass("tab-invalid");
+
+            if ($.inArray(tabId, invalidTabs) < 0) {
+               //add to array
+               invalidTabs.push(tabId);
+            }
+        });
+        if (invalidTabs.length > 0)
+           $("#" + invalidTabs[0]).trigger("click");
+    }
+
+    function dtsResize(kndWnd) {
+       var maxHeight = kndWnd["0"].clientHeight;
+       $('#tabDriverSpec').height(maxHeight - 160);
+       var ecd = $("#eventcatalog-div_@Model.Id");
+       if (ecd != undefined) {
+          ecd.height(maxHeight - 160);
+       }
+
+    }
+
+
+</script>

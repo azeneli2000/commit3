@@ -1,0 +1,135 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@model ConfiguratorWeb.App.Models.StdScoreDescriptionViewModel
+@inject IDictionaryService DicSvc
+@{
+    Layout = null;
+}
+
+<div class="card pt-1 pb-2" id="divVitalsScoreDescriptionDetail">
+    <form asp-controller="Vitals" id="form_DatasetScoreDescription_@Model.ID" asp-action="SaveScoreDescription" class="h-85"
+          data-ajax-failure="OnFailure" data-ajax-success="OnSuccessScoreDescriptionDetail" kendo-auto-scroll="true"
+          data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+
+        @Html.HiddenFor(x => x.ID)
+        @Html.HiddenFor(x => x.DatasetID)
+
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-3 u-col-h-fixed">
+                    @Html.LabelFor(m => m.MinValue)
+                </div>
+                <div class="col-md-3 u-col-h-fixed">
+                    @Html.TextBoxFor(m => m.MinValue, new { type = "number", @class = "k-input k-textbox control-required" })
+                </div>
+                <div class="col-md-3 u-col-h-fixed">
+                    @Html.LabelFor(m => m.MaxValue)
+                </div>
+                <div class="col-md-3 u-col-h-fixed">
+                    @Html.TextBoxFor(m => m.MaxValue, new { type = "number", @class = "k-input k-textbox control-required" })
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3 u-col-h-fixed">
+                    @Html.LabelFor(m => m.Description, new { @class = "field-required" })
+                </div>
+                <div class="col-md-9 u-col-h-fixed">
+                    @Html.TextBoxFor(m => m.Description, new { @class = "k-input k-textbox control-required"})
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3 u-col-h-fixed">
+                    @Html.LabelFor(m => m.ColorCode)
+                </div>
+                <div class="col-md-3u-col-h-fixed">
+                    @Html.TextBoxFor(m => m.ColorCode, new { @class = "k-input k-textbox control-required", @maxlength = "10" })
+                </div>
+
+            </div>
+        </div>
+    </form>
+</div>
+<div class="card-footer p-0 m-0 mt-1 border-0">
+    @(Html.Kendo().ToolBar()
+         .Name("toolbarDetailScoreDescription")
+         .UmsDefaultErrors(DicSvc)
+         .Items(
+            items =>
+            {
+                  if (Model.ID != Guid.Empty)
+                  {
+                     items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDeleteScoreDescription").UmsHtmlButtonGeneric("modify-mode-item");
+                  }
+                  items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Save")).Id("btnSaveScoreDescription").UmsHtmlButtonGeneric("modify-mode-item btnRed");
+                  items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnCancelScoreDescription").UmsHtmlButtonGeneric("modify-mode-item");
+            }
+         )
+        )
+</div>
+
+<script type="text/javascript">
+    $(function () {
+        $('#btnCancelScoreDescription').off('click').on('click', function (e) {
+            var dialog = $('#sdScoreDescriptionEditWindow').data('kendoWindow');
+            dialog && dialog.close();
+       });
+
+        $('#btnDeleteScoreDescription').click(function () {
+           umsConfirm('@DicSvc.XLate("Confirm Delete", Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+               '@DicSvc.XLate("Do you really want to delete this score description ?",Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+               deleteScoreDescription, function () { });
+        });
+
+        $('#btnSaveScoreDescription').click(function () {
+            kendo.ui.progress($("#sdScoreDescriptionEditWindow"), true);
+            if (OnValidationScoreDescription()) {
+               $("#form_DatasetScoreDescription_@Model.ID").submit();
+           }
+            kendo.ui.progress($("#sdScoreDescriptionEditWindow"), false);
+        });
+    });
+
+    function OnValidationScoreDescription() {
+        var validator = $("#form_DatasetScoreDescription_@Model.ID").kendoValidator().data("kendoValidator");
+         if (!validator.validate()) {
+            var errors = validator.errors();
+             $("#toolbarDetailScoreDescription #errors").html(buildValidationMessage(errors));
+            return false;
+         }
+         else {
+             $("#toolbarDetailScoreDescription #errors").empty();
+         }
+         return true;
+       }
+
+    function deleteScoreDescription() {
+        kendo.ui.progress($("#sdScoreDescriptionEditWindow"), true);
+        $.ajax({
+            url: '@Url.Action("DeleteDatasetScoreDescription", "Vitals")',
+            type: 'POST',
+            data: { id: '@Model.ID' },
+            async: false
+
+        }).done(function (data) {
+            $('#sdScoreDescriptionEditWindow').data('kendoWindow').close();
+            var grid = $(".k-grid[id^='vitalsScoreDescriptions_grid_']").data("kendoGrid");
+            grid.dataSource.read();
+        }).fail(function (response) {
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+        kendo.ui.progress($("#sdScoreDescriptionEditWindow"), false);
+    }
+
+    function OnSuccessScoreDescriptionDetail(response) {
+        if (response.success) {
+            var grid = $(".k-grid[id^='vitalsScoreDescriptions_grid_']").data("kendoGrid");
+            grid.dataSource.read();
+
+            $('#sdScoreDescriptionEditWindow').data('kendoWindow').close();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+</script>

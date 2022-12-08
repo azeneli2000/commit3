@@ -1,0 +1,164 @@
+﻿<div style="text-align:center;height:99%;">
+    <div class="card" style="height:98%;margin: 0 15px;padding: 5px;text-align:left;">
+
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.HubViewModel>()
+    .Name("hubs-grid")
+    .Columns(columns =>
+    {
+        columns.Bound(e => e.HubID).Visible(false);
+        columns.Bound(e => e.HubDescription).Title(DicSvc.XLate("HUB"));
+        columns.Bound(e => e.HubLocation);
+        columns.Bound(e => e.HostName);
+        columns.Command(command =>
+        {
+            command.Edit().Text(" ").UpdateText(" ").CancelText(" ");
+            //command.Custom("deletecustom").Click("onDeleteItem").Text(" ");
+        }).Width(120);
+    })
+    .DataSource(dataSource => dataSource
+            .Ajax()
+                    .Model(model =>
+                    {
+                        model.Id(o => o.HubID);
+                        model.Field(o => o.HubDescription).Editable(false);
+                        model.Field(o => o.HubLocation).Editable(false);
+                        model.Field(o => o.HostName).Editable(false);
+
+                    })
+            .PageSize(10)
+                .Read(read => read.Action("ReadHubs", "Connect", new { FatherHubID = 0 }))
+                .Create(create => create.Action("CreateHub", "Connect"))
+                .Update(update => update.Action("UpdateHub", "Connect"))
+
+        )
+         .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+        .ClientDetailTemplateId("templateNestedHub")
+        .ToolBar(tools => tools.Create().Text(DicSvc.XLate("ADD NEW HUB")))
+        .Events(ev => ev.Edit("onEdit").DetailExpand("onExpand").DetailInit("onInitDetailHub"))
+        )
+    </div>
+</div>
+
+
+<script id="templateNestedHub" type="text/kendo-tmpl">
+    @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.HubViewModel>()
+            .Name("grid_child_#=HubID#") // template expression, to be evaluated in the master context
+            .Columns(columns =>
+            {
+
+                columns.Bound(e => e.HubID).Visible(false);
+                columns.Bound(e => e.HubDescription).Title(DicSvc.XLate("HUB"));
+                columns.Bound(e => e.HubLocation).Title(DicSvc.XLate("Location"));
+                columns.Bound(e => e.HostName).Title(DicSvc.XLate("HostName"));
+                columns.Command(command =>
+                {
+                    //command.Edit().Text(" ").UpdateText(" ").CancelText(" ");
+                    //command.Custom("deletecustom").Click("onDeleteItem").Text(" ");
+                }).Width(120);
+            })
+            .DataSource(dataSource => dataSource
+                .Ajax()
+                .PageSize(10)
+                .Read(read => read.Action("ReadHubs", "Connect", new { FatherHubID = "#=HubID#" }))
+                .Create(create => create.Action("CreateHub", "Connect"))
+                .Update(update => update.Action("UpdateHub", "Connect"))
+            )
+             .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+            .ClientDetailTemplateId("detail")
+            .Pageable()
+            .Sortable()
+            //.ToolBar(tools => tools.Create().Text("ADD NEW HUB"))
+            .ToClientTemplate()
+
+
+    )
+
+
+</script>
+
+<script id="detail" type="text/kendo-tmpl">
+    <div class="hub-detail" data-uidparent="#=HubID#" style="width: 99%;display: inline-block;padding: 15px 0;"></div>
+</script>
+
+<script>
+
+
+    function onInitDetailHub(e) {
+        //debugger;
+        e.preventDefault();
+        var dataItem = $("#grid_child_1").data("kendoGrid").dataItem(e.masterRow);
+        $.ajax({
+            url: '@Url.Action("GetHub", "Connect")',
+            type: 'GET',
+            data: { id: dataItem.HubID },
+            async: false
+
+        }).done(function (data) {
+            var vntDetail = $(e.detailRow).find("td.k-detail-cell").find("div.driver-detail");
+            $(vntDetail).html(data);
+            $(vntDetail).find(".modify-mode").hide();
+            if ($(e.detailRow).prev().attr("data-role") == "editable") {
+                editMode(vntDetail);
+            }
+            else {
+                previewMode(vntDetail);
+            }
+        });
+    }
+
+    function onEdit(e) {
+        //Prevent automatic redirect if needed
+        e.preventDefault();
+
+        if (!$("#drivers-grid").find("tr[data-role='editable']").next().find("td.k-detail-cell").is(":visible")) {
+            $("#drivers-grid").find("tr[data-role='editable']").find(".k-hierarchy-cell>a.k-icon").click();
+        }
+        else {
+            $("#drivers-grid").find("tr[data-role='editable']").next().find("td.k-detail-cell").find(".modify-mode").show();
+            $("#drivers-grid").find("tr[data-role='editable']").next().find("td.k-detail-cell").find(".view-mode").hide();
+        }
+
+        $("#drivers-grid").find("tr.k-detail-row").each(function (index, item) {
+            //  debugger;
+            var parent = $(item).prev("tr.k-master-row");
+            var vntDetail = $(item).find("td.k-detail-cell").find("div.user-detail");
+            if ($(parent).attr("data-role") == "editable") {
+                //show edit view of detail
+                editMode(vntDetail);
+            }
+            else {
+                //show preview mode of detail
+                previewMode(vntDetail);
+            }
+        });
+        $("#drivers-grid").find("tr[data-role='editable']").find(".k-grid-update").hide();
+        $("#drivers-grid").find("tr[data-role='editable']").find("td:last-child").css({ "text-align": "center" })
+    }
+
+    function onExpand(e) {
+        // debugger;
+        $("#drivers-grid").find("tr.k-detail-row").each(function (index, item) {
+            //   debugger;
+            var parent = $(item).prev("tr.k-master-row");
+            var vntDetail = $(item).find("td.k-detail-cell").find("div.user-detail");
+            if ($(parent).attr("data-role") == "editable") {
+                //show edit view of detail
+                $("#drivers-grid").find("tr[data-role='editable']").next().find("td.k-detail-cell").find(".modify-mode").show();
+                $("#drivers-grid").find("tr[data-role='editable']").next().find("td.k-detail-cell").find(".view-mode").hide();
+                editMode(vntDetail);
+            }
+            else {
+                //show preview mode of detail
+                previewMode(vntDetail);
+            }
+        });
+        //refreshGridScrolling();
+    }
+
+    function previewMode(detailEl) {
+    }
+
+</script>
+
+
+

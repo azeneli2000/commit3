@@ -1,0 +1,185 @@
+﻿@model IEnumerable<ConfiguratorWeb.App.Models.BedViewModel>
+    @{
+       Layout = null;
+       string NetworkId = (string)ViewBag.NetworkID;
+    }
+    <script>
+        function onDataBoundLocationsBeds(arg) {
+            $(".check-col-def").off('click').on('click', function (e) {
+                //click on default location
+                var grid = $('#locationsbeds-grid').data().kendoGrid;
+                var locID = $(this).attr("ums-locId");
+                var isChecked = $(this).is(':checked');
+                //Check all beds for this location
+                $('input.check-col-sel').each(function (index, item) {
+                    var currentLocID = $(item).attr("ums-locId");
+                    if (locID == currentLocID) {
+                        $(item).prop("checked", isChecked);
+                        //set selected
+                        var selItem = grid.dataItem($(this).closest("tr"));
+                        selItem.Selected = isChecked;
+                    }
+                });
+                //Uncheck any other location
+                if (isChecked) {
+                    $('input.check-col-def').each(function (index, item) {
+                        if ($(item).attr("ums-locId") != locID) {
+                            $(item).prop("checked", false);
+                        }
+
+                    });
+                }
+            });
+            $(".check-col-sel").off('click').on('click', function (e) {
+                //click on bed selection
+                //set selected
+                var grid = $('#locationsbeds-grid').data().kendoGrid;
+                var selItem = grid.dataItem($(this).closest("tr"));
+                if ($(this).is(":checked")) {
+                    selItem.Selected = true;
+                }
+                else {
+                    selItem.Selected = false;
+                }
+            });
+        }
+
+    </script>
+    <div class="card h-100 pt-1 pb-2" id="bedSelectionContainer">
+
+        @(Html.Kendo().Grid(Model)
+                     .Name("locationsbeds-grid").HtmlAttributes(new { style = "height:360px;margin-top:10px;", @class = "no-hover" })
+                     .Columns(columns =>
+                     {
+                         columns.Bound(e => e.BedId).Visible(false);
+                         columns.Bound(e => e.IdLocation).Visible(false);
+                         columns.Bound(e => e.Location.LocationName);
+                         columns.Bound(e => e.BedName);
+                         columns.Bound(e => e.BedCode);
+                         columns.Bound(e => e.BedIndex).Visible(false);
+                         columns.Bound(e => e.Selected).ClientTemplate("<input id='Selected_#=BedLocation#'  class='check-col-sel k-checkbox' ums-locId='#= Location.ID #' ums-locName='#= Location.LocationName #' ums-bedId='#= BedId #' type='checkbox' #= Selected ? checked='checked' :'' # /><label class='k-checkbox-label' for='Selected_#=BedLocation#'></label>").HtmlAttributes(new { style = "text-align:center;" });
+                     })
+
+                     .Events(ev => ev.DataBound("onDataBoundLocationsBeds"))
+                     .Sortable(false)
+                     .Scrollable()
+                     .DataSource(dataSource => dataSource
+                             .Ajax()
+                            .Group(groups => groups.Add(p => p.Location.LocationName))
+                     )
+                     .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+        )
+
+        <div class="card-footer h-10 p-0 m-0">
+            @(Html.Kendo().ToolBar()
+
+                  .Name("toolbarBedSelection")
+                  .Items(
+                          items =>
+                          {
+                              items.Add().Type(CommandType.Button).Text(DicSvc.XLate("OK")).Id("btnBedSelectionOK").UmsHtmlButtonGeneric("view-mode");
+                              items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Close")).Id("btnBedSelectionCancel").UmsHtmlButtonGeneric("view-mode");
+                          }
+                       )
+            )
+        </div>
+    </div>
+
+    <script>
+
+    function onBedGridDataBound(e) {
+        var items = this.dataSource.view();
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].Selected) {
+                var row = this.tbody.find("tr[data-uid='" + items[i].uid + "']");
+                this.select(row);
+                //row.find('input:checkbox').attr('checked', true);
+            }
+        }
+    }
+
+    $(document).ready(function () {
+
+        $('#btnBedSelectionOK').click(function () {
+            kendo.ui.progress($("#TLBedLocations"), true);
+            submitGridChanges();
+            kendo.ui.progress($("#TLBedLocations"), false);
+           
+        });
+
+        $('#btnBedSelectionCancel').click(function () {
+            $('#TLBedLocations').data('kendoWindow').close();
+        });
+    })
+
+    function submitGridChanges() {
+        //Loop through locations
+            
+        var grid = $('#locationsbeds-grid').data('kendoGrid');
+        var selectedItems = [];
+        var groups = $('#locationsbeds-grid').data().kendoGrid.dataSource.view().length;
+        for (i = 0; i < groups; i++) {
+            var itemsNumber = $('#locationsbeds-grid').data().kendoGrid.dataSource.view()[i].items.length;
+            for (j = 0; j < itemsNumber; j++) {
+                var itemToAdd = $('#locationsbeds-grid').data().kendoGrid.dataSource.view()[i].items[j];
+                if (itemToAdd.Selected) {
+                    selectedItems.push(itemToAdd);
+                }
+            }
+        }
+
+        $.ajax({
+            url: '@Url.Action("UpdateBeds", "Telligence")'+"?networkID="+ '@(NetworkId)'+"&TLdeviceID=" +'@(ViewBag.TLDeviceID)',
+            type: 'POST',
+            data: JSON.stringify(selectedItems),
+              contentType: "application/json; charset=utf-8",
+              dataType: "json",
+        }).done(function (data) {
+            if (data.success) {
+                $('#TLBedLocations').data('kendoWindow').close();
+                $("#telligence-devices-grid").data('kendoGrid').dataSource.read();
+                $('#TLBedLocations').data('kendoWindow').close();
+            }
+            else {
+                umsErrorDialog("Error occured", data.errorMessage, 200, 200);
+            }
+                });
+        
+    }
+
+
+    </script>
+    <script id="bedGridTemplate" type="text/kendo-tmpl">
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.BedViewModel>()
+                                                .Name("Bedsgrid_#=ID#")
+                                                .HtmlAttributes(new { umsgridlocID = "" })
+                                                .Columns(columns =>
+                                                {
+                                                    columns.Select().Width(50);
+                                                    columns.Bound(o => o.BedId).Visible(false);
+                                                    columns.Bound(o => o.BedCode).Width(150);
+                                                    columns.Bound(o => o.BedName);
+                                                })
+                                                //  .Events(e => e.DataBound("onBedGridDataBound"))
+                                                .DataSource(dataSource => dataSource
+                                                    .Ajax()
+                                                    .Model(model =>
+                                                    {
+                                                        model.Id(o => o.BedId);
+                                                        model.Field(p => p.Selected).Editable(true);
+                                                        model.Field(p => p.BedCode).Editable(true);
+                                                        model.Field(p => p.BedName).Editable(false);
+                                                    })
+                                                    .ServerOperation(false)
+                                                    .PageSize(10)
+                                                    .Read(read => read.Action("GetBedsForLocation", "BedLocation", new { locationID = "#=ID#", networkID = NetworkId }))
+                                                    .Update(update => update.Action("UpdateBeds", "Telligence"))
+                                                )
+                                                .Editable(ed => ed.Mode(GridEditMode.InLine))
+                                                .Pageable()
+                                                .Sortable()
+
+                                                .ToClientTemplate()
+                //.NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+        )
+    </script>

@@ -1,0 +1,887 @@
+﻿@using System.Collections
+@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@model ConfiguratorWeb.App.SysOptionConfig.CameraConfigs
+
+@{
+   Layout = null;
+   string formIdCc = "form_" + Guid.NewGuid().ToString();
+   //var footerTemplateAdd = "<button type='button' style='max-height: 18px; margin:0px;padding:0px' class='btn btnKendo' title='add new' onclick='{0};'><span class='mdi mdi-plus mdi-18px addButton '></span></button>";
+}
+<script type="text/javascript">
+   var originalDataLength = @(Model.Cameras?.Count??0);
+   function toFirstUpper(target) {
+      var string = target.toString();
+      return string.charAt(0).toUpperCase() + string.substring(1);
+   }
+
+   var dataSourceCC = @Html.Raw(Json.Serialize(Model));
+   var dataSourceCcClHome = new kendo.data.DataSource();
+   var dataSourceCcClDetail = new kendo.data.DataSource();
+   var dataSourceForGrid = new kendo.data.DataSource({
+      data:dataSourceCC.Cameras
+   });
+
+   function onRowChange(arg) {
+      //debugger;
+      var selected = $.map(this.select(), function(item) {
+         return $(item).text();
+      });
+      var grid = this;
+      var item = grid.dataItem(this.select());
+      if (item) {
+         saveMenuChanges();
+         viewDetail(item);
+      } else {
+         $('#camBedId').val("");
+         $('#camOriginalBedId').val("");
+         $('#camBedName').val("");
+         $('#camCameraMaxYPercInMixMode').val("0");
+         $('#camDetailURL').val("");
+         $('#camHomeURL').val("");
+         $('#camMobileProxyProtocol').val("0");
+         $('#camMobileURL').val("");
+         $('#camUser').val("");
+         $('#camPassword').val("");
+      }
+   }
+   function saveMenuChanges() {
+
+      var bedId = $('#camBedId').val();
+
+      if (bedId.length == 0 || bedId==0)
+         return;
+
+      var bedIdOriginal = $('#camOriginalBedId').val();
+      var isNew = false;
+      var item = dataSourceCC.Cameras.find(function(x) { return x.BedId == bedIdOriginal; } );
+      if (!item ) {
+         isNew = true;
+         item = [];
+
+      }
+
+      item.BedId                   = bedId;
+      item.BedName                 = $("#camBedName").val();
+      item.CameraMaxYPercInMixMode = $("#camCameraMaxYPercInMixMode").val();
+      item.HomeURL                 = $("#camHomeURL").val();
+      item.DetailURL               = $("#camDetailURL").val();
+      item.MobileProxyProtocol     = $("#camMobileProxyProtocol").val();
+      item.MobileURL               = $("#camMobileURL").val();
+      item.User                    = $("#camUser").val();
+      item.Password                = $("#camPassword").val();
+
+
+
+      //if (isNew || item.VlcCommandLineHome == undefined)
+         item.VlcCommandLineHome      = [];
+      //if (isNew || item.VlcCommandLineDetail == undefined)
+         item.VlcCommandLineDetail    = [];
+
+
+      var clh = $('#gridVlcCommandLineHome').getKendoGrid().dataSource.data();
+      if (clh.length >0) {
+         for (var i = 0; i < clh.length; i++) {
+            item.VlcCommandLineHome.push({CommandText:clh[i].CommandText});
+         }
+      }
+      clh = $('#gridVlcCommandLineDetail').getKendoGrid().dataSource.data();
+      if (clh.length >0) {
+         for (var i = 0; i < clh.length; i++) {
+            item.VlcCommandLineDetail.push({CommandText:clh[i].CommandText});
+         }
+      }
+
+      //debugger;
+      if (isNew) {
+         if (item.User.length > 0 && item.Password.length > 0) {
+            var user = item.VlcCommandLineDetail.find(function(a, b) { return a.CommandText.startsWith(':rtsp-user='); });
+            if (!user) {
+               item.VlcCommandLineDetail.push({CommandText:':rtsp-user='+item.User});
+            }
+            var pswd = item.VlcCommandLineDetail.find(function(a, b) { return a.CommandText.startsWith(':rtsp-pwd='); });
+            if (!pswd) {
+               item.VlcCommandLineDetail.push({CommandText:':rtsp-pwd='+item.Password});
+            }
+            user = item.VlcCommandLineHome.find(function(a, b) { return a.CommandText.startsWith(':rtsp-user='); });
+            if (!user) {
+               item.VlcCommandLineHome.push({CommandText:':rtsp-user='+item.User});
+            }
+            pswd = item.VlcCommandLineHome.find(function(a, b) { return a.CommandText.startsWith(':rtsp-pwd='); });
+            if (!pswd) {
+               item.VlcCommandLineHome.push({CommandText:':rtsp-pwd='+item.Password});
+            }
+         }
+         dataSourceCC.Cameras.push(item);
+      }
+
+      if (isNew || bedId != bedIdOriginal) {
+         var grid = $('#camerasGrid').getKendoGrid();
+         var dataSource = new kendo.data.DataSource({
+            data:dataSourceCC.Cameras
+         });
+         grid.setDataSource(dataSource);
+      }
+   }
+
+
+   function viewDetail(element) {
+      //if (!element.Name) {
+      //   debugger;
+      //}
+      //debugger;
+      var item = dataSourceCC.Cameras.find(function(x) { return x.BedId == element.BedId; } );
+      if (!item ) {
+         item = [];
+         item.BedId                   = "0";
+         item.BedName                 = "";
+         item.CameraMaxYPercInMixMode = "0";
+         item.HomeURL                 = "";
+         item.DetailURL               = "";
+         item.MobileProxyProtocol     = 0;
+         item.MobileURL               = "";
+         item.User                    = "";
+         item.Password                = "";
+         item.VlcCommandLineHome      =[];
+         item.VlcCommandLineDetail    =[];
+      }
+
+      $('#camBedId').val(item.BedId);
+      $('#camOriginalBedId').val(item.BedId);
+      $('#camBedName').val(item.BedName);
+      $('#camCameraMaxYPercInMixMode').val(item.CameraMaxYPercInMixMode);
+      $('#camDetailURL').val(item.DetailURL);
+      $('#camHomeURL').val(item.DetailURL);
+      $('#camMobileProxyProtocol').val(item.MobileProxyProtocol);
+      $('#camMobileURL').val(item.MobileURL);
+      $('#camUser').val(item.User);
+      $('#camPassword').val(item.Password);
+
+      //var msUnit = $("#menuExportFormats").data("kendoMultiSelect");
+      //if (item.ExportFormats && item.ExportFormats.length>0) {
+
+      //   msUnit.value(item.ExportFormats.split(";"));
+      //   //onExportFormatsChange();
+      //}
+      ////debugger;
+      //var listbox1 = $("#menuParameters").getKendoListBox();
+      dataSourceCcClHome = new kendo.data.DataSource({
+         transport: {
+            read: function(e) {
+               // On success.
+               e.success(item.VlcCommandLineHome);
+               // On failure.
+               // e.error("XHR response", "status code", "error message");
+            }
+         }
+      });
+      $('#gridVlcCommandLineHome').getKendoGrid().setDataSource(dataSourceCcClHome);
+      dataSourceCcClDetail = new kendo.data.DataSource({
+         transport: {
+            read: function(e) {
+               // On success.
+               e.success(item.VlcCommandLineDetail);
+               // On failure.
+               // e.error("XHR response", "status code", "error message");
+            }
+         }
+      });
+      $('#gridVlcCommandLineDetail').getKendoGrid().setDataSource(dataSourceCcClDetail);
+      //$('#gridVlcCommandLineDetail').getKendoGrid().addRow();
+      //$('#tempParValue').val('');
+   }
+
+   function btnAddLineDetail() {
+      $('#gridVlcCommandLineDetail').getKendoGrid().addRow();
+   }
+   function btnAddLineHome() {
+      $('#gridVlcCommandLineHome').getKendoGrid().addRow();
+   }
+   function onDeletedRowCam(e) {
+      if (confirm('@DicSvc.XLateJs("Are you sure you want to delete this record?")')) {
+         //debugger;
+         var grid = $("#camerasGrid").data("kendoGrid");
+         var modelToDelete = grid.dataItem($(e.target).parents('tr'));
+         var tr = $(e.currentTarget).closest("tr");
+         grid.dataSource.remove(modelToDelete );  //prepare a "destroy" request
+         grid.dataSource.sync();
+         $('#camBedId').val("");
+         $('#camOriginalBedId').val("");
+         $('#camBedName').val("");
+         $('#camCameraMaxYPercInMixMode').val("");
+         $('#camDetailURL').val("");
+         $('#camHomeURL').val("");
+         $('#camMobileProxyProtocol').val("");
+         $('#camMobileURL').val("");
+         $('#camUser').val("");
+         $('#camPassword').val("");
+         dataSourceCcClHome = new kendo.data.DataSource({
+            transport: {
+               read: function(e) {
+                  // On success.
+                  e.success([]);
+                  // On failure.
+                  // e.error("XHR response", "status code", "error message");
+               }
+            }
+         });
+         $('#gridVlcCommandLineHome').getKendoGrid().setDataSource(dataSourceCcClHome);
+         dataSourceCcClDetail = new kendo.data.DataSource({
+            transport: {
+               read: function(e) {
+                  // On success.
+                  e.success([]);
+                  // On failure.
+                  // e.error("XHR response", "status code", "error message");
+               }
+            }
+         });
+         $('#gridVlcCommandLineDetail').getKendoGrid().setDataSource(dataSourceCcClDetail);
+      }
+      return;
+   }
+
+</script>
+<style>
+   #menuExportFormats_taglist > li,
+   #uiExportFormats_taglist > li {
+      color: #ffffff;
+      border-width: 1px;
+      border-style: solid;
+      background-color: #4A90E2 !important;
+      border-color: #386caa !important;
+      padding: 4px !important;
+   }
+
+   .k-multiselect-wrap {
+      max-height: 65px !important;
+      height: 65px !important;
+      overflow: auto !important;
+   }
+
+   #camerasGrid a.k-link {
+      padding: 5px;
+   }
+
+   #camerasGrid a.k-grid-filter > span {
+      margin-top: 2px;
+      padding: 5px;
+   }
+
+   .k-widget.k-dropdown {
+      max-height: 32px !important;
+   }
+
+   #gridVlcCommandLineHome > div.k-grid-header > div {
+      display: none;
+   }
+
+   #gridVlcCommandLineHome .k-grid .k-grid-toolbar .k-grid-add .k-icon,
+   #gridVlcCommandLineHome .k-grid tbody .k-grid-edit .k-icon,
+   #gridVlcCommandLineHome .k-grid tbody .k-grid-update .k-icon,
+   #gridVlcCommandLineHome .k-grid tbody .k-grid-cancel .k-icon,
+   #gridVlcCommandLineHome .k-grid tbody .k-grid-delete .k-icon {
+      margin: 0;
+      min-width: 0;
+   }
+
+   #gridVlcCommandLineHome > div.k-grid-footer {
+      max-height: 24px;
+   }
+
+      #gridVlcCommandLineHome > div.k-grid-footer > div > table > tbody > tr > td {
+         padding: 0px !important;
+         margin: 0px !important;
+      }
+
+   /*.dragIcon {
+                  cursor: move;
+               }*/
+
+   #gridVlcCommandLineDetail > div.k-grid-header > div {
+      display: none;
+   }
+
+   #gridVlcCommandLineDetail .k-grid .k-grid-toolbar .k-grid-add .k-icon,
+   #gridVlcCommandLineDetail .k-grid tbody .k-grid-edit .k-icon,
+   #gridVlcCommandLineDetail .k-grid tbody .k-grid-update .k-icon,
+   #gridVlcCommandLineDetail .k-grid tbody .k-grid-cancel .k-icon,
+   #gridVlcCommandLineDetail .k-grid tbody .k-grid-delete .k-icon {
+      margin: 0;
+      min-width: 0;
+   }
+
+   #gridVlcCommandLineDetail > div.k-grid-footer {
+      max-height: 24px;
+   }
+
+      #gridVlcCommandLineDetail > div.k-grid-footer > div > table > tbody > tr > td {
+         padding: 0px !important;
+         margin: 0px !important;
+      }
+
+   .addButton {
+      padding: 0px 6.80em;
+      margin: 0px;
+      top: -4px;
+      position: relative;
+   }
+
+   .headerAddBtn {
+      position: relative;
+      top: -10px !important;
+      padding: 0px;
+      margin: 0px;
+   }
+
+   .headerActionBtnLeft,
+   .headerActionBtnRight {
+      max-height: 19px;
+      margin-left: 8px;
+      padding: 5px;
+      position: absolute;
+      bottom: 114px;
+   }
+
+   .headerActionBtnLeft {
+      right: 32px;
+   }
+
+   .headerActionBtnRight {
+      right: 32px;
+   }
+</style>
+<div class="h-100 ">
+   <div class="card m-0 p-0 text-left" id="divItemDetail" style="height: 93% !important;">
+
+      <form id="@formIdCc" style="overflow: auto"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+            data-ajax="true" data-ajax-method="POST" data-ajax-loading="progressl">
+
+
+         <div class="row" style="margin: 0px !important; max-height: 521px">
+            <div class="col-5 pl-0">
+               <div class="row" style="margin: 0px !important;">
+                  <div class="col-11 mt-3">
+                     <span class="pl-3">@DicSvc.XLateHtml("Cameras")</span>
+                     <button type='button' class='btn btnKendo headerActionBtnLeft ' style="bottom:371px" title='@DicSvc.XLateHtml("add new")' onclick='btnAddMenuClick();'>
+                        <span class='mdi mdi-plus mdi-18px headerAddBtn'></span>
+                     </button>
+
+                     @(Html.Hidden("camOriginalBedId"))
+
+                     @(Html.Kendo().Grid(Model.Cameras)
+                        .Name("camerasGrid")
+                        .Filterable()
+                        .HtmlAttributes(new { style = "height:367px;margin:1px;width:100%;" })
+                        //.NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLateHtml(CommonStrings.NO_RECORD_FOUND) + "</div>"))
+                        .Sortable()
+                        .Selectable(e => e.Enabled(true))
+                        .Scrollable()
+                        .Navigatable(true)
+                        .Editable(e => e.CreateAt(GridInsertRowPosition.Bottom).DisplayDeleteConfirmation(false))
+                        .Resizable(resize => resize.Columns(false))
+                        .Columns(columns =>
+                        {
+                           columns.Bound(e => e.BedId).Width("33%");
+                           columns.Bound(e => e.BedName);
+                           //columns.Command(command => { command.Destroy().Text(" "); }).Width(30)
+                           //   .HtmlAttributes(new { style = "padding:0px !important;", onclick="onDeletedRowCam();" });
+                           columns.Command(command =>
+                                  {
+                                     command.Custom("Destroy")
+                              .IconClass("k-icon k-i-close k-grid-delete")
+                              .Click("onDeletedRowCam")
+                              .Text(" ");
+                                  }).Width(30)
+                              .HtmlAttributes(new { style = "padding:0px !important;" });
+                        })
+                        .DataSource("dataSourceForGrid")
+                        .Events(ev => ev.Change("onRowChange"))
+                     )
+                  </div>
+                  @*<div class="col-1 pl-0 text-right mt-5">
+                        <div style="max-height: 40px;">
+                           <button type="button" style="max-height: 32px;" class="btn btnKendo " onclick="btnAddMenuClick();">
+                              <span class="mdi mdi-plus"></span>
+                           </button>
+                           <button type="button" style="max-height: 32px;" class="btn btnKendo mt-1 " onclick="btnDeleteMenuClick();">
+                              <span class="mdi mdi-minus"></span>
+                           </button>
+                        </div>
+                     </div>*@
+               </div>
+               <div class="row mt-3">
+                  <div class="col-8 pl-1">
+                     <label for="VlcDirectory">@DicSvc.XLateHtml("VlcDirectory")</label>
+                  </div>
+                  <div class="col-12 pl-1 pr-0">
+                     <input id="VlcDirectory" class="k-input k-textbox " value="@Model.VlcDirectory" />
+                  </div>
+               </div>
+            </div>
+            <div class="col-7 mt-3 border-left">
+               <div class="row">
+                  <div class="col-4 pl-0">
+                     <label for="camBedId">@DicSvc.XLateHtml("Bed Id")</label>
+                  </div>
+                  <div class="col-8 p-0">
+
+                     <div class="input-group">
+                        <input id="camBedId" class="k-textbox" style="width:87%" disabled />
+                        <div class="input-group-append">
+                           <button id="btnBedSelect" onclick="getBedFromList();" class="btn border pl-1" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("select a bed")">
+                              <span class="ig-24px mdi mdi-pencil"></span>
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-4 pl-0">
+                     <label for="camBedName">@DicSvc.XLateHtml("Bed Name")</label>
+                  </div>
+                  <div class="col-8 p-0">
+                     <input id="camBedName" class="k-input k-textbox " disabled />
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-4 pl-0">
+                     <label for="camCameraMaxYPercInMixMode">@DicSvc.XLateHtml("CameraMaxYPercInMixMode")</label>
+                  </div>
+                  <div class="col-8 p-0">
+                     <input id="camCameraMaxYPercInMixMode" class="k-input k-textbox " />
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-4 pl-0">
+                     <label for="camDetailURL">@DicSvc.XLateHtml("DetailURL")</label>
+                  </div>
+                  <div class="col-8 p-0">
+                     <input id="camDetailURL" class="k-input k-textbox " />
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-4 pl-0">
+                     <label for="camHomeURL">@DicSvc.XLateHtml("HomeURL")</label>
+                  </div>
+                  <div class="col-8 p-0">
+                     <input id="camHomeURL" class="k-input k-textbox " />
+                  </div>
+               </div>
+
+               <div class="row">
+                  <div class="col-4 pl-0">
+                     <label for="camMobileURL">@DicSvc.XLateHtml("MobileURL")</label>
+                  </div>
+                  <div class="col-8 p-0">
+                     <input id="camMobileURL" class="k-input k-textbox " />
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-4 pl-0">
+                     <label for="camMobileProxyProtocol">@DicSvc.XLateHtml("MobileProxyProtocol")</label>
+                  </div>
+                  <div class="col-8 p-0">
+                     <input id="camMobileProxyProtocol" type="number" class="k-input k-textbox " />
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-4 pl-0">
+                     <label>@DicSvc.XLateHtml("User")</label>
+                  </div>
+                  <div class="col-8 p-0">
+                     <input id="camUser" class="k-input k-textbox " />
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-4 pl-0">
+                     <label>@DicSvc.XLateHtml("Password")</label>
+                  </div>
+                  <div class="col-8 p-0">
+                     <input id="camPassword" class="k-input k-textbox " />
+                  </div>
+               </div>
+
+
+               <div class="row " style="margin: 0px !important">
+
+                  <div class="col-6 pl-0">
+                     <span class="pl-3">@DicSvc.XLateHtml("VlcCommandLineHome")</span>
+                     <button type='button' class='btn btnKendo headerActionBtnLeft ' title='@DicSvc.XLateHtml("add new")' onclick='btnAddLineHome();'>
+                        <span class='mdi mdi-plus mdi-18px headerAddBtn'></span>
+                     </button>
+                     <script>
+                        var noHint = $.noop;
+
+                        function placeholder(element) {
+                           return element.clone().addClass("k-state-hover").css("opacity", 0.65);
+                        }
+
+                        function onChangeLH(e) {
+                           //debugger;
+                           //var grid = $("#gridVlcCommandLineHome").data("kendoGrid"),
+                           var grid = e.sender.element.getKendoGrid(),
+                              skip = grid.dataSource.skip() || 0,
+                              oldIndex = e.oldIndex + skip,
+                              newIndex = e.newIndex + skip,
+                              data = grid.dataSource.data(),
+                              dataItem = grid.dataSource.getByUid(e.item.data("uid"));
+
+                           grid.dataSource.remove(dataItem);
+                           grid.dataSource.insert(newIndex, dataItem);
+                        }
+
+                        function onUpCl(e) {
+                           //debugger;
+                           var grid = $(e.parentNode.closest("div.k-grid")).getKendoGrid(),
+                              //data = grid.dataSource.data(),
+                              dataItem = grid.dataSource.getByUid($(e.parentNode.closest("tr")).data("uid")),
+                              oldIndex = grid.dataSource.indexOf(dataItem),
+                              newIndex = oldIndex > 0 ? oldIndex - 1 : 0;
+
+                           grid.dataSource.remove(dataItem);
+                           grid.dataSource.insert(newIndex, dataItem);
+                           grid.select(dataItem);
+                        }
+
+                        function onDownCl(e) {
+                           //debugger;
+                           var grid = $(e.parentNode.closest("div.k-grid")).getKendoGrid(),
+                              datalength = grid.dataSource.data().length - 1,
+                              dataItem = grid.dataSource.getByUid($(e.parentNode.closest("tr")).data("uid")),
+                              oldIndex = grid.dataSource.indexOf(dataItem),
+                              newIndex = oldIndex < datalength ? oldIndex + 1 : oldIndex;
+
+                           grid.dataSource.remove(dataItem);
+                           grid.dataSource.insert(newIndex, dataItem);
+                           grid.select(dataItem);
+                        }
+                     </script>
+
+
+                     @(Html.Kendo().Grid<ConfiguratorWeb.App.SysOptionConfig.VlcCommand>()
+                        .Name("gridVlcCommandLineHome")
+                        .Filterable(f => f.Enabled(false))
+
+                        .Columns(c =>
+                        {
+                           c.Bound(e => e.CommandText); //.ClientFooterTemplate(footerTemplateAdd.FormatWith("btnAddLineHome()"));
+                           //c.Template("<span class='dragIcon mdi mdi-chevron-up mdi-18px ig-18px' onclick='onUpCl(this)'></span><span class='dragIcon mdi mdi-chevron-down  mdi-18px ig-18px' onclick='onDownCl(this)'></span>")
+                           //   .Width(70)
+                           //   .HtmlAttributes(new { style = "padding:0px !important;" });
+                           c.Command(command => { command.Destroy().Text(" "); }).Width(30)
+                              .HtmlAttributes(new { style = "padding:0px !important;" });
+                        })
+                        .HtmlAttributes(new { style = "height:100px;margin:1px;width:100%;" })
+
+                        //.NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLateHtml(CommonStrings.NO_RECORD_FOUND) + "</div>"))
+                        //.Sortable()
+                        .Selectable(e => e.Enabled(true))
+                        .Scrollable()
+                        .Navigatable(true)
+                        .Editable(e => e.Mode(GridEditMode.InCell).CreateAt(GridInsertRowPosition.Bottom))
+                        .Resizable(resize => resize.Columns(false))
+                     )
+
+                  </div>
+                  <div class="col-6 pl-0">
+                     <span class="pl-3">@DicSvc.XLateHtml("VlcCommandLineDetail")</span>
+                     <button type='button' class='btn btnKendo headerActionBtnRight ' title='@DicSvc.XLateHtml("add new")' onclick='btnAddLineDetail();'>
+                        <span class='mdi mdi-plus mdi-18px headerAddBtn'></span>
+                     </button>
+
+                     @(Html.Kendo().Grid<ConfiguratorWeb.App.SysOptionConfig.VlcCommand>()
+                        .Name("gridVlcCommandLineDetail")
+                        .Filterable(f => f.Enabled(false))
+                        .Columns(c =>
+                        {
+                           c.Bound(e => e.CommandText); //.ClientFooterTemplate(footerTemplateAdd.FormatWith("btnAddLineDetail()"));
+                           //c.Template("<span class='dragIcon mdi mdi-chevron-up mdi-18px ig-18px' onclick='onUpCl(this)'></span><span class='dragIcon mdi mdi-chevron-down  mdi-18px ig-18px' onclick='onDownCl(this)'></span>")
+                           //   .Width(70)
+                           //   .HtmlAttributes(new { style = "padding:0px !important;" });
+                           c.Command(command => { command.Destroy().Text(" "); }).Width(30)
+                              .HtmlAttributes(new { style = "padding:0px !important;" });
+                        })
+                        .HtmlAttributes(new { style = "height:110px;margin:1px;width:100%;" })
+
+                        //.NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLateHtml(CommonStrings.NO_RECORD_FOUND) + "</div>"))
+                        .Sortable()
+                        .Selectable(e => e.Enabled(true))
+                        .Scrollable()
+                        .Navigatable(true)
+                        .Editable(e => e.Mode(GridEditMode.InCell).CreateAt(GridInsertRowPosition.Bottom))
+                        .Resizable(resize => resize.Columns(false)))
+
+                  </div>
+
+               </div>
+            </div>
+         </div>
+
+      </form>
+
+
+   </div>
+   <div class="card-footer h-10 p-0 m-0 mt-1 border-0">
+      @(Html.Kendo().ToolBar()
+         .Name("toolbarCameraConfig")
+         .UmsDefaultErrors(DicSvc)
+         .Items(
+            items =>
+            {
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Generate XML")).Id("btnCcXml").UmsHtmlButtonSave();
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnCcCancel").UmsHtmlButtonCancel();
+            }
+         )
+         //.UmsDefaultSettings(DicSvc, "")
+      )
+   </div>
+</div>
+
+<script>
+
+   function setControlsValues() {
+
+      //if (dataSourceCC.UISettings) {
+      //   var ui = dataSourceCC.UISettings;
+      //   document.getElementById("uiShowProgress").checked          = (ui.ShowProgress  && ui.ShowProgress == "True");
+      //   document.getElementById("uiUseWindowsPrintDialog").checked = (ui.UsePrintDialog  && ui.UsePrintDialog == "True");
+      //   document.getElementById("uiPrintButtonEnabled").checked    = (ui.PrintButton  && ui.PrintButton == "True");
+      //   document.getElementById("uiOutlineEnabled").checked        = (ui.Outline  && ui.Outline == "True");
+      //   document.getElementById("uiWatermarkEnabled").checked      = (ui.WatermarkEnabled  && ui.WatermarkEnabled == "True");
+      //   $("#uiWatermark").val(ui.Watermark);
+      //   if (ui.ExportParameters && ui.ExportParameters.length>0) {
+      //      $("#uiExportFormats").getKendoMultiSelect().value(ui.ExportParameters.split(";"));
+      //   }
+
+      //   //.data("kendoMultiSelect")
+      //}
+      ////debugger;
+      //if (dataSourceCC.ExportSettings) {
+      //   $('#esOptions').val(dataSourceCC.ExportSettings.replaceAll('&quot;','"').replaceAll('&lt;','<').replaceAll('&amp;','&'));
+      //}
+
+   }
+
+   $(document).ready(function () {
+      
+      setControlsValues();
+
+      $('#btnCcCancel').off('click').on('click', function () {
+         //debugger;
+         var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+         objRepoDialog.close();
+      });
+      $('#btnCcXml').off('click').on('click', function () {
+         //debugger;
+         saveMenuChanges();
+         var xml = ReportJsonToXML();
+         if (!validateCcXml(xml)) {
+            return;
+         }
+         if (editor && !$('#aceEditor').hasClass('d-none')) {
+            editor.getSession().setValue(xml);
+            var textarea = $(textareaIdValueModelGuid).hide();
+            textarea.val(editor.getSession().getValue());
+
+         } else {
+            var textarea = $(textareaIdValueModelGuid);
+            textarea.val(xml);
+         }
+         var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+         objRepoDialog.close();
+      });
+      if (originalDataLength) {
+         $('#camerasGrid').getKendoGrid().select("tr:eq(0)");   
+      } else {
+         //debugger;
+         $('#camBedId').val("");
+         $('#camOriginalBedId').val("");
+         $('#camBedName').val("");
+         $('#camCameraMaxYPercInMixMode').val("30");
+         $('#camDetailURL').val("");
+         $('#camHomeURL').val("");
+         $('#camMobileProxyProtocol').val("0");
+         $('#camMobileURL').val("");
+         $('#camUser').val("");
+         $('#camPassword').val("");
+      }
+      
+
+   });
+
+   function btnAddMenuClick() {
+
+      if ($('#camBedId').val() !== "") {
+         saveMenuChanges();
+      }
+
+      var grid = $('#camerasGrid').getKendoGrid();
+      grid.clearSelection();
+      var element = { BedId: "" };
+      viewDetail(element);
+   }
+   function btnDeleteMenuClick() {
+      //debugger;
+      var grid = $('#camerasGrid').getKendoGrid();
+
+      var rows = grid.select();
+
+      if (!rows || rows.length == 0) {
+         alert('select 1 menu to proceed');
+         return;
+      }
+      var menu = dataSourceCC.Menu.find(function (x) { return x.Name === rows[0].innerText; });
+      if (menu) {
+         jQuery(dataSourceCC.Menu).each(function (index) {
+            if (dataSourceCC.Menu[index].Name == menu.Name) {
+               dataSourceCC.Menu.splice(index, 1); // This will remove the object that first name equals to Test1
+               return false; // This will stop the execution of jQuery each loop.
+            }
+         });
+
+         var dataSource = new kendo.data.DataSource({
+            data: dataSourceCC.Menu
+         });
+         grid.setDataSource(dataSource);
+
+         var element = { Name: "" };
+         viewDetail(element);
+      }
+   }
+
+   function ReportJsonToXML() {
+      //debugger;
+      var xml = '<?xml version="1.0" encoding="utf-16"?>';
+      xml += '<CameraConfigs xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\r\n';
+      xml += '\t<Cameras>\r\n';
+      var cameraConfig = "\t\t<CameraConfig>{0}<BedId>{1}</BedId>{0}<BedName>{2}</BedName>" +
+         "{0}<HomeURL>{3}</HomeURL>" +
+         "{0}<DetailURL>{4}</DetailURL>" +
+         "{0}<CameraMaxYPercInMixMode>{5}</CameraMaxYPercInMixMode>" +
+         "{0}<MobileURL>{6}</MobileURL>" +
+         "{0}<User>{7}</User>{0}<Password>{8}</Password>" +
+         "{0}<MobileProxyProtocol>{9}</MobileProxyProtocol>" +
+         "{0}{10}" + //<VlcCommandLineHome />"
+         "{0}{11}" + //<VlcCommandLineDetail />"
+         "\r\n\t\t</CameraConfig>\r\n";
+      for (var i in dataSourceCC.Cameras) {
+         var r = dataSourceCC.Cameras[i];
+
+         var vclh = "\r\n\t\t\t<VlcCommandLineHome /" + ">";
+         var vcld = "\r\n\t\t\t<VlcCommandLineDetail /" +">";
+
+         if (r.VlcCommandLineHome  != undefined && r.VlcCommandLineHome.length>0   ) {
+            vclh = "\r\n\t\t\t<VlcCommandLineHome>";
+            for (var J = 0; J < r.VlcCommandLineHome.length; J++) {
+               vclh += kendo.format("{0}<VlcCommand>{0}\t<CommandText>{1}</CommandText>{0}</VlcCommand>",
+                  "\r\n\t\t\t\t",
+                  r.VlcCommandLineHome[J].CommandText);
+            }
+            vclh += "\r\n\t\t\t</VlcCommandLineHome>";
+         }
+         if (r.VlcCommandLineDetail != undefined && r.VlcCommandLineDetail.length>0  ) {
+            vcld = "\r\n\t\t\t<VlcCommandLineDetail>";
+            for (var J = 0; J < r.VlcCommandLineDetail.length; J++) {
+               vcld += kendo.format("{0}<VlcCommand>{0}\t<CommandText>{1}</CommandText>{0}</VlcCommand>",
+                  "\r\n\t\t\t\t",
+                  r.VlcCommandLineDetail[J].CommandText);
+            }
+            vcld += "\r\n\t\t\t</VlcCommandLineDetail>";
+         }
+
+         xml += kendo.format(cameraConfig
+            ,'\r\n\t\t\t'
+            ,r.BedId
+            ,r.BedName
+            ,r.HomeURL                
+            ,r.DetailURL              
+            ,r.CameraMaxYPercInMixMode    
+            ,r.MobileURL           
+            ,r.User                   
+            ,r.Password              
+            ,r.MobileProxyProtocol    
+            ,vclh 
+            ,vcld 
+         );
+
+         
+         
+
+         
+      }
+      xml += '\t</Cameras>\r\n';
+      var exportSettings = '\t<VlcDirectory>{0}</VlcDirectory>\r\n';
+      {
+         var x0 = $('#VlcDirectory').val().replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('&', '&amp;');
+         xml += kendo.format(exportSettings, x0);
+      }
+      xml += '</CameraConfigs>';
+      //debugger;
+      var xmlE = xml.replace(/<\/?[0-9]{1,}>/g, '');
+
+      return xmlE;
+   }
+   function OBJtoXML(obj) {
+      var xml = '';
+      for (var prop in obj) {
+         xml += obj[prop] instanceof Array ? '' : "<" + prop + ">";
+         if (obj[prop] instanceof Array) {
+            for (var array in obj[prop]) {
+               xml += "<" + prop + ">";
+               xml += OBJtoXML(new Object(obj[prop][array]));
+               xml += "</" + prop + ">";
+            }
+         } else if (typeof obj[prop] == "object") {
+            xml += OBJtoXML(new Object(obj[prop]));
+         } else {
+            xml += obj[prop];
+         }
+         xml += obj[prop] instanceof Array ? '' : "</" + prop + ">";
+      }
+      var xml = xml.replace(/<\/?[0-9]{1,}>/g, '');
+      return xml
+   }
+
+   function validateCcXml(text2validate) {
+      var xml = text2validate;
+      var oParser = new DOMParser();
+      var oDOM = oParser.parseFromString(xml, "text/xml");
+      if (oDOM.getElementsByTagName('parsererror').length > 0) {
+
+         umsAlert("Camera Config XML", (new XMLSerializer()).serializeToString(oDOM));
+         return false;
+      } else {
+
+         return true;
+      }
+   }
+
+   function getBedFromList() {
+      var selBed = $('#camBedId').val();
+      kendo.ui.progress($("#divReportMasterConfig"), true); // progess bar will intiate
+      $.ajax({
+         type: "GET",
+         url: '@Url.Action("GetBedsLocations", "SystemConfiguration")',
+         dataType: "json",
+         success: function (data) {
+            //  debugger;
+            var wnd = $("#bedSelectionDialog").getKendoWindow();
+            wnd.content('');
+            wnd.content(data.content.Result);
+            wnd.center().open();
+         },
+         error: function () {
+         },
+         complete: function () {
+            kendo.ui.progress($("#divReportMasterConfig"), false);
+         }
+      });
+   }
+   
+</script>
+@(Html.Kendo().Window().Name("bedSelectionDialog").Width(500).Height(400))
+
+

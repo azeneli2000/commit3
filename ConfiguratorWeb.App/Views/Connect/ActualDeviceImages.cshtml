@@ -1,0 +1,170 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@{
+    string gridName = "actiual-device-image-grid";
+    string popUpWindowName = "actualDeviceImageEditWindow";
+   
+   ViewBag.Title = DicSvc.XLate("Actual device image");
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+</script>
+<style>
+    tr:hover {
+        cursor: pointer;
+    }
+
+    .k-grid td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+</style>
+
+<div class="h-100 text-center">
+    <div class="card h-100 m-1 p-2 text-left">
+
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.ActualDeviceImageViewModel>()
+                           .Name(gridName)
+                           .UmsDefaultSettings(DicSvc)
+                           .UmsDefaultToolbar("create_image", "ADD NEW IMAGE", "openDetail();", DicSvc)
+                           .Columns(columns =>
+                           {
+                               columns.Template(@"<div style='width:30px; height:30px; background: url(data:image/#= Extension #;base64,#= Thumbnail #) no-repeat center center; background-size: contain;   '></div>").Width(44);
+                               columns.Bound(e => e.DeviceType).Hidden(true);
+                               columns.Bound(e => e.DeviceTypeDescription);
+                               columns.Bound(e => e.DeviceName);
+                               columns.Bound(e => e.DeviceSerialNumber);
+                           })
+                           .UmsDefaultPager(DicSvc)
+                           .Events(ev => ev.DataBound("onDataBound"))
+                           .DataSource(dataSource => dataSource
+                              .Ajax()
+                              .PageSize(50)
+                              .Events(events => events.Error("onGridError"))
+                              .Read(read => read.Action("ReadActualDeviceImages", "Connect"))
+                              //.Create(create => create.Action("CreateActualDeviceImages", "Connect"))
+                           )
+
+        )
+        <div id="actualDeviceImageEditWindow"></div>
+    </div>
+</div>
+
+<script>
+   function openDetail(dataItem) {
+      var requestData;
+      if (typeof(dataItem) == "undefined") {
+         requestData = { deviceType: 0, deviceName: '', deviceSerial: ''};
+      }
+      else {
+         requestData = { deviceType: dataItem.DeviceType, deviceName: dataItem.DeviceName, deviceSerial: dataItem.DeviceSerialNumber };
+      }
+
+        $.ajax({
+            type: "GET",
+            url:'@Url.Action("GetActualDeviceImage", "Connect")',
+           data: requestData,
+
+            success: function (data) {
+               var wnd = $("#actualDeviceImageEditWindow").data("kendoWindow");
+                wnd.content('');
+                wnd.content(data);
+                wnd.center().open();
+            },
+            error: function (xhr, textStatus, errorThrown) {
+            }
+        });
+    }
+
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+    }
+    function onGridKeyEnter(item) {
+        //replace Key
+        openDetail(item);
+    };
+    
+
+    function onGridError(e) {
+        if (e.errors) {
+            debugger;
+        }
+    }
+
+    //functions for detail
+    function OnSuccess(response) {
+        //debugger;
+        if (response.success) {
+
+           var grid = $("#" + gridIdName).data("kendoGrid");
+            grid.dataSource.read();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+
+    function OnFailure(response) {
+        //debugger;
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+    @{
+       string editItemTitle = DicSvc.XLate("Edit Image");
+       string newItemTitle = DicSvc.XLate("Add Image"); 
+    }
+    var kndWnd;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                maxHeight:530,
+                title: '@DicSvc.XLate(editItemTitle)',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+
+        }
+
+    });
+
+
+    $(window).resize(function () {
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                for (var i = 0; i < kendoWindow.length; i++) {
+                    var win = $(kendoWindow[i]).data("kendoWindow");
+                    if (!win.element.is(":hidden")) {
+                        win.center();
+                        if (win.resize != undefined) {
+                            win.trigger('resize');
+                        }
+
+                    }
+                }
+            }
+        }, 100);
+    });
+
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+</script>

@@ -1,0 +1,157 @@
+﻿@using System.Linq.Expressions
+@using Kendo.Mvc.UI.Fluent
+@using Microsoft.AspNetCore.Routing
+@using System.Collections.Specialized;
+@using System.Collections;
+
+@model ConfiguratorWeb.App.Models.RoleViewModel
+
+<script>
+
+    var _tempGridCollection = null;
+
+    function getPermissionGridRowIndex(data) {
+        return getGridRowIndex("#grid_role_permissions", data);
+    }
+
+    function onCellClose(e) {
+        e.preventDefault();
+    }
+
+    //Read grid datasource and create proper inputs for post
+    function prepareForSave() {
+        var grid = $("#grid_role_permissions").data('kendoGrid');
+        var ds = grid.dataSource;
+        if (ds && ds.data()) {
+            for (var i = 0; i < ds.data().length; i++) {
+                var objHidPermName = $('<input type="hidden" name="Permissions[' + i + '].PermissionName" value="' + ds.data()[i].PermissionName +'" />');
+                var objHidAllow = $('<input type="hidden" name="Permissions[' + i + '].Allow" value="' + ds.data()[i].Allow + '"/>');
+                var objHidRoleID = $('<input type="hidden" name="Permissions[' + i + '].RoleID" value="@Model.Id"/>');
+                $('#' + _formId).append(objHidPermName);
+                $('#' + _formId).append(objHidAllow);
+                $('#' + _formId).append(objHidRoleID);
+            }
+        }
+    }
+
+   function onPermissionDataBound(e) {
+
+      $("#grid_role_permissions tbody tr .k-grid-edit").each(function () {
+         var currentDataItem = $("#Grid").data("kendoGrid").dataItem($(this).closest("tr"));
+         $(this).remove();
+      });
+
+      // set the current filter to the new inserted permission
+
+      var appliedFilters = $('#grid_role_permissions').data("kendoGrid").dataSource.filter();
+      if (!appliedFilters) {
+         return;
+      }                  
+      var allowFilterCurrentValue = appliedFilters.filters.find(function (f) { return f.field == "Allow" }).value;
+      var newPermission = $('#grid_role_permissions').data("kendoGrid").dataSource.data().find(function (p) { return p.RoleID == 0 && p.PermissionName == '' });
+      if (!newPermission) {
+         return;
+      }            
+      newPermission.set("Allow", allowFilterCurrentValue);      
+   }
+
+    function onChangePermission(e) {
+        var grid = $("#grid_role_permissions").data('kendoGrid');
+
+        if (!_tempGridCollection) {
+            _tempGridCollection = [];
+            for (var i = 0; i < grid.dataSource.data().length; i++) {
+                if (grid.dataSource.data()[i] && grid.dataSource.data()[i].PermissionName && grid.dataSource.data()[i].PermissionName != '') {
+                    _tempGridCollection.push(grid.dataSource.data()[i]);
+                }
+            }
+        }
+
+        var newPermission = {
+            RoleID: @Model.Id.GetValueOrDefault(0),
+            PermissionName : this.value(),
+            Allow: true,
+            PermissionModel: {
+                RoleID : @Model.Id.GetValueOrDefault(0),
+                PermissionName: this.value(),
+            }
+        };
+        _tempGridCollection.unshift(newPermission);
+        grid.dataSource.cancelChanges();
+        grid.dataSource.data(_tempGridCollection);
+    }
+
+   function checkAllowField(el) {
+       
+      var state = $(el).is(':checked');
+      var elName = $(el).attr('elChkIDEnable');
+      $('[name="Permissions\[' + elName + '\].Allow"]').val(state);
+
+      // sync datasource item Allow flag attribute
+      var uidItem = $($(el).parent()).parent()[0].dataset.uid;
+      var rolePermissionItem = $('#grid_role_permissions').data("kendoGrid").dataSource.data().find(function (el) { return el.uid == uidItem });
+      rolePermissionItem.set("Allow", state);
+   }
+
+   function PermissionsEditable(dataItem) {
+       debugger
+      var res = ($('#grid_role_permissions').hasClass('readonly-mode'));
+      return (!res && dataItem.PermissionName == '');
+   }
+
+   function onEditPermissionCell(e) {
+       debugger
+      if ($('#grid_role_permissions').hasClass('readonly-mode')) {
+         e.preventDefault();
+         return;
+      }
+   }
+
+   function RemovePermissionItem(e) {
+      if (!($('#grid_role_permissions').hasClass('readonly-mode'))) {
+         var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+         $('#grid_role_permissions').data('kendoGrid').dataSource.remove(dataItem);
+      }
+   }
+
+</script>
+
+<div style="height:310px">
+
+    @(Html.Kendo().Grid(Model.Permissions)
+         .ToolBar(toolbar => toolbar.Create().Text(DicSvc.XLate("Add Permission To Role")).HtmlAttributes(new { name = "btnAddPermissionToRole" }))
+         .Name("grid_role_permissions")
+         .Editable(editable => editable.Mode(GridEditMode.InCell).DisplayDeleteConfirmation(false).CreateAt(GridInsertRowPosition.Top))
+         .Columns(columns =>
+         {
+            columns.Bound(e => e.RoleID).Hidden()
+               .ClientTemplate("<input type='hidden' elChkIDEnable=[#=getPermissionGridRowIndex(data)#] name='Permissions[#=getPermissionGridRowIndex(data)#].RoleID' value='#=RoleID#' />");
+            columns.Bound(e => e.PermissionModel.PermissionName)
+                  .ClientTemplate("#=PermissionModel.PermissionName# <input type='hidden' name='Permissions[#=getPermissionGridRowIndex(data)#].PermissionName' value='#=PermissionModel.PermissionName#' />")
+                  .EditorTemplateName("PermissionDropDownEditor")
+                  .Editable("PermissionsEditable")
+                  .HtmlAttributes(new { @class = "col-editable" });
+            columns.Bound(e => e.Allow)
+               .Editable("PermissionsEditable")
+               .ClientTemplate(@"<input name='PermissionCheck[#=getPermissionGridRowIndex(data)#].CheckAllow' type = 'checkbox' #=Allow?checked='checked':''# onclick='checkAllowField(this)' elChkIDEnable='#=getPermissionGridRowIndex(data)#' value='#=Allow#'  class='check-col  k-checkbox' />
+            <input type = 'hidden' name='Permissions[#=getPermissionGridRowIndex(data)#].Allow' value='#=Allow#' />")
+            .Width(100);
+            columns.Command(command => command.Custom("Remove").Click("RemovePermissionItem")).Width(100);
+         })
+         .UmsDefaultSettings(DicSvc)
+         .HtmlAttributes(new { style = "height:100%;" })
+         .DataSource(dataSource => dataSource
+            .Ajax()
+            .Model(model =>
+            {
+               model.Field(o => o.RoleID);
+               model.Field(o => o.PermissionName).Editable(false);
+               model.Field(o => o.Allow).Editable(true);
+               model.Field(o => o.PermissionModel).DefaultValue(new RolePermissionViewModel());
+            })
+            .ServerOperation(false)            
+         )
+         .Events(ev => ev.BeforeEdit("onEditPermissionCell").CellClose("onCellClose").DataBound("onPermissionDataBound"))
+         .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+    )
+</div>

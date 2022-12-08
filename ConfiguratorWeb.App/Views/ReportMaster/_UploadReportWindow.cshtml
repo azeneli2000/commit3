@@ -1,0 +1,47 @@
+﻿@model ConfiguratorWeb.App.Models.ReportTemplateViewModel
+@{
+   Layout = null;
+}
+@{ 
+   string[] allowedExtensions = new string[] { ".frx" };
+}
+<style>
+   input#file_@Model.ID {
+      opacity: 0;
+   }
+   ul.k-upload-files.k-reset {
+      max-height: 130px
+   }
+</style>
+<div class="k-content">
+    <form asp-controller="ReportMaster" asp-action="UploadReportFile" method="post" id="upload_@Model.ID" onsubmit="onSubmit()"
+       data-ajax-failure="OnFailureUpload" data-ajax-success="OnSuccessUpload" data-ajax="true" >
+        <input asp-for="ID" type="hidden" />
+        <kendo-upload name="file" multiple="false" id="file_@Model.ID" >
+           <validation allowed-extensions="@allowedExtensions" />
+        </kendo-upload>
+        <span id="uploadProgress" class="progress-bar"></span>
+        <div style="text-align: right;position:absolute;bottom: 0; margin-bottom: 10px;width: 95%;">
+            <button type="submit" class="k-button k-button-lg k-rounded-md k-button-solid-base k-button-solid-primary k-primary">Submit</button>
+            <button type="button" class="k-button k-button-lg k-rounded-md k-button-solid-base  " id="btnCancelUpload_@Model.ID">Cancel</button>
+        </div>
+    </form>
+
+</div>
+
+
+<script>
+   $(document).ready(function () {
+      $("#upload_@Model.ID").find(".k-upload-button span")
+         .text('@DicSvc.XLate("Select file...")');
+
+      $("#btnCancelUpload_@Model.ID").off('click').on('click', function () {
+         var windowWidget = $("#dialog_@Model.ID").data("kendoWindow");
+         windowWidget.close();
+      });
+
+   });
+   function onSubmit() {
+      kendo.ui.progress($("#upload_@Model.ID"),true);
+   }
+</script>

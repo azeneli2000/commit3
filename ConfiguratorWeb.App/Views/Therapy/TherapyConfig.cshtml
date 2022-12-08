@@ -1,0 +1,2700 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@using  Digistat.FrameworkStd.Enums
+@*@model TherapyConfigModel*@
+@{
+   ViewData["Title"] = "TherapyConfig";
+   var strGridName = "standard-operations-grid";
+   var strDetailsDivId = "StandardActionDetail";
+   var gridName = "AllowedDiluentsGrid";
+   var gridName2 = "AllowedRouteGrid";
+   var mixtureSelectWnd = "ComponentSelectionWindow";
+   var gridName3 = "MixtureComponents";
+   var gridName4 = "TabLinkResourcesGrid";
+   var gridName1 = "Profiles";
+   var gridNameR = "TabLinkResourcesGrid";
+   List<SelectListItem> itemsType = Enum
+    .GetValues(typeof(TherapyItemType))
+    .Cast<int>()
+    .Select(i => new SelectListItem
+    {
+       Value = i.ToString(),
+       Text = Enum.GetName(typeof(TherapyItemType), i),
+    }
+    )
+    .ToList();
+
+
+}
+
+<style>
+
+   label {
+      font-weight: bold;
+   }
+
+   .k-grid td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+   }
+
+   .subGridsTherapy {
+      width: 380px;
+      height: 150px;
+      position: relative;
+   }
+
+   .subGridsClassification {
+      width: 562px;
+      height: 200px;
+      position: relative;
+   }
+
+   .subGridsClassification2 {
+      width: 380px;
+      height: 200px;
+      position: relative;
+      right: 30%;
+   }
+
+   .scheduleGrid {
+      width: 300px;
+      height: 135px;
+   }
+
+   .gridCol {
+      position: relative;
+      min-height: 1px;
+      padding-right: 0px !important;
+      padding-left: 0px !important;
+   }
+
+   .multiDisable {
+      background-color: #c7cbce;
+   }
+
+   .window-footer {
+      position: absolute;
+      bottom: 0;
+      display: block;
+      width: 95%;
+      margin-top: 150px;
+      padding: 19px 0 20px;
+      text-align: right;
+      border-top: 1px solid #e5e5e5;
+   }
+
+   .k-multiselect.k-state-disabled .k-multiselect-wrap {
+      background-color: #e9ecef;
+   }
+
+   .mainLinkContainer {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+   }
+
+   .gridLinkTabContainer {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+   }
+
+   #tableProfiles {
+      display: flex;
+      flex-direction: row;
+      padding-bottom: 10px;
+   }
+
+   #tableResources {
+      display: flex;
+      flex-direction: row;
+   }
+
+   .linkGrids {
+      width: 1050px;
+      height: 150px;
+   }
+
+   .containerGridsQuantity {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      margin-top: 18px;
+      position: relative;
+      bottom: 35px;
+   }
+   .k-primary > k-button-solid-base
+   {
+       color:white;
+   }
+   .containerSingleGridQuantity {
+      display: flex;
+      flex-direction: row;
+      margin-top: 2px;
+      margin-bottom: 15px;
+   }
+
+   .unitValueText {
+      width: 70px;
+      margin-right: 16px;
+      height:30px;
+   }
+
+   .manual-grid {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      font-size: small;
+      border: 1px lightgray solid;
+      font-size: smaller;
+      padding-top: 10px;
+      width: 750px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+   }
+
+   .vertical-label {
+      width: 100px;
+   }
+
+
+/*   .k-numerictextbox {
+      width: 60px;
+      margin-right: 25px;
+   }*/
+
+   .k-state-disabled {
+      background-color: #e9ecef !important;
+      opacity: 0.8;
+      color: black !important;
+   }
+
+   .label-grid-horizontal > label {
+      margin-right: 57px;
+      font-size: 11px !important;
+      left: 119px !important;
+   }
+
+   .mainQuantityContainer {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+   }
+
+   .customSubGridsButtom {
+      margin-bottom: 10px;
+   }
+
+   .numericStyle {
+      width: 75px;
+      /*  display:none;*/
+   }
+
+   .numericStyleLarge {
+      width: 150px;
+      /*  display:none;*/
+   }
+</style>
+
+<div>
+
+
+
+
+   <div id="@strDetailsDivId"></div>
+
+   <div id="therapyConfigcontainer" class="card h-100 m-1 p-2 text-left">
+
+      @(Html.Kendo().Grid<TherapyItemModel>
+    ()
+    .Name(strGridName)
+    .Columns(columns =>
+    {
+       columns.Bound(e => e.Id).Visible(false);
+       columns.Bound(e => e.Name).Title(DicSvc.XLate("Name")).Width(400);
+       columns.Bound(e => e.Description).Title(DicSvc.XLate("Description")).Width(350);
+       columns.Bound(e => e.ItemTypeString).Title(DicSvc.XLate("Type")).Width(150).Filterable(ftb => ftb.Multi(true).CheckAll(true).BindTo(new[]{
+                                                       new { ItemTypeString = "Action" },
+                                                       new { ItemTypeString = "Mixture" },
+                                                       new { ItemTypeString = "Protocol" },
+                                                                                }));
+       columns.Bound(e => e.Classification.ClassCat).Title(DicSvc.XLate("Class")).Width(100);
+       columns.Bound(e => e.Classification.LocationName).Title(DicSvc.XLate("Location Name")).Width(150);
+       columns.Bound(e => e.ClassName).Title(DicSvc.XLate("Class Name")).Width(150);
+       columns.Bound(e => e.Classification.Incomplete).Title(DicSvc.XLate("Incomplete")).Width(150).ClientTemplate("<input class='check-col  k-checkbox k-checkbox-md k-rounded-md' disabled='disabled' type='checkbox' #=Classification.Incomplete ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" });
+    })
+    .Navigatable(true)
+    .UmsDefaultPager(DicSvc)
+    .UmsDefaultSettings(DicSvc)
+    //.Filterable(filterable => filterable
+    //    .Extra(false)
+    //    .Operators(operators => operators
+    //        .ForString(str => str.Clear()
+    //            .Contains("Contains")
+    //        ))
+    //    )
+    .Filterable()
+    .Events(ev => ev.DataBound("onDataBound"))
+    .DataSource(dataSource => dataSource
+    .Ajax()
+    .Model(model =>
+    {
+       model.Id(o => o.Id);
+       model.Field(o => o.Name).Editable(false);
+       model.Field(o => o.Description).Editable(false);
+       model.Field(o => o.ItemTypeString).Editable(false);
+       model.Field(o => o.Classification.ClassCat).Editable(false);
+       model.Field(o => o.Classification.LocationName).Editable(false);
+       model.Field(o => o.Classification.Incomplete).Editable(false);
+       model.Field(o => o.ClassName).Editable(false);
+    })
+    .PageSize(25)
+    .Read(read => read.Action("ReadFilteredStandardActions", "Therapy", new { LocationID = -1, type= 0 }))
+    )
+   .ToolBar(toolbar =>
+   {
+      toolbar.Custom().UmsGridButtonGeneric("btnNewAction", "New Action", "btnNewAction_Click()");
+      toolbar.Custom().UmsGridButtonGeneric("btnNewMixture", "New Mixture", "btnNewMixture_Click()");
+      toolbar.Custom().UmsGridButtonGeneric("btnNewProtocol", "New Protocol", "btnNewProtocol_Click()");
+   })
+   )
+
+   </div>
+
+
+</div>
+
+
+
+
+
+<script>
+
+   var itemSelected;
+         var lastChecked;
+         var lastCheckedD;
+         var lastCheckedR;
+         var kndWnd;
+         var enableGrids;
+         var startDaytoSet = "";
+         var arrayD = [];
+         var arrayH = [];
+         var multiSelectHourVal = [];
+         var tempHours = [];
+         var tempDays = [];
+         var multiSelectDayVal = [];
+         var rangeHour = 0;
+         var multyDk = 0;
+   var temp_multyDk = 0;
+
+   var enableGridCat = true;
+
+
+
+$(document).ready(function () {
+
+    if (!kndWnd) {
+        kndWnd = $('#@strDetailsDivId').umsKendoWindow({
+            title: 'Standard Action Detail',
+            height: 800,
+            width: 1000,
+            minHeight: 730,
+            maxHeight: "100%",
+            minWidth: 1300,
+            maxWidth: "100%",
+            top: 30
+        });
+    }
+    $.ajax({
+        url: '@Url.Action("CreateStandardItem", "Therapy")',
+        type: 'GET',
+        data: { strType: 0, itemIdToDuplicate : 0 },
+    }).done(function (dataHtml) {});
+});
+
+         // function Therapy
+         function noEditCheckbox() {
+            return false;
+         }
+
+         function resetFunctionalArrays() {
+            tempDays = [];
+            tempHours = [];
+            multiSelectDayVal = [];
+            multiSelectHourVal = [];
+         }
+
+         function NumericFilter(control) {
+      $(control).kendoNumericTextBox({ "format": "n0", "decimals": 0 });
+   }
+
+   function onDataBound(e) {
+      var grid = this;
+      grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+         function (e) {
+         var item = grid.dataItem($(e.target).closest('tr'));
+         onGridKeyEnter(item);
+      });
+   };
+
+   function onGridKeyEnter(item) {
+      var strItem = '0';
+      if (item) {
+         strItem = item.Id;
+      }
+      ShowStandardActionData(strItem);
+   };
+
+   function ShowStandardActionData(actionId) {
+      var strItem = '0';
+      if (actionId) {
+         strItem = actionId;
+      }
+      
+         kendo.ui.progress($("#therapyConfigcontainer"), true);
+         $.ajax({
+         url: '@Url.Action("CurrentStandardItem", "Therapy")',
+            type: 'GET',
+            data: { selectedItem: strItem },
+
+         })
+         .done(  function (data) {
+             kendo.ui.progress($("#therapyConfigcontainer"), false);
+             var wnd = kndWnd.data("kendoWindow");
+                $("html").css("overflow-y", "hidden");
+             wnd.content('');
+             wnd.content(data);
+             wnd.center().open();
+        });
+   };
+
+
+   function btnNewAction_Click()
+   {
+      type = "@TherapyItemType.Action.ToString()";
+      resetFunctionalArrays();
+      CreateTherapyItem(type);
+   };
+
+   function btnNewMixture_Click() {
+      type = "@TherapyItemType.Mixture.ToString()";
+      resetFunctionalArrays();
+      CreateTherapyItem(type);
+   };
+
+   function btnNewProtocol_Click() {
+      type = "@TherapyItemType.Protocol.ToString()";
+      resetFunctionalArrays();
+      CreateTherapyItem(type);
+   };
+
+   function CreateTherapyItem(type)
+   {
+      if (type)
+      {
+         var windowWidget = $("#@strDetailsDivId").data("kendoWindow");
+         kendo.ui.progress(windowWidget.element, true);
+         kendo.ui.progress($("#therapyConfigcontainer"), true);
+         $.ajax({
+            url: '@Url.Action("CreateStandardItem", "Therapy")',
+            type: 'GET',
+            data: { strType: type, itemIdToDuplicate : 0 },
+         })
+         .done(function (dataHtml) {
+            kendo.ui.progress($("#therapyConfigcontainer"), false);
+            var itemDialog = $('#@strDetailsDivId').data('kendoWindow');
+            itemDialog.content('');
+            itemDialog.content(dataHtml);
+            if (itemDialog.element.is(":hidden")) {
+
+               itemDialog.center();
+               itemDialog.open();
+            }
+         });
+         kendo.ui.progress(windowWidget.element, false);
+      }
+   };
+
+
+   function Schedule_clickAddCustom() {
+      var ptw = $("#stratingFromDetail").data("kendoWindow");
+      kendo.ui.progress(ptw.element, true);
+      if (ptw.element.is(":hidden")) {
+         ptw.open();
+
+         ptw.center();
+
+      }
+      kendo.ui.progress(ptw.element, false);
+      document.getElementById("okStartingWnd").setAttribute("onClick", "Schedule_stratingFromOkClick('custom');");
+   }
+
+
+
+   function RemoveLocationNull(dataSource, loc, gridName) {
+
+      if (loc != null) {
+         var temp_ds = dataSource;
+         for (var j = 0; j < dataSource.length; j++) {
+            if (dataSource[j].Classification.LocationRef == loc) {
+               var temp_Name = dataSource[j].Name;
+               for (var x = 0; x < dataSource.length; x++) {
+                  if (dataSource[x].Name == temp_Name && dataSource[x].Classification.LocationRef == null) {
+                     temp_ds.push(dataSource[x]);
+                  }
+               }
+            }
+         }
+         for (var y = 0; x < dataSource.length; y++) {
+            gridName.getKendoGrid().dataSource.remove(temp_ds[y]);
+
+
+         }
+      }
+   }
+
+   function Schedule_stratingFromOkClick(from) {
+
+      var dialog = $("#stratingFromDetail").data("kendoWindow");
+      var isEmpty = false;
+
+      if (from == 'starting') {
+         $("#onlyForCustom").css("display", "none");
+         if (document.getElementById('selStartingFromH').checked) {
+
+         $("#Schedule_StartingFrom").val("+H" + $("#StartingFromH").val())
+         }
+         if (document.getElementById('selStartingFromD').checked) {
+
+         $("#Schedule_StartingFrom").val("+D" + $("#StartingFromD").val())
+
+         }
+         if (document.getElementById('selStartingFromDA').checked) {
+            $("#Schedule_StartingFrom").val("+D" + $("#StartingFromDA").val() + " H" + $("#StartingFromDA1").val());
+
+         }
+
+         if (startDaytoSet == "1")
+         {
+         if ($("#StartingFromH").val() == "") {
+         $("#errStart").css("display", "block");
+         isEmpty = true;
+         }
+         }
+         if (startDaytoSet == "2")
+         {
+         if ($("#StartingFromD").val() == "") {
+         $("#errStart").css("display", "block");
+         isEmpty = true;
+         }
+         }
+         if (startDaytoSet == "3")
+         {
+         if ($("#StartingFromDA").val() == "" || $("#StartingFromDA1").val() == "" ) {
+         $("#errStart").css("display", "block");
+         isEmpty = true;
+         }
+         }
+         if (startDaytoSet == "4") {
+         if ($("#DayNumberCustom").val() == "") {
+         $("#errStart").css("display", "block");
+         isEmpty = true;
+         }
+         }
+         if (isEmpty) {
+         return false
+         } else {
+         if (document.getElementById('selStartingFromH').checked) {
+
+         $("#startingFromDesc").val("at " + $("#StartingFromH").val() + " hours");
+         }
+         if (document.getElementById('selStartingFromD').checked) {
+
+         $("#startingFromDesc").val("in " + $("#StartingFromD").val() + " days");
+
+         }
+         if (document.getElementById('selStartingFromDA').checked) {
+
+         $("#startingFromDesc").val("in " + $("#StartingFromDA").val() + " days at " + $("#StartingFromDA1").val());
+         //$("#Schedule_StartingFrom").val("+H" + $("#StartingFromDA").val() + "+D" + $("#StartingFromDA1").val())
+
+         }
+         $("#errStart").css("display", "none");
+         dialog.close();
+         return;
+         }
+
+
+         }
+
+        if (from == 'custom') {
+            let val = "";
+            let thDbValue = "";
+            if (document.getElementById('selStartingFromH').checked) {
+                let selection = $("#StartingFromH").val();
+                if (!selection) {
+                    return;
+                }
+                val = "at " + selection;
+                thDbValue = "H" + selection;
+            }
+            if (document.getElementById('selStartingFromD').checked) {
+                let selection = $("#StartingFromD").val()
+                if (!selection) {
+                    return;
+                }
+                val = "in " + selection + " hours";
+                thDbValue = "+H" + selection;
+            }
+            if (document.getElementById('selStartingFromDA').checked) {
+                let days = $("#StartingFromDA").val();
+                let hours = $("#StartingFromDA1").val();
+                if (!days || !hours) {
+                    return;
+                }
+                val = "in " + days + " days at " + hours;
+
+                thDbValue = "+D" + days + " H" + hours;
+            }
+
+            if (document.getElementById('selDay').checked) {
+                let dropCustomStart = $("#dropCustomDay").data("kendoDropDownList");
+                let text = dropCustomStart.text();
+                let dayNum = dropCustomStart.value();
+                let hours = $("#DayNumberCustom").val();
+                
+                if (!text || !hours) {
+                    return;
+                }
+
+                val = "on " + text + " at " + hours;
+                thDbValue = "W" + dayNum + " H" + hours;
+            }
+            
+            $("#onlyForCustom").css("display", "");
+
+         if (!isStartEdit) {
+               if (!document.getElementById('selStartingFromH').checked) {
+                  if (!document.getElementById('selStartingFromD').checked) {
+                     if (!document.getElementById('selDay').checked) {
+                        if (!document.getElementById('selStartingFromDA').checked) {
+                           $("#errStart").css("display", "block");
+                           return;
+                        }
+                     }
+                  }
+               }
+               ++countOfCustom;
+               $("#textCustom").append("<div class='row' class='rowCust' id='addToCust" + countOfCustom.toString() + "'><input id='addToCustV" + countOfCustom.toString() + "' value='" + val + "' style='cursor:pointer;width:70%;' type='text'  class='k-input k-textbox' readonly='readonly' /></div>");
+               document.getElementById("okStartingWnd").setAttribute("onClick", "Schedule_stratingFromOkClick('starting');");
+               var idCus = "addToCustV" + countOfCustom.toString();
+               var idCus1 = "addToCust" + countOfCustom.toString();
+               document.getElementById("addToCust" + countOfCustom.toString()).setAttribute("onclick", "changeIdSelected(" + idCus + "," + idCus1 + ");");
+                
+               $('#' + idCus).data("dbValue", thDbValue);
+           } else {
+               $('#' + selectedCustom).val(val);
+               $('#' + selectedCustom).data("dbValue", thDbValue);
+               $("#" + selectedCustom).css("border", "");
+        }
+
+        dialog.close();
+
+        isStartEdit = false;
+        selectedCustom = "";
+      }
+   }
+
+   function Schedule_patternOkClick(from) {
+
+   var dialog = $("#patternDetail").data("kendoWindow");
+   if (from == 'starting') {
+
+   if (document.getElementById('executeP').checked) {
+
+   $("#patternSchedule").val("At interval of " + $("#executePText2").val() + " hours");
+
+   }
+   if (document.getElementById('executeP2').checked) {
+
+   $("#patternSchedule").val("in " + $("#StartingFromD").val() + " days");
+
+
+   }
+   if (document.getElementById('executeP3').checked) {
+
+   $("#patternSchedule").val("in " + $("#StartingFromDA").val() + " days at " + $("#StartingFromDA1").val());
+
+   }
+
+
+   dialog.close();
+   return;
+
+   }
+   }
+
+   function changePlanningType(index, type) {
+ 
+      $("#colH").css("margin-bottom", "0px");
+      $("#colD").css("margin-bottom", "0px");
+      var sh = $("#Schedule_HowManyTimes").data("kendoNumericTextBox");
+      var tolerance = $("#Schedule_strTolerance").data("kendoDropDownList");
+      var policy = $("#Schedule_SchedPolicy").data("kendoDropDownList");
+      var caseSel = -1;
+      $("#mainScheduleContainer :input").prop("disabled", true);
+      $("#Schedule_PlanningType").prop("disabled", false);
+      $("#Schedule_TimeChangeType").prop("disabled", false);
+   
+      $(".timeChange").prop('disabled', false);
+      var selectedItemsFromMultiD = $("#MultiDays").data("kendoMultiSelect");
+      selectedItemsFromMultiD.value("");
+      var selectedItemsFromMulti = $("#MultiHours").data("kendoMultiSelect");
+      tolerance.enable(true);
+      selectedItemsFromMulti.enable(false);
+      selectedItemsFromMultiD.enable(false);
+
+      $("#Schedule_Repeat").prop("disabled", false);
+      $("#Schedule_HowManyTimes").prop("disabled", true);
+      $("#Schedule_HowManyTimes").prop("readonly", false);
+      switch (index) {
+      case -1:
+         policy.value("");
+         var selectedItemsFromMulti = $("#MultiHours").data("kendoMultiSelect");
+         selectedItemsFromMulti.enable(false);
+         var selectedItemsFromMultiD = $("#MultiDays").data("kendoMultiSelect");
+         selectedItemsFromMultiD.enable(false);
+         policy.enable(false);
+         $("#Schedule_Repeat").prop("disabled", true);
+      break;
+      case 0:
+      caseSel = 0;
+         $("#Schedule_HowManyTimes").prop("disabled", false);
+         $("#Schedule_HowManyTimes").prop("readonly", true);
+         policy.value("-4");
+         policy.enable(false);
+         $("#Schedule_Repeat").prop("disabled", true);
+         $("#Schedule_HowManyTimes").val("-1");
+      break;
+      case 1:
+         policy.enable(false);
+         $("#Schedule_Condition").prop("disabled", false);
+      break;
+      case 2:
+      caseSel = 2;
+         var selectedItemsFromMulti = $("#MultiHours").data("kendoMultiSelect");
+         selectedItemsFromMulti.enable(false);
+         $("#Schedule_HowManyTimes").prop("readonly", false);
+         $("#startingFromDesc").prop("disabled", false);
+         $("#Schedule_HowManyTimes").prop("disabled", false);
+         if (arrayH.length > 0) {
+            $("#Schedule_HowManyTimes").val(arrayH.length);
+         }
+         $("#Schedule_StartingFrom").prop("disabled", false);
+         $("#startingFromBtn").prop("disabled", false);
+         $("#SelectHoursBtn").prop("disabled", false);
+         $("#Schedule_Hours").prop("disabled", false);
+         policy.enable(true);
+         
+
+      break;
+         case 3:
+         caseSel = 3;
+         var selectedItemsFromMultiD = $("#MultiDays").data("kendoMultiSelect");
+         selectedItemsFromMultiD.enable(false);
+         var selectedItemsFromMulti = $("#MultiHours").data("kendoMultiSelect");
+         selectedItemsFromMulti.enable(false);
+         var selectedItemsFromMultiR = $("#MultiDaysR").data("kendoMultiSelect");
+         selectedItemsFromMultiR.enable(false);
+         $("#Schedule_HowManyTimes").prop("readonly", false);
+         $("#startingFromDesc").prop("disabled", false);
+         $("#Schedule_HowManyTimes").prop("disabled", false);
+         $("#Schedule_StartingFrom").prop("disabled", false);
+         if (arrayH.length > 0) {
+            $("#Schedule_HowManyTimes").val(arrayH.length);
+         }
+         $("#Schedule_Days").prop("disabled", false);
+         $("#Schedule_Hours").prop("disabled", false);
+         $("#startingFromBtn").prop("disabled", false);
+         $("#SelectDaysBtn").prop("disabled", false);
+         $("#SelectHoursBtn").prop("disabled", false);
+         policy.enable(true);
+
+      break;
+         case 4:
+            $("#Schedule_HowManyTimes").prop("disabled", false);
+            $("#Schedule_HowManyTimes").prop("readonly", true);
+         $("#patternButton").attr("disabled", false);
+         $("#patternSchedule").attr("disabled", false);
+         $("#Schedule_StartingFrom").prop("disabled", false);
+         $("#startingFromDesc").attr("disabled", false);
+         $("#startingFromBtn").attr("disabled", false);
+         policy.enable(true);
+      break;
+      case 5:
+         $("#Schedule_CustomOrders").prop("disabled", false);
+         $("#Schedule_CustomOrdersDesc").prop("disabled", false);
+         $("#customBtn").prop("disabled", false);
+         $("#Schedule_CustomOrdersDesc .k-textbox[disabled]").css("background-color", "white");
+         $("#Schedule_Repeat").prop("disabled", true);
+         policy.enable(true);
+
+      break;
+      default:
+       $("#mainScheduleContainer :input").prop("disabled", true);
+
+      }
+
+   if (type == "change") {
+      //tolerance.value("20");
+      $("#Schedule_Condition").val(null);
+      $("#Schedule_CustomOrders").val(null);
+      $("#Schedule_CustomOrdersDesc").val(null);
+      tempDays = [];
+      tempHours = [];
+      document.getElementById("okStartingWnd").setAttribute("onClick", "Schedule_stratingFromOkClick('starting');");
+
+      if (caseSel != 0) {
+      policy.value("0");
+      }
+      Schedule_changeClassButton(3);
+      if (index != 2) {
+      /*Schedule_ChangeDays("absoluteH", 1, false);*/
+
+      }
+
+      $("#colH").css("margin-bottom", "0");
+      $("#colD").css("margin-bottom", "0");
+
+      }
+      if (caseSel == 2) {
+      $("#colH .k-multiselect.k-disabled")[0].style.setProperty('background-color', 'white', 'important'); 
+      $("#colD .k-multiselect.k-disabled")[0].style.setProperty('background-color', '#e9ecef', 'important'); 
+
+      if (type == "change") {
+      $("#Schedule_HowManyTimes").val(null);
+      selectedItemsFromMulti.value("");
+      }
+      }
+      if (caseSel == 3) {
+      $("#colH .k-multiselect.k-disabled")[0].style.setProperty('background-color', 'white', 'important'); 
+      $("#colD .k-multiselect.k-disabled")[0].style.setProperty('background-color', 'white', 'important'); 
+      if (type == "change") {
+      $("#Schedule_HowManyTimes").val(0);
+      selectedItemsFromMultiD.value("");
+      selectedItemsFromMulti.value("");
+      multyDk = 0;
+      }
+      }
+      if (caseSel == -1 || caseSel == 0) {
+      $("#colH .k-multiselect.k-disabled")[0].style.setProperty('background-color', '#e9ecef', 'important'); 
+      $("#colD .k-multiselect.k-disabled")[0].style.setProperty('background-color', '#e9ecef', 'important'); 
+      if (type == "change") {
+      // if (caseSel != 1) { $("#Schedule_HowManyTimes").val(0); } else { $("#Schedule_HowManyTimes").val("-1"); }
+      selectedItemsFromMultiD.value("");
+      selectedItemsFromMulti.value("");
+      }
+
+      }
+
+      }
+
+   function Schedule_resetValue() {
+      var ex3 = $("#executePText3").data("kendoNumericTextBox");
+      var ex2 = $("#executePText2").data("kendoNumericTextBox");
+      var ex = $("#executePText").data("kendoNumericTextBox");
+      var drop1 = $("#dropPattern3").data("kendoDropDownList");
+      var drop2 = $("#dropPattern2").data("kendoDropDownList");
+      var drop3 = $("#dropCustomDay").data("kendoDropDownList");
+      $("#Schedule_SchedPolicy").val("0");
+      $("#Schedule_StartingFrom").val("");
+                                    rangeHour = 0;
+      $("#Schedule_HowManyTimes").val(null);
+      $('#mainScheduleContainer').find('input:text').val('');
+      $("#descCustom").val("");
+      $("#StartingFromH").val("");
+      $("#StartingFromD").val("");
+      $("#StartingFromDA").val("");
+      $("#StartingFromDA1").val("");
+      $("#DayNumberCustom").val("");
+      $("#DayNumberCustom").attr("disabled", false);
+      $("#StartingFromH").attr("disabled",false);
+      $("#StartingFromD").attr("disabled", false);
+      $("#StartingFromDA").attr("disabled", false);
+      $("#StartingFromDA1").attr("disabled", false);
+      $("#patternSchedule").attr("disabled", false);
+                                    document.getElementById('selStartingFromH').checked = false;
+                                    document.getElementById('selStartingFromD').checked = false;
+                                    document.getElementById('selStartingFromDA').checked = false;
+                                    document.getElementById('selDay').checked = false;
+      $("#Schedule_EveryTimesValue").val("0") ;
+      $("#Schedule_InTimesValue").val("0");
+                                    ex.value(0);
+                                    ex3.value(0);
+                                    ex2.value(0);
+                                    ex.enable(true);
+                                    ex3.enable(true);
+                                    ex2.enable(true);
+                                    drop2.value(null);
+                                    drop2.enable(true);
+                                    drop1.value(null);
+                                    drop1.enable(true);
+                                    drop3.value(0);
+                                    drop3.enable(true);
+                                    var selectedItemsFromMultiD = $("#MultiDays").data("kendoMultiSelect");
+                                    selectedItemsFromMultiD.value("");
+                                    var selectedItemsFromMultiDR = $("#MultiDaysR").data("kendoMultiSelect");
+                                    selectedItemsFromMultiDR.value("");
+                                    var selectedItemsFromMultiH = $("#MultiHours").data("kendoMultiSelect");
+                                    selectedItemsFromMultiH.value("");
+                                    tempHours = [];
+                                    multiSelectHourVal = [];
+                                    multiSelectDayVal = [];
+                                    Schedule_changeClassButton(2);
+
+                                    }
+
+
+                                    function Schedule_changeClassButton(type,type2) {
+
+                                       if (type == 1 || type==3) {
+                                          Schedule_ChangeDays("absoluteH", "onClick",false);
+                                       }
+
+                                       if (type == 2 || type == 3) {
+                                          var container2 = document.querySelector("#buttnHoursGrid");
+                                          var matches2 = container2.querySelectorAll("input[type='button']");
+
+                                          for (var x = 0; x <= 23; x++) {
+                                             matches2[x].className = "k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base";
+                                          }
+                                          
+                                          tempHours = [];
+                                          if (type2 == null) {
+                                             multiSelectHourVal = [];
+                                          }
+                                       }
+
+
+                                    }
+
+                                    function Schedule_setLimitToMultiselect() {
+                                       var selectedItemsFromMulti = $("#MultiHours").data("kendoMultiSelect");
+                                       tempHours = [];
+                                       rangeHour = 0;
+
+                                       selectedItemsFromMulti.value("");
+
+                                       Schedule_changeClassButton(2);
+
+                                       Schedule_ResetMultiHoursHeight(tempHours.length);
+
+                                    }
+
+   function Schedule_addHours(id, val, isAll) {
+       
+    var multiselect = $("#MultiHours").data("kendoMultiSelect");
+    if ((document.getElementById(id).className.includes("k-button-solid-primary") && isAll == 'false') || isAll == 'none') {
+    document.getElementById(id).classList.remove("k-button-solid-primary");
+    document.getElementById(id).classList.add("k-button-solid-base");
+    if (isAll == 'none') {
+    tempHours = [];
+    rangeHour = 0;
+
+    }
+    else {
+    tempHours.pop(val);
+    --rangeHour;
+    }
+    $("#Schedule_HowManyTimes").val(rangeHour);
+
+    }
+    else {
+    document.getElementById(id).classList.add("k-button-solid-primary");
+    if (isAll != 'read') {
+    tempHours.push(val);
+                                             
+    $("#Schedule_HowManyTimes").val(rangeHour+1);
+    ++rangeHour;
+
+    }
+    if (isAll == true) {
+    rangeHour = 23;
+    }
+
+
+    }
+    //++rangeHour;
+    Schedule_ResetMultiHoursHeight(tempHours.length);
+
+    if (isAll) {
+    multiselect.options.maxSelectedItems = 30;
+    }
+    multiselect.value(tempHours);
+    multiselect.trigger("change");
+
+    }
+
+    function Schedule_addDays(id, val, type) {
+
+    var isA = false;
+    var multiselect = $("#MultiDays").data("kendoMultiSelect");
+    var multiselectR = $("#MultiDaysR").data("kendoMultiSelect");
+
+    if (document.getElementById(id).className.includes("k-button-solid-primary") && type == 'false') {
+    document.getElementById(id).classList.remove("k-button-solid-primary");
+    tempDays.remove(val);
+
+    }
+    else {
+    document.getElementById(id).classList.add("k-button-solid-primary");
+    if (type != 'read') {
+    tempDays.push(val);
+    }
+    }
+
+
+    if (id.includes('R')) {
+        multiselectR.value(tempDays);
+        isA = false;
+        multiselectR.trigger("change");
+
+    }
+    else {
+    multiselect.value(tempDays);
+    isA = true;
+    multiselect.trigger("change");
+    }
+
+
+}
+
+
+
+         function Therapy_RadioGrids_ValueChanged(name, type) {
+
+                  var sh = $("#StartingFromH").data("kendoNumericTextBox");
+                  var sd = $("#StartingFromD").data("kendoNumericTextBox");
+                  var sda = $("#StartingFromDA").data("kendoNumericTextBox");
+                  var sda1 = $("#StartingFromDA1").data("kendoNumericTextBox");
+            var daysc = $("#DayNumberCustom").data("kendoNumericTextBox");
+
+                  var drop1 = $("#dropCustomDay").data("kendoDropDownList");
+            if (type == 0) {
+               sh.value('');
+               sd.value('');
+               sda.value('');
+               sda1.value('');
+                  if (name == "selStartingFromH") {
+                  document.getElementById("selStartingFromH").checked = true;
+                  document.getElementById("selStartingFromD").checked = false;
+                  document.getElementById("selStartingFromDA").checked = false;
+                  document.getElementById("selDay").checked = false;
+                  sh.enable(true);
+                  sd.enable(false);
+                  sda.enable(false);
+                  sda1.enable(false);
+                     daysc.enable(false);
+                  drop1.enable(false);
+                  startDaytoSet = "1";
+                  }
+                  if (name == "selStartingFromD") {
+                  document.getElementById("selStartingFromD").checked = true
+                  document.getElementById("selStartingFromH").checked = false;
+                  document.getElementById("selStartingFromDA").checked = false;
+                  document.getElementById("selDay").checked = false;
+                  sh.enable(false);
+                  sd.enable(true);
+                  sda.enable(false);
+                  sda1.enable(false);
+                     daysc.enable(false);
+                  drop1.enable(false);
+
+                  startDaytoSet = "2";
+                  }
+                  if (name == "selStartingFromDA") {
+                  document.getElementById("selStartingFromDA").checked = true
+                  document.getElementById("selStartingFromH").checked = false;
+                  document.getElementById("selStartingFromD").checked = false;
+                  document.getElementById("selDay").checked = false;
+                     sh.enable(false);
+                     sd.enable(false);
+                     sda.enable(true);
+                     sda1.enable(true);
+                     daysc.enable(false);
+                  drop1.enable(false);
+
+                  startDaytoSet = "3";
+                  }
+                  if (name == "selDay") {
+                  document.getElementById("selStartingFromDA").checked = false
+                  document.getElementById("selStartingFromH").checked = false;
+                  document.getElementById("selStartingFromD").checked = false;
+                  document.getElementById("selDay").checked = true;
+                     sh.enable(false);
+                     sd.enable(false);
+                     sda.enable(false);
+                     sda1.enable(false);
+                     daysc.enable(true);
+                  drop1.enable(true);
+
+                  startDaytoSet = "4";
+                  }
+                  }
+                  if (type == 1) {
+                  if (name == "absoluteH") {
+                  document.getElementById("absoluteH").checked = true;
+                  document.getElementById("relativeH").checked = false;
+                  }
+                  if (name == "relativeH") {
+                  document.getElementById("relativeH").checked = true
+                  document.getElementById("absoluteH").checked = false;
+                  }
+                  }
+                  if (type == 2) {
+
+                  if (name == 0) {
+                  document.getElementById("NotimeChange").checked = true;
+                  document.getElementById("YestimeChange").checked = false;
+                  document.getElementById("YesByDefaulttimeChange").checked = false;
+                  }
+                  if (name == 1) {
+                  document.getElementById("NotimeChange").checked = false;
+                  document.getElementById("YesByDefaulttimeChange").checked = false;
+                  document.getElementById("YestimeChange").checked = true;
+                  }
+                  if (name == 2) {
+                     document.getElementById("NotimeChange").checked = false;
+                     document.getElementById("YesByDefaulttimeChange").checked = true;
+                     document.getElementById("YestimeChange").checked = false;
+
+                     }
+
+                  $("#Schedule_TimeChangeType").val(name);
+                     }
+                     if (type == 3) {
+                        var drop2 = $("#dropPattern2").data("kendoDropDownList");
+                        var drop3 = $("#dropPattern3").data("kendoDropDownList");
+                        var ex3 = $("#executePText3").data("kendoNumericTextBox");
+                        var ex2 = $("#executePText2").data("kendoNumericTextBox");
+                        var ex = $("#executePText").data("kendoNumericTextBox");
+
+                        if (name == "executeP") {
+                           document.getElementById("executeP").checked = true;
+                           document.getElementById("executeP2").checked = false;
+                           document.getElementById("executeP3").checked = false;
+                           ex.enable(false);
+                           ex2.enable(true);
+                           ex3.enable(true);
+                           drop2.enable(true);
+                           drop3.enable(true);
+                           if ($("#executePText2").val() != "" && $("#executePText3").val() != "") {
+                  calculatePattern(1);
+                  }
+                  }
+                  if (name == "executeP2") {
+                  document.getElementById("executeP").checked = false;
+                  document.getElementById("executeP2").checked = true;
+                  document.getElementById("executeP3").checked = false;
+                  ex.enable(true);
+                  ex2.enable(false);
+                  ex3.enable(true);
+                  drop2.enable(false);
+                  drop3.enable(true);
+                  if ($("#executePText").val() != "" && $("#executePText3").val() != "") {
+                  calculatePattern(2);
+                  }
+                  }
+                  if (name == "executeP3") {
+                  document.getElementById("executeP").checked = false;
+                  document.getElementById("executeP2").checked = false;
+                  document.getElementById("executeP3").checked = true;
+                  ex.enable(true);
+                  ex2.enable(true);
+                  ex3.enable(false);
+                  drop2.enable(true);
+                  drop3.enable(false);
+                  if ($("#executePText").val() != "" && $("#executePText2").val() != "") {
+                  calculatePattern(3);
+                  }
+                  }
+                  }
+                  }
+
+                                    function Schedule_selectAllHours() {
+
+                                       tempHours=[]
+                                       for (var j = 0; j <= 23; j++) {
+                                          Schedule_addHours("hour_" + j.toString(), j, true);
+                                       }
+                                    }
+
+                                    function Schedule_noneSelectHours() {
+                                       tempHours = [];
+                                       for (var j = 0; j <= 23; j++) {
+                                          Schedule_addHours("hour_" + j.toString(), j, 'none');
+                                       }
+                                    }
+
+                                    function Schedule_evenHours() {
+                                       Schedule_noneSelectHours();
+                                       Schedule_changeClassButton(2,"read");
+                                       for (var j = 0; j <= 23; j++) {
+                                          if (j % 2 == 0) {
+                                             Schedule_addHours("hour_" + j.toString(), j, false);
+                                          }
+                                       }
+                                    }
+
+                                    function Schedule_oddHours() {
+                                       Schedule_noneSelectHours();
+                                       Schedule_changeClassButton(2,"read");
+                                       for (var j = 0; j <= 23; j++) {
+
+                                          if (j % 2 != 0) {
+                                             Schedule_addHours("hour_" + j.toString(), j, false);
+                                          }
+                                       }
+                                    }
+
+
+        function AllowDiluents_OnClick(e) {
+            
+            $("#removeDiluents").css("display", "none");
+            var checkBox = $(".checkBoxCustomDiluents");
+            for (var i = 0; i < checkBox.length; i++) {
+                
+            var checkProp = $(checkBox[i].firstChild);
+            checkProp.prop("checked", false);
+            checkProp.attr("aria-checked", "false");
+         
+            }
+            var grid = $("#@gridName").data("kendoGrid");
+            var row = $(e.target).closest("tr");
+            var newId = $('#AllowedDiluentsGrid_active_cell')[0].firstChild;
+            $(newId).prop("checked", true);
+            $(newId).attr("aria-checked", "true");
+
+            if (row.hasClass("k-state-selected")) {
+            setTimeout(function (e) {
+            var grid = $("#@gridName").data("kendoGrid");
+            grid.clearSelection();
+            })
+            } else {
+            grid.clearSelection();
+            };
+            AllowDiluents_UpdateDatasource();
+            tdaD = row[0].innerText;
+            lastCheckedD = newId;
+            e.stopImmediatePropagation();
+        };
+
+   function AllowDiluents_Grid_save(e) {
+
+         var checkBox = $(".checkBoxCustomDiluents");
+         var grid = $("#@gridName").data("kendoGrid");
+         var datasource = $("#@gridName").data("kendoGrid").dataSource;
+         if (checkBox.length > 0) {
+
+         var data = datasource.data();
+         var i;
+         var count = 0;
+         for (i = 0; i < data.length; i++) {
+         var tempName = data[i].Name.replaceAll(' ', '').toUpperCase();
+         //var sender = e.model.Name.replaceAll(' ', '').toUpperCase();
+         var sender = e.replaceAll(' ', '').toUpperCase();
+         if (tempName == sender) {
+         count++;
+         }
+         if (count >= 1) {
+            $("#waysError1D").css("display", "none");
+            $("#waysErrorD").css("display", "block");
+         return false;
+         }
+
+         }
+         if ($("#NameD").val() == "") {
+         //alert("Name is required");
+            $("#waysError1D").css("display", "block");
+            $("#waysErrorD").css("display", "none");
+         return false;
+         }
+         if (datasource._data.length == 0) {
+         datasource.insert({ Name: e, Enabled: true });
+            $("#removeDiluents").css("display", "block");
+
+         grid.select("tr:eq(0)");
+         var dataItem = grid.dataItem("tr:eq(0)");
+         dataItem.Enabled = true;
+
+         }
+         else {
+
+         datasource.insert({ Name: e, Enabled: false });
+         }
+
+         var checkInputs = grid.dataItems(checkBox);
+         for (var i = 1; i < checkBox.length ; i++) {
+
+         var id = $(checkBox[i].firstChild);
+         if (checkInputs[i].Enabled == true) {
+
+
+         $(id).attr("checked", true);
+         //grid.select("tr:eq(" +i.toString()+")");
+         }
+         else {
+         $(id).attr("checked", false);
+         }
+         }
+         }
+         else
+         {
+            if ($("#NameD").val() == "") {
+               //alert("Name is required");
+               $("#waysError1D").css("display", "block");
+               $("#waysErrorD").css("display", "none");
+
+               return false;
+            }
+         datasource.insert({ Name: e, Enabled: true });
+         grid.select("tr:eq(0)");
+         var dataItem = grid.dataItem("tr:eq(0)");
+            dataItem.Enabled = true;
+            $("#removeDiluents").css("display", "block");
+
+         }
+
+      $("#waysError1D").css("display", "none");
+      $("#waysErrorD").css("display", "none");
+      $("#NameD").val("");
+
+      var dialog = $("#editGridWndwD").data("kendoWindow");
+
+         dialog.close();
+         return true;
+   };
+
+   function AllowDiluents_UpdateDatasource() {
+
+      var checkBox = $(".checkBoxCustomDiluents");
+      var count = 0;
+      for (var j = 0; j < checkBox.length; j++) {
+         if (checkBox[j].firstChild.checked == true) {
+            ++count;
+         }
+      }
+      var grid = $("#@gridName").data("kendoGrid");
+      var data = $("#@gridName").data("kendoGrid").dataSource;
+      var checkInputs = grid.dataItems(checkBox);
+      var dataItem = grid.dataItem($("#AllowedDiluentsGrid_active_cell").closest("tr"));
+      for (i = 0; i < checkInputs.length; i++) {
+         if (count > 0) {
+            if (checkInputs[i].Name != dataItem.Name) {
+               checkInputs[i].Enabled = false;
+            }
+            else {
+
+               checkInputs[i].Enabled = true;
+            }
+         }
+         else {
+            checkInputs[i].Enabled = false;
+         }
+      }
+
+
+   }
+
+   function loadDiluentsTable() {
+      var grid = $("#@gridName").data("kendoGrid");
+         grid.tbody.on("click", ".k-checkbox", AllowDiluents_OnClick);
+            var checkBox = $(".checkBoxCustomDiluents");
+      for (var i = 0; i < checkBox.length; i++) {
+           var checkProp = $(checkBox[i].firstChild);
+           var singleCheck = $(checkBox[i])
+         if (checkProp.prop("checked") == true) {
+             
+            tdaD = singleCheck[0].parentNode.cells[1].textContent;
+         }
+   }
+   }
+   var tdAres;
+   function loadResourceTable() {
+
+      var grid = $("#@gridNameR").data("kendoGrid");
+         grid.tbody.on("click", ".k-checkbox", AllowResources_OnClick);
+      var checkBox = $(".checkBoxCustomResource");
+      for (var i = 0; i < checkBox.length; i++) {
+         var checkProp = $(checkBox[i].firstChild);
+         if (checkProp.prop("checked") == true) {
+           
+            tdAres = checkBox[i].parentNode.textContent;
+         }
+      }
+   }
+   function AllowRoutes_OnClick(e) {
+           
+      $("#removeRoutes").css("display", "none");
+      var checkBox = $(".checkBoxCustomRoute");
+      for (var i = 0; i < checkBox.length; i++) {
+       
+         var checkProp = $(checkBox[i].firstChild);
+         checkProp.prop("checked", false);
+         checkProp.attr("aria-checked", "false");
+
+      }
+      var grid = $("#@gridName2").data("kendoGrid");
+      var row = $(e.target).closest("tr");
+      var newId = $('#AllowedRouteGrid_active_cell')[0].firstChild;
+
+
+         $(newId).prop("checked", true);
+         $(newId).attr("aria-checked", "true");
+
+      if (row.hasClass("k-state-selected")) {
+         setTimeout(function (e) {
+            var grid = $("#@gridName2").data("kendoGrid");
+            grid.clearSelection();
+         })
+      } else {
+         grid.clearSelection();
+      };
+
+      AllowRoutes_UpdateDatasource();
+      tdA = row[0].innerText;
+      lastChecked = newId;
+   //   $("#removeRoutes").css("display", "block");
+      @*$(e.delegateTarget.childNodes[0])[0].outerHTML.replace("class='k-state-selected'", "");
+        var grid = $("#@gridName2").data("kendoGrid");
+            grid.clearSelection();*@
+      e.stopImmediatePropagation();
+   };
+
+   function AllowRoutes_GridSave(e) {
+
+      var checkBox = $(".checkBoxCustomRoute");
+       var grid = $("#@gridName2").data("kendoGrid");
+         var datasource = $("#@gridName2").data("kendoGrid").dataSource;
+      if (checkBox.length > 0) {
+
+         var data = datasource.data();
+         var i;
+         var count = 0;
+         for (i = 0; i < data.length; i++) {
+            var tempName = data[i].Name.replaceAll(' ', '').toUpperCase();
+            //var sender = e.model.Name.replaceAll(' ', '').toUpperCase();
+            var sender = e.replaceAll(' ', '').toUpperCase();
+            if (tempName == sender) {
+               count++;
+            }
+            if (count >= 1) {
+               //alert("This Way already exist");
+               $("#waysError").css("display", "block");
+               $("#waysError1").css("display", "none");
+
+               return false;
+            }
+
+         }
+         if ($("#Name").val() == "") {
+            //alert("Name is required");
+            $("#waysError1").css("display", "block");
+            $("#waysError").css("display", "none");
+
+            return false;
+         }
+         if (datasource._data.length == 0) {
+            if ($("#Name").val() == "") {
+               //alert("Name is required");
+               $("#waysError1").css("display", "block");
+               $("#waysError").css("display", "none");
+
+               return false;
+            }
+            datasource.insert({ Name: e, Enabled: true });
+            grid.select("tr:eq(0)");
+            var dataItem = grid.dataItem("tr:eq(0)");
+            $("#removeRoutes").css("display", "block");
+
+            dataItem.Enabled = true;
+
+         }
+         else {
+
+            datasource.insert({ Name: e, Enabled: false });
+         }
+
+         var checkInputs = grid.dataItems(checkBox);
+         for (var i = 1; i < checkBox.length ; i++) {
+
+            var id = $(checkBox[i].firstChild);
+            if (checkInputs[i].Enabled == true) {
+
+
+               $(id).attr("checked", true);
+               //grid.select("tr:eq(" +i.toString()+")");
+            }
+            else {
+               $(id).attr("checked", false);
+            }
+         }
+      }
+      else
+      {
+         if ($("#Name").val() == "") {
+            //alert("Name is required");
+            $("#waysError1").css("display", "block");
+            $("#waysError").css("display", "none");
+
+            return false;
+         }
+         datasource.insert({ Name: e, Enabled: true });
+         grid.select("tr:eq(0)");
+         var dataItem = grid.dataItem("tr:eq(0)");
+         dataItem.Enabled = true;
+         $("#removeRoutes").css("display", "block");
+
+      }
+
+
+      $("#waysError").css("display", "none");
+      $("#waysError1").css("display", "none");
+      $("#Name").val("");
+
+      var dialog = $("#editGridWndw").data("kendoWindow");
+
+      dialog.close();
+         return true;
+
+   };
+   function loadRouteTable() {
+
+         var grid = $("#@gridName2").data("kendoGrid");
+      grid.tbody.on("click", ".k-checkbox", AllowRoutes_OnClick);
+         //grid.bind("save", grid_saveR);
+      var checkBox = $(".checkBoxCustomRoute");
+      for (var i = 0; i < checkBox.length; i++) {
+           var checkProp = $(checkBox[i].firstChild);
+           var singleCheck = $(checkBox[i])
+         if (checkProp.prop("checked") == true) {
+             
+            tdA = singleCheck[0].parentNode.cells[1].textContent;
+         }
+      }
+
+   }
+   function AllowRoutes_UpdateDatasource() {
+
+
+      var checkBox = $(".checkBoxCustomRoute");
+      var count = 0;
+      for (var j = 0; j < checkBox.length; j++) {
+         if (checkBox[j].firstChild.checked == true) {
+            ++count;
+         }
+      }
+      var grid = $("#@gridName2").data("kendoGrid");
+      var data = $("#@gridName2").data("kendoGrid").dataSource;
+      var checkInputs = grid.dataItems(checkBox);
+      var dataItem = grid.dataItem($("#AllowedRouteGrid_active_cell").closest("tr"));
+
+      for (i = 0; i < checkInputs.length; i++) {
+         if (count > 0) {
+            if (checkInputs[i].Name != dataItem.Name) {
+               checkInputs[i].Enabled = false;
+            }
+            else {
+               checkInputs[i].Enabled = true;
+
+            }
+         }
+         else {
+            checkInputs[i].Enabled = false;
+         }
+      }
+
+
+
+   }
+
+   function Properties_ValueChangedProp(value, type) {
+
+      if (type == 1) {
+         if (value == 0) {
+            document.getElementById("0preparationTypeSel").checked = true;
+            document.getElementById("1preparationTypeSel").checked = false;
+            document.getElementById("2preparationTypeSel").checked = false;
+         }
+         if (value == 1) {
+            document.getElementById("0preparationTypeSel").checked = false;
+            document.getElementById("1preparationTypeSel").checked = true;
+            document.getElementById("2preparationTypeSel").checked = false;
+         }
+         if (value == 2) {
+            document.getElementById("0preparationTypeSel").checked = false;
+            document.getElementById("1preparationTypeSel").checked = false;
+            document.getElementById("2preparationTypeSel").checked = true;
+
+         }
+         $("#Properties_PreparationType").val(value);
+      }
+      if (type == 2) {
+         if (value == 0) {
+            document.getElementById("0fluidBlType").checked = true;
+            document.getElementById("1fluidBlType").checked = false;
+            document.getElementById("2fluidBlType").checked = false;
+            document.getElementById("3fluidBlType").checked = false;
+         }
+         if (value == 1) {
+            document.getElementById("0fluidBlType").checked = false;
+            document.getElementById("1fluidBlType").checked = true;
+            document.getElementById("2fluidBlType").checked = false;
+            document.getElementById("3fluidBlType").checked = false;
+         }
+         if (value == 2) {
+            document.getElementById("0fluidBlType").checked = false;
+            document.getElementById("1fluidBlType").checked = false;
+            document.getElementById("2fluidBlType").checked = true;
+            document.getElementById("3fluidBlType").checked = false;
+
+         }
+         if (value == 3) {
+            document.getElementById("0fluidBlType").checked = false;
+            document.getElementById("1fluidBlType").checked = false;
+            document.getElementById("2fluidBlType").checked = false;
+            document.getElementById("3fluidBlType").checked = true;
+
+         }
+         $("#Properties_FluidBalanceType").val(value);
+      }
+      if (type == 3) {
+         if (value == 0) {
+            document.getElementById("0SignatureSel").checked = true;
+            document.getElementById("1SignatureSel").checked = false;
+            document.getElementById("2SignatureSel").checked = false;
+         }
+         if (value == 1) {
+            document.getElementById("0SignatureSel").checked = false;
+            document.getElementById("1SignatureSel").checked = true;
+            document.getElementById("2SignatureSel").checked = false;
+         }
+         if (value == 2) {
+            document.getElementById("0SignatureSel").checked = false;
+            document.getElementById("1SignatureSel").checked = false;
+            document.getElementById("2SignatureSel").checked = true;
+
+         }
+
+         $("#Properties_SecondSignatureType").val(value);
+
+      }
+      if (type == 4) {
+         if (value == 0) {
+            document.getElementById("0ValTypeSel").checked = true;
+            document.getElementById("1ValTypeSel").checked = false;
+            document.getElementById("2ValTypeSel").checked = false;
+         }
+         if (value == 1) {
+            document.getElementById("0ValTypeSel").checked = false;
+            document.getElementById("1ValTypeSel").checked = true;
+            document.getElementById("2ValTypeSel").checked = false;
+         }
+         if (value == 2) {
+            document.getElementById("0ValTypeSel").checked = false;
+            document.getElementById("1ValTypeSel").checked = false;
+            document.getElementById("2ValTypeSel").checked = true;
+
+         }
+
+         $("#Properties_ValidationType").val(value);
+
+      }
+
+      if (type == 5) {
+         if (value == 0) {
+            document.getElementById("0SignatureSel1").checked = true;
+            document.getElementById("1SignatureSel1").checked = false;
+            document.getElementById("2SignatureSel1").checked = false;
+         }
+         if (value == 1) {
+            document.getElementById("0SignatureSel1").checked = false;
+            document.getElementById("1SignatureSel1").checked = true;
+            document.getElementById("2SignatureSel1").checked = false;
+         }
+         if (value == 2) {
+            document.getElementById("0SignatureSel1").checked = false;
+            document.getElementById("1SignatureSel1").checked = false;
+            document.getElementById("2SignatureSel1").checked = true;
+
+         }
+
+         $("#Properties_SecondSignatureExecType").val(value);
+
+      }
+   }
+
+
+   function ShowStandardActionMixtureComponent() {
+      var ww = $("#@mixtureSelectWnd").data("kendoWindow");
+      kendo.ui.progress(ww.element, true);
+      if (ww.element.is(":hidden")) {
+         ww.center();
+         ww.open();
+      }
+      kendo.ui.progress(ww.element, false);
+   };
+
+   function hasWhiteSpace(s) {
+      return (/\s/).test(s);
+   }
+
+
+   function Schedule_LoadMultiEditValues() {
+      rangeHour = 0;
+      var isA = false;
+      multiSelectDayVal = [];
+      multiSelectHourVal = [];
+      tempDays = [];
+      tempHours = [];
+      arrayH = [];
+      arrayD = [];
+      if ($("#Schedule_Days").val() != "") {
+         arrayD = $("#Schedule_Days").val().split(",").map(s => s.trim());
+      }
+      var selectedItemsFromMultiD;
+      if (arrayD.length > 0) {
+
+         if (arrayD[0].includes('+')) {
+            selectedItemsFromMultiD = $("#MultiDaysR").data("kendoMultiSelect");
+            selectedItemsFromMultiD.enable(false);
+            isA = false;
+         }
+         else {
+            selectedItemsFromMultiD = $("#MultiDays").data("kendoMultiSelect");
+            selectedItemsFromMultiD.enable(false);
+            isA = true;
+         }
+
+            for (var i = 0; i < arrayD.length; i++) {
+               arrayD[i] = parseInt(arrayD[i].slice(-1));
+            }
+
+
+
+         for (var j = 0; j < arrayD.length; j++) {
+            multiSelectDayVal.push(arrayD[j].toString());
+            tempDays.push(arrayD[j].toString());
+         }
+         selectedItemsFromMultiD.value(multiSelectDayVal);
+
+      }
+      else {
+         selectedItemsFromMultiD = $("#MultiDays").data("kendoMultiSelect");
+         selectedItemsFromMultiD.enable(false);
+         selectedItemsFromMultiD.value(null);
+
+      }
+      if (hasWhiteSpace($("#Schedule_Hours").val())) {
+
+         var y = $("#Schedule_Hours").val().replace(/\s/g, "");
+         arrayH = y.split(',');
+
+
+      }
+      else {
+         arrayH =  $("#Schedule_Hours").val().split(',');
+      }
+
+      for (var i = 0; i < arrayH.length; i++) {
+         if (arrayH[i].length == 2) {
+            if (arrayH[i].charAt(0) == '0' && arrayH[i].charAt(1) != '0') {
+               arrayH[i] = arrayH[i].charAt(1).toString();
+            }
+         }
+
+
+      }
+      if (arrayH.length == 1) {
+         if (arrayH[0] == '') {
+            arrayH = [];
+         }
+      }
+
+      var selectedItemsFromMulti = $("#MultiHours").data("kendoMultiSelect");
+      selectedItemsFromMulti.enable(false);
+      selectedItemsFromMulti.value(arrayH);
+
+      for (var j = 0; j < arrayH.length; j++) {
+         multiSelectHourVal.push(arrayH[j]);
+         tempHours.push(arrayH[j]);
+      }
+
+
+      tempHours = arrayH;
+
+      Schedule_ResetMultiHoursHeight(arrayH.length);
+
+      if (arrayH.length == 24) {
+         $("#colH").css("margin-bottom", "28px");
+      }
+      if (arrayD.length == 0) {
+         $("#colD").css("margin-bottom", "0px");
+      }
+      if (arrayD.length >= 5 && isA) {
+         $("#colD").css("margin-bottom", "0px");
+      }
+
+   }
+
+
+
+   function Schedule_ResetMultiHoursHeight(lengthM) {
+
+
+      if (lengthM <= 5) {
+         $("#colH").css("margin-bottom", "0px");
+      }
+      if (lengthM ==8) {
+         $("#colH").css("margin-bottom", "0px");
+      }
+
+      if (lengthM >= 12 && lengthM <= 18) {
+         $("#colH").css("margin-bottom", "0");
+      }
+      if (lengthM >18) {
+         $("#colH").css("margin-bottom", "0");
+      }
+      if (lengthM >= 22) {
+         $("#colH").css("margin-bottom", "28px");
+      }
+   }
+
+   function AllowResources_OnClick(e) {
+
+      var currentId = e.currentTarget;
+      
+      var container = document.querySelector("#TabLinkResourcesGrid");
+      var matches = container.querySelectorAll("tr");
+      for (var j = 0; j < matches.length; j++) {
+         if (matches[j].id == "TabLinkResourcesGrid_active_cell") {
+            matches[j].id = "";
+            matches[j].class = "";
+
+         }
+         if (matches[j] == e.currentTarget) {
+            matches[j].id = "TabLinkResourcesGrid_active_cell";
+            matches[j].class = "k-state-selected";
+         }
+      }
+      if ($(currentId).prop("checked") == true) {
+         var checkBox = $(".checkBoxCustomResource");
+         for (var i = 0; i < checkBox.length; i++) {
+             var checkProp = $(checkBox[i].firstChild);
+            checkProp.prop("checked", false);
+            checkProp.attr("aria-checked", "false");
+
+         }
+
+         var grid = $("#@gridName4").data("kendoGrid");
+         var row = $(e.target).closest("tr");
+         grid.clearSelection();
+         $(currentId).prop("checked",true);
+         $(currentId).attr("aria-checked", "true");
+         var newId = $('#TabLinkResourcesGrid_active_cell')[0].firstChild;
+         
+         if (newId == "") {
+            newId = $('#TabLinkResourcesGrid_active_cell')[0].children[1].firstChild;
+         }
+         //if (lastCheckedR != newId) {
+         //   $( newId).prop("checked", true);
+         //   $(newId).attr("aria-checked", "true");
+         //}
+         //else {
+         //   $(newId).prop("checked", false);
+         //   $(newId).attr("aria-checked", "false");
+         //}
+         
+         Resource_updateDatasource();
+         tdAres = row[0].innerText;
+         lastCheckedR = $(currentId);
+      }
+      else {
+          var grid = $("#@gridName4").data("kendoGrid");
+          grid.clearSelection();
+          $(currentId).prop("checked",true);
+          $(currentId).attr("aria-checked", "true");
+      }
+      $("#btnMoveResourceUp").css("display", "none");
+      $("#btnMoveResourceDown").css("display", "none");
+      $("#btnRemoveResources").css("display", "none");
+      $(".arrowsResources").attr('disabled', true);
+      $(".arrowsResources").css("display", "none");
+      e.stopImmediatePropagation();
+
+   };
+
+   function Resource_updateDatasource() {
+
+      var checkBox = $(".checkBoxCustomResource");
+     var count = 0;
+      for (var j = 0; j < checkBox.length; j++) {
+         if (checkBox[j].firstChild.checked == true) {
+            ++count;
+         }
+      }
+      
+      var grid = $("#@gridName4").data("kendoGrid");
+      var data = $("#@gridName4").data("kendoGrid").dataSource;
+      var checkInputs = grid.dataItems(checkBox);
+         var dataItem = grid.dataItem($("#TabLinkResourcesGrid_active_cell").closest("tr"));
+      for (i = 0; i < checkInputs.length; i++) {
+         if (count > 0) {
+            if (checkInputs[i].IdResource != dataItem.IdResource) {
+               checkInputs[i].Enabled = false;
+               checkInputs[i].IsDefault = false;
+            }
+            else {
+
+               checkInputs[i].Enabled = true;
+               checkInputs[i].IsDefault = true;
+
+            }
+         }
+         else {
+            checkInputs[i].Enabled = false;
+            checkInputs[i].IsDefault = false;
+
+         }
+      }
+   }
+
+   function Link_Resources_GridSave(e) {
+
+         var checkBox = $(".checkBoxCustomResource");
+         var grid = $("#@gridName4").data("kendoGrid");
+         var datasource = $("#@gridName4").data("kendoGrid").dataSource;
+         if (checkBox.length > 0) {
+
+         var data = datasource.data();
+         var i;
+         var count = 0;
+         for (i = 0; i < data.length; i++) {
+         var tempName = data[i].Name.replaceAll(' ', '').toUpperCase();
+         //var sender = e.model.Name.replaceAll(' ', '').toUpperCase();
+         var sender = e.replaceAll(' ', '').toUpperCase();
+         if (tempName == sender) {
+         count++;
+         }
+         if (count >= 1) {
+         //alert("This Way already exist");
+         $("#waysErrorR").css("display", "block");
+         $("#waysError1R").css("display", "none");
+
+         return false;
+         }
+
+            }
+
+         if ($("#NameR").val() == "") {
+         //alert("Name is required");
+         $("#waysError1R").css("display", "block");
+         $("#waysErrorR").css("display", "none");
+
+         return false;
+         }
+            if (datasource._data.length == 0) {
+               if ($("#NameR").val() == "") {
+                  //alert("Name is required");
+                  $("#waysError1R").css("display", "block");
+                  $("#waysErrorR").css("display", "none");
+
+                  return false;
+               }
+         datasource.insert({ Name: e, Enabled: true });
+
+         grid.select("tr:eq(0)");
+         var dataItem = grid.dataItem("tr:eq(0)");
+         dataItem.Enabled = true;
+
+         }
+         else {
+
+         datasource.insert({ Name: e, Enabled: false });
+         }
+
+         var checkInputs = grid.dataItems(checkBox);
+         for (var i = 1; i < checkBox.length ; i++) {
+
+         var id = checkBox[i].firstChild.id;
+         if (checkInputs[i].Enabled == true) {
+
+
+         $('#' + id).attr("checked", true);
+         //grid.select("tr:eq(" +i.toString()+")");
+         }
+         else {
+         $('#' + id).attr("checked", false);
+         }
+         }
+         }
+         else
+         {
+            if ($("#NameR").val() == "") {
+               //alert("Name is required");
+               $("#waysError1R").css("display", "block");
+               $("#waysErrorR").css("display", "none");
+
+               return false;
+            }
+            datasource.insert({ Name: e, Enabled: true });
+            grid.select("tr:eq(0)");
+            var dataItem = grid.dataItem("tr:eq(0)");
+            dataItem.Enabled = true;
+         }
+
+
+         $("#waysErrorR").css("display", "none");
+         $("#waysError1R").css("display", "none");
+         $("#NameR").val("");
+
+         var dialog = $("#editGridWndwR").data("kendoWindow");
+
+         dialog.close();
+         return true;
+   };
+      function updateDatasource() {
+
+      var checkBox = $(".checkBoxCustomResource");
+     var count = 0;
+      for (var j = 0; j < checkBox.length; j++) {
+         if (checkBox[j].firstChild.checked == true) {
+            ++count;
+         }
+      }
+      var grid = $("#@gridName4").data("kendoGrid");
+      var data = $("#@gridName4").data("kendoGrid").dataSource;
+      var checkInputs = grid.dataItems(checkBox);
+         var dataItem = grid.dataItem($("#Resources_active_cell").closest("tr"));
+      for (i = 0; i < checkInputs.length; i++) {
+         if (count > 0) {
+            if (checkInputs[i].Name != dataItem.Name) {
+               checkInputs[i].Enabled = false;
+            }
+            else {
+
+               checkInputs[i].Enabled = true;
+            }
+         }
+         else {
+            checkInputs[i].Enabled = false;
+         }
+      }
+   }
+
+
+   @*function loadLinkGrid() {
+         var grid = $("#@gridName4").data("kendoGrid");
+      grid.tbody.on("click", ".k-checkbox", Link_Resources_onClick);
+         //grid.bind("save", grid_save);
+
+   }*@
+
+   function setStartingFrom() {
+      var sh = $("#StartingFromH").data("kendoNumericTextBox");
+      var sd = $("#StartingFromD").data("kendoNumericTextBox");
+      var sda = $("#StartingFromDA").data("kendoNumericTextBox");
+      var sda1 = $("#StartingFromDA1").data("kendoNumericTextBox");
+      sh.enable(false);
+      sd.enable(false);
+      sda.enable(false);
+      sda1.enable(false);
+      var numbers = $("#Schedule_StartingFrom").val().match(/\d+/g);
+      var count = 0 ;
+      for (var j = 0; j < $("#Schedule_StartingFrom").val().length; j++) {
+         if ($("#Schedule_StartingFrom").val()[j] == '+') {
+            ++count;
+         }
+      }
+      if ($("#Schedule_StartingFrom").val().charAt(1) == 'H' && count==1) {
+
+         sh.value(numbers[0]);
+         $("#startingFromDesc").val("at " + numbers[0] + " hours");
+         document.getElementById('selStartingFromH').checked = true;
+         sh.enable(true);
+
+      }
+      
+
+      else if ($("#Schedule_StartingFrom").val().includes("D") && $("#Schedule_StartingFrom").val().includes("H")) {
+
+
+         sda.value(numbers[0]);
+         sda1.value(numbers[1]);
+         $("#startingFromDesc").val("in " + numbers[0] + " days at " + numbers[1]);
+         document.getElementById('selStartingFromDA').checked = true;
+         sda.enable(true);
+         sda1.enable(true);
+      }
+
+      else if ($("#Schedule_StartingFrom").val().charAt(1) == 'D') {
+
+         sd.value(numbers[0]);
+         $("#startingFromDesc").val("in " + numbers[0] + " days");
+         document.getElementById('selStartingFromD').checked = true;
+         sd.enable(true);
+
+      }
+   }
+
+   function setPatternElements() {
+
+      document.getElementById('executeP').checked = false;
+      document.getElementById('executeP2').checked = false;
+      document.getElementById('executeP3').checked = false;
+
+      var ex3 = $("#executePText3").data("kendoNumericTextBox");
+      var ex2 = $("#executePText2").data("kendoNumericTextBox");
+      var ex = $("#executePText").data("kendoNumericTextBox");
+      ex.enable(true);
+      ex2.enable(true);
+      ex3.enable(true);
+      var drop1 = $("#dropPattern3").data("kendoDropDownList");
+      var drop2 = $("#dropPattern2").data("kendoDropDownList");
+      drop1.enable(true);
+      drop2.enable(true);
+
+      if ($("#patternSchedule").val().includes("Execute") && $("#patternSchedule").val().includes("In")) {
+         document.getElementById('executeP2').checked = true;
+         ex2.value(null);
+         ex2.enable(false);
+         ex3.value($("#Schedule_InTimesValue").val());
+         ex.value($("#Schedule_HowManyTimes").val());
+         ex.enable(true);
+         drop1.value($("#Schedule_InTimesUnit").val());
+         drop2.value(null);
+         drop2.enable(false);
+         calculatePattern(2);
+      }
+      if ($("#patternSchedule").val().includes("At interval of") && $("#patternSchedule").val().includes("Execute")) {
+         document.getElementById('executeP3').checked = true;
+         ex2.value($("#Schedule_EveryTimesValue").val());
+         ex3.value(null);
+         ex3.enable(false);
+         ex.value($("#Schedule_HowManyTimes").val());
+         drop1.value(null);
+         drop1.enable(false);
+         drop2.value($("#Schedule_EveryTimesUnit").val());
+         calculatePattern(3);
+      }
+      if ($("#patternSchedule").val().includes("In") && $("#patternSchedule").val().includes("At interval of")) {
+         document.getElementById('executeP').checked = true;
+         ex2.value($("#Schedule_EveryTimesValue").val());
+         ex3.value($("#Schedule_InTimesValue").val());
+         ex.value(null);
+         ex.enable(false);
+         drop1.value($("#Schedule_InTimesUnit").val());
+         drop2.value($("#Schedule_EveryTimesUnit").val());
+         calculatePattern(1);
+      }
+   }
+   function CheckPatterString() {
+
+      var txtEU = "";
+      var txtIU = "";
+      if ($("#Schedule_EveryTimesUnit").val() == "0") {
+         txtEU = "Minutes";
+      }
+      if ($("#Schedule_EveryTimesUnit").val() == "1") {
+         txtEU = "Hours";
+      }
+      if ($("#Schedule_EveryTimesUnit").val() == "2") {
+         txtEU = "Days";
+      }
+
+      if ($("#Schedule_InTimesUnit").val() == "0") {
+         txtIU = "Minutes";
+      }
+      if ($("#Schedule_InTimesUnit").val() == "1") {
+         txtIU = "Hours";
+      }
+      if ($("#Schedule_InTimesUnit").val() == "2") {
+         txtIU = "Days";
+      }
+
+      
+      if ($("#Schedule_InTimesValue").val() == "") {
+         $("#patternSchedule").val("Execute " + $("#Schedule_HowManyTimes").val() + " Times At interval of " + $("#Schedule_EveryTimesValue").val() + " " + txtEU);
+
+      }
+      else if ($("#Schedule_EveryTimesValue").val() == "") {
+         $("#patternSchedule").val("Execute " + $("#Schedule_HowManyTimes").val() + " Times In " + $("#Schedule_InTimesValue").val() + " " + txtIU);
+
+      }
+      else if ($("#Schedule_HowManyTimes").val() == "") {
+         $("#patternSchedule").val("At interval of " + $("#Schedule_EveryTimesValue").val() + " " + txtEU + " In " + $("#Schedule_InTimesValue").val() + " " + txtIU);
+
+
+      }
+      else if ($("#Schedule_HowManyTimes").val() == ""  && $("#Schedule_EveryTimesValue").val() == "" && $("#Schedule_InTimesValue").val() == "") {
+         $("#patternSchedule").val("");
+      }
+   }
+
+   function Schedule_ChangeDays(val, action,isNone) {
+
+      //1 onClick
+      //2 read
+
+      var multiselect = $("#MultiDays").data("kendoMultiSelect");
+      var multiselectR = $("#MultiDaysR").data("kendoMultiSelect");
+      var y = $('#buttnDaysGrid ').find(".k-button-solid-primary").length;
+
+         if (!isNone) {
+            if (action == 1) {
+               var classD;
+               var classD1;
+
+               if (val == "absoluteH") {
+                  classD = "#daysContainer";
+                  classD1 = "#daysContainerR";
+                  multyDk = 0;
+               }
+               else {
+                  classD = "#daysContainerR";
+                  classD1 = "#daysContainer";
+                  multyDk = 1;
+               }
+               var selctedDays = [];
+               var container = document.querySelector(classD);
+               var matches = container.querySelectorAll("input[type='button']");
+
+               var container1 = document.querySelector(classD1);
+               var matches1 = container1.querySelectorAll("input[type='button']");
+
+               for (var j = 0; j < 7; j++) {
+                  if (matches1[j].classList.contains("k-button-solid-primary")) {
+                     selctedDays.push(j);
+                  }
+
+               }
+               tempDays = [];
+               /*multiSelectDayVal = [];*/
+               for (var j = 0; j < 7; j++) {
+
+                  if (selctedDays.includes(j)) {
+
+                     /*multiSelectDayVal.push(j);*/
+                     tempDays.push(j.toString());
+                     matches[j].classList.add("k-button-solid-primary");
+                  }
+                  else {
+                     matches[j].classList.remove("k-button-solid-primary");
+                  }
+               }
+               if (selctedDays.length == 0) {
+                  tempDays = [];
+                  multiSelectDayVal = [];
+                  multiselect.value("");
+                  multiselectR.value("");
+               } else {
+                  multiselect.value(tempDays);
+                  multiselectR.value(tempDays);
+               }
+               $("#colD").css("margin-bottom", "0px");
+
+            }
+
+
+            if (val == "absoluteH") {
+               document.getElementById("absoluteH").checked = true;
+               document.getElementById("relativeH").checked = false;
+               document.getElementById("btnsDayA").style.display = "block";
+               document.getElementById("btnsDayR").style.display = "none";
+
+
+               $("#multiA").css("display", "block");
+               $("#multiR").css("display", "none");
+               multiselect.enable(false);
+               $("#multiA .k-multiselect.k-disabled")[0].style.setProperty('background-color', 'white', 'important'); 
+            }
+            if (val == "relativeH") {
+               document.getElementById("relativeH").checked = true;
+               document.getElementById("absoluteH").checked = false;
+               document.getElementById("btnsDayA").style.display = "none";
+               document.getElementById("btnsDayR").style.display = "block";
+
+
+               $("#multiA").css("display", "none");
+               $("#multiR").css("display", "block");
+               multiselectR.enable(false);
+               $("#multiR .k-multiselect.k-disabled")[0].style.setProperty('background-color', 'white', 'important'); 
+
+
+            }
+         } else {
+            document.getElementById("absoluteH").checked = true;
+            document.getElementById("relativeH").checked = false;
+            document.getElementById("btnsDayA").style.display = "block";
+            document.getElementById("btnsDayR").style.display = "none";
+
+            $("#multiA").css("display", "block");
+            $("#multiR").css("display", "none");
+            multiselect.enable(false);
+         }
+
+   }
+
+   function resizeTherapyDetailWndw() {
+      $(window).resize(function () {
+         var newH = kndWnd.height();
+         $("#tabstripTherapy").css("height", newH - 200);
+         $("#tabstripTherapy").css("min-height", newH - 115);
+
+      }).resize();
+   }
+
+
+      @*function Link_Resources_ClickTextResource(e)  {
+
+      if (enableGrids == true) {
+        var grid = $("#@gridName4").data("kendoGrid");
+        var current = grid.current();
+        var next = $(current).closest('tr');
+        var td = next;
+        var selectedCell = $(".k-state-selected");
+        for (var i = 0; i < selectedCell.length; i++) {
+           if (selectedCell[i].innerText == tdR) {
+              $(selectedCell[i]).removeClass("k-state-selected");
+           }
+        }
+        var idCheck = td[0].firstChild.firstChild.id;
+        var aria_checked = $('#' + idCheck).attr('aria-checked');
+        tdR = td[0].innerText;
+        grid.current(td);
+        grid.select(td);
+        if (aria_checked == "true") {
+           $('#' + idCheck).prop("checked", true);
+           $('#' + idCheck).attr("aria-checked", "true");
+
+        } else {
+           $('#' + idCheck).prop("checked", false);
+           $('#' + idCheck).attr("aria-checked", "false");
+        }
+        $("#removeResources").css("display", "inherit");
+
+     }
+   };*@
+
+
+function AllowDiluents_ClickTextDiluent(e)  {
+
+   if (enableGrids == true) {
+          var grid = $("#AllowedDiluentsGrid").data("kendoGrid");
+          var current = grid.current();
+          var next = $(current).closest('tr');
+          var td = next;
+          var selectedCell = $(".k-state-selected");
+          for (var i = 0; i < selectedCell.length; i++) {
+             if (selectedCell[i].innerText == tdaD) {
+                $(selectedCell[i]).removeClass("k-state-selected");
+             }
+          }
+          var idCheck = $(td[0].firstChild.firstChild);
+          var aria_checked = idCheck.attr('aria-checked');
+          tdaD = td[0].innerText;
+          grid.current(td);
+          grid.select(td);
+          if (aria_checked == "true") {
+             idCheck.prop("checked", true);
+             idCheck.attr("aria-checked", "true");
+
+          } else {
+             idCheck.prop("checked", false);
+             idCheck.attr("aria-checked", "false");
+          }
+
+          $("#removeDiluents").css("display", "inherit");
+
+       }
+
+   };
+   function AllowResources_ClickTextDiluent() {
+      if (enableGrids == true) {
+          
+         var grid = $("#TabLinkResourcesGrid").data("kendoGrid");
+         var current = grid.current();
+         var next = $(current).closest('tr');
+         var td = next;
+
+
+         var selectedCell = $(".k-state-selected");
+         for (var i = 0; i < selectedCell.length; i++) {
+            if (selectedCell[i].innerText==tdAres) {
+               $(selectedCell[i]).removeClass("k-state-selected");
+            }
+         }
+
+
+         var idCheck = td[0].childNodes[1].firstChild;
+         var aria_checked = $(idCheck).attr('aria-checked');
+         tdAres = td[0].innerText;
+         grid.current(td);
+         grid.select(td);
+         if (aria_checked == "true") {
+            $(idCheck).prop("checked", true);
+            $(idCheck).attr("aria-checked", "true");
+
+         } else {
+            $(idCheck).prop("checked", false);
+            $(idCheck).attr("aria-checked", "false");
+         }
+
+         if (grid.dataSource._data.length > 0) {
+            $("#btnRemoveResources").css("display", "inherit");
+         }
+         if (grid.dataSource._data.length > 1) {
+            $("#btnMoveResourceUp").css("display", "block");
+            $("#btnMoveResourceDown").css("display", "block");
+            $(".arrowsResources").attr('disabled', false);
+            $(".arrowsResources").css("display", "flex");
+            $(".arrowsResources").css("direction", "column");
+         }
+         var selected = grid.select();
+         if (selected.length > 0) {
+            var dataItem = grid.dataItem($(selected[0]));
+            var index = grid.dataSource.indexOf(dataItem);
+
+            $(btnMoveResourceUp).attr('disabled', false);
+            $(btnMoveResourceDown).attr('disabled', false);
+
+            if (index >= grid.dataSource._data.length - 1) {
+               $(btnMoveResourceDown).attr('disabled', true);
+            }
+
+            if (index == 0) {
+               $(btnMoveResourceUp).attr('disabled', true);
+            }
+         }
+
+      }
+      return;
+
+   };
+function AllowRoutes_ClickTextRoute(e)  {
+
+
+   if (enableGrids == true) {
+        var grid = $("#AllowedRouteGrid").data("kendoGrid");
+        var current = grid.current();
+        var next = $(current).closest('tr');
+        var td = next;
+        var selectedCell = $(".k-state-selected");
+        for (var i = 0; i < selectedCell.length; i++) {
+           if (selectedCell[i].innerText == tdA) {
+              $(selectedCell[i]).removeClass("k-state-selected");
+           }
+        }
+         var idCheck = $(td[0].firstChild.firstChild);
+        var aria_checked = $(idCheck).attr('aria-checked');
+        tdA = td[0].innerText;
+        grid.current(td);
+        grid.select(td);
+        if (aria_checked == "true") {
+             idCheck.prop("checked", true);
+             idCheck.attr("aria-checked", "true");
+
+          } else {
+             idCheck.prop("checked", false);
+             idCheck.attr("aria-checked", "false");
+          }
+
+        $("#removeRoutes").css("display", "inherit");
+
+     }
+   };
+
+   function orderMixtureAssociationIndex(tableName) {
+
+      var visibleGrid = $('#'+tableName).data("kendoGrid");
+      for (var i = 0; i < visibleGrid.dataSource._data.length; i++) {
+         visibleGrid.dataSource._data[i].Index = i;
+      }
+
+   }
+
+   function checkAssociationIndex(tableName, type) {
+
+      var visibleGrid = $('#' + tableName).data("kendoGrid");
+
+      if (visibleGrid.dataSource._data.length > 1) {
+         if (type == 1) {
+
+            $("#moveMAsscoiationUp").attr('disabled', false);
+            $("#moveMAsscoiationDown").attr('disabled', false);
+         }
+         else {
+            $("#moveMAsscoiationDownP").attr('disabled', false);
+            $("#moveMAsscoiationUpP").attr('disabled', false);
+
+         }
+      }
+      else {
+         if (type == 1) {
+
+            $("#moveMAsscoiationUp").attr('disabled', true);
+            $("#moveMAsscoiationDown").attr('disabled', true);
+         }
+         else {
+            $("#moveMAsscoiationDownP").attr('disabled', true);
+            $("#moveMAsscoiationUpP").attr('disabled', true);
+
+         }
+      }
+      var selected = visibleGrid.select();
+      var maxIndex = visibleGrid.dataSource._data.length - 1;
+
+      if (selected.length > 0) {
+         $.each(selected, function (idx, elem) {
+            var dataItem = visibleGrid.dataItem($(this));
+
+            var index = visibleGrid.dataSource.indexOf(dataItem);
+            if (index == 0) {
+               if (type == 1) {
+                  $("#moveMAsscoiationUp").attr('disabled', true);
+               }
+               else {
+                  $("#moveMAsscoiationUpP").attr('disabled', true);
+
+               }
+            }
+            if (index == maxIndex) {
+               if (type == 1) {
+                  $("#moveMAsscoiationDown").attr('disabled', true);
+               }
+               else {
+                  $("#moveMAsscoiationDownP").attr('disabled', true);
+
+               }
+            }
+         });
+      }
+   }
+
+   function calculatePattern(type) {
+      var ex = $("#executePText").val();
+      var at = $("#executePText2").val();
+      var inP = $("#executePText3").val();
+
+      var comboToMSec = function (comboVal) {
+         var ret = 0;
+         switch (comboVal) {
+            case "0":
+               ret = 60000;
+               break;
+            case "1":
+               ret = 60 * 60000;
+               break;
+            case "2":
+               ret = (60 * 60000) * 24;
+               break;
+         }
+         return ret;
+      };
+
+      var unit1 = comboToMSec($("#dropPattern3").data("kendoDropDownList").value());
+      var unit2 = comboToMSec($("#dropPattern2").data("kendoDropDownList").value());
+
+      var final;
+      if (type == 1) {
+         final = (parseInt(inP) * unit1) / (parseInt(at) * unit2);
+         var numerictextbox = $("#executePText").data("kendoNumericTextBox");
+         numerictextbox.value(final);
+      }
+      if (type == 2) {
+
+         final = parseInt(inP) / parseInt(ex)   ;
+
+         final = final * unit1;
+         if (final < 60 * 60000) {
+            final = final/60000;
+            $("#dropPattern2").data("kendoDropDownList").value("0");
+         }
+         else if (final >= 60 * 60000 && final < 24*(60 * 60000)) {
+            final = final /  (60 * 60000);
+            $("#dropPattern2").data("kendoDropDownList").value("1");
+         }
+         else if (final >= 24*(60 * 60000)) {
+            final = final / (24*(60 * 60000));
+            $("#dropPattern2").data("kendoDropDownList").value("2");
+         }
+         var numerictextbox = $("#executePText2").data("kendoNumericTextBox");
+         numerictextbox.value(final);
+
+      }
+      if (type == 3) {
+         final = (parseInt(at)) * parseInt(ex);
+         final = final * unit2;
+         if (final < 60 * 60000) {
+            final = final / 60000;
+            $("#dropPattern3").data("kendoDropDownList").value(0);
+         }
+         else if (final >= 60 * 60000 && final < 24 * (60 * 60000)) {
+            final = final / (60 * 60000);
+            $("#dropPattern3").data("kendoDropDownList").value("1");
+         }
+         else if (final >= 24 * (60 * 60000)) {
+            final = final / (24 * (60 * 60000));
+            $("#dropPattern3").data("kendoDropDownList").value("2");
+         }
+         var numerictextbox = $("#executePText3").data("kendoNumericTextBox");
+         numerictextbox.value(final);
+      }
+   }
+
+
+   function gridOrderingArrowButtonDown( elem, grid_id, button_up_id)
+   {
+      isReo = true;
+      $("#" + button_up_id).attr('disabled', false);
+      var visibleGrid = $("#" + grid_id).data("kendoGrid");
+      if (visibleGrid.dataSource._data.length > 1) {
+         var selected = visibleGrid.select();
+         if (selected.length > 0) {
+
+            $.each(selected, function (idx, el) {
+               var dataItem = visibleGrid.dataItem(el);
+               var normalValue = dataItem.IsDefault;
+               var index = visibleGrid.dataSource.indexOf(dataItem);
+               var maxIndex = visibleGrid.dataSource._data.length - 1;
+               if (index < maxIndex) {
+
+                  var newIndex = index + 1;
+                  visibleGrid.dataSource.remove(dataItem);
+                  dataItem.IsDefault = normalValue;
+                  visibleGrid.dataSource.insert(newIndex, dataItem);
+                  visibleGrid.select("tr:eq(" + (newIndex) + ")");
+                  
+
+                  orderMixtureAssociationIndex(grid_id);
+
+               }
+               if (newIndex >= visibleGrid.dataSource._data.length - 1) {
+                  $(elem).attr('disabled', true);
+               }
+
+               var x = visibleGrid.tbody.find("tr:eq(" + (newIndex) + ")").find(".k-checkbox");
+               x[0].checked = normalValue;
+               x[0].ariaChecked = normalValue.toString();
+               var y = visibleGrid.select();
+               y[0].id = "TabLinkResourcesGrid_active_cell";
+               y[0].class = "k-state-selected";
+            });
+         }
+      }
+
+
+   }
+
+   function gridOrderingArrowButtonUp(elem, grid_id, button_down_id) {
+
+      $("#" + button_down_id).attr('disabled', false);
+      $(elem).attr('disabled', false);
+      var visibleGrid = $("#" + grid_id).data("kendoGrid");
+      if (visibleGrid.dataSource._data.length > 1) {
+         var selected = visibleGrid.select();
+         if (selected.length > 0) {
+
+           $.each(selected, function (idx, el) {
+               var dataItem = visibleGrid.dataItem(el);
+              var index = visibleGrid.dataSource.indexOf(dataItem);
+              var normalValue = dataItem.IsDefault;
+
+               if (index > 0) {
+                  var newIndex = index - 1;
+                  visibleGrid.dataSource.remove(dataItem);
+                  dataItem.IsDefault = normalValue;
+                  visibleGrid.dataSource.insert(newIndex, dataItem);
+                  visibleGrid.select("tr:eq(" + (newIndex) + ")");
+                  
+
+
+                  orderMixtureAssociationIndex(grid_id);
+              }
+              if (newIndex == 0) {
+                 $(elem).attr('disabled', true);
+              }
+
+              var x = visibleGrid.tbody.find("tr:eq(" + (newIndex) + ")").find(".k-checkbox");
+              x[0].checked = normalValue;
+              x[0].ariaChecked = normalValue.toString();
+              var y = visibleGrid.select();
+              y[0].id = "TabLinkResourcesGrid_active_cell";
+              y[0].class = "k-state-selected";
+            });
+         }
+      }
+   }
+
+
+   function gridOrderingArrowButtonDownAssociation(elem, grid_id, button_up_id) {
+      isReo = true;
+      $("#" + button_up_id).attr('disabled', false);
+      var visibleGrid = $("#" + grid_id).data("kendoGrid");
+      if (visibleGrid.dataSource._data.length > 1) {
+         var selected = visibleGrid.select();
+         if (selected.length > 0) {
+
+            $.each(selected, function (idx, el) {
+               var dataItem = visibleGrid.dataItem(el);
+               var index = visibleGrid.dataSource.indexOf(dataItem);
+               var maxIndex = visibleGrid.dataSource._data.length - 1;
+               if (index < maxIndex) {
+
+                  var newIndex = index + 1;
+                  visibleGrid.dataSource.remove(dataItem);
+                  visibleGrid.dataSource.insert(newIndex, dataItem);
+
+                  visibleGrid.select("tr:eq(" + (newIndex) + ")");
+                  orderMixtureAssociationIndex(grid_id);
+
+               }
+               if (newIndex >= visibleGrid.dataSource._data.length - 1) {
+                  $(elem).attr('disabled', true);
+               }
+            });
+         }
+      }
+
+
+   }
+
+   function gridOrderingArrowButtonUpAssociation(elem, grid_id, button_down_id) {
+
+      $("#" + button_down_id).attr('disabled', false);
+      $(elem).attr('disabled', false);
+      var visibleGrid = $("#" + grid_id).data("kendoGrid");
+      if (visibleGrid.dataSource._data.length > 1) {
+         var selected = visibleGrid.select();
+         if (selected.length > 0) {
+
+            $.each(selected, function (idx, el) {
+               var dataItem = visibleGrid.dataItem(el);
+               var index = visibleGrid.dataSource.indexOf(dataItem);
+
+               if (index > 0) {
+                  var newIndex = index - 1;
+                  visibleGrid.dataSource.remove(dataItem);
+                  visibleGrid.dataSource.insert(newIndex, dataItem);
+                  visibleGrid.select("tr:eq(" + (newIndex) + ")");
+                  orderMixtureAssociationIndex(grid_id);
+               }
+               if (newIndex == 0) {
+                  $(elem).attr('disabled', true);
+               }
+            });
+         }
+      }
+   }
+</script>

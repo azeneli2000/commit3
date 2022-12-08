@@ -1,0 +1,615 @@
+﻿@using ConfiguratorWeb.App.Extensions;
+@using Digistat.FrameworkStd.Interfaces;
+@using Microsoft.AspNetCore.Mvc.Routing;
+
+@model ConfiguratorWeb.App.Models.TelligenceDeviceViewModel
+
+@inject IDictionaryService DicSvc
+
+@{
+    Layout = null;
+    string strDialogID = "divTLSystemDetail";
+}
+<script>
+    var currentPortGroup = undefined;
+
+    function onDeviceTypeSelected(e) {
+        var clearGrids = true;
+        if (e.dataItem) {
+            var dataItem = e.dataItem;
+            if (dataItem.Value == 41 || dataItem.Value == 42) {
+                $('[umsctrlID="TLPortServer"]').data('kendoDropDownList').enable(true);
+                clearGrids = $("#IsMDIDevice").val() != "1";
+                $("#IsMDIDevice").val("1");
+
+            } else {
+                $('[umsctrlID="TLPortServer"]').data('kendoDropDownList').enable(false);
+                $('[umsctrlID="TLPortServer"]').data('kendoDropDownList').value(0);
+                clearGrids = $("#IsMDIDevice").val() != "0";
+                $("#IsMDIDevice").val("0");
+            }
+        }
+
+        if (clearGrids) {
+            $("#linked-bed-grid").data("kendoGrid").setDataSource([]);
+            setPortServerBed(undefined, null);
+        }
+
+        $("#divTLSystemDetail .beds")
+            .removeClass(function (_, className) {
+                return (className.match(/(^|\s)device-type-\S+/g) || []).join(' ');
+            })
+            .addClass("device-type-" + ((e.dataItem && e.dataItem.Value) || ""));
+    }
+
+     function onDataBoundBeds(arg) {
+         mergeGridRows("linked-bed-grid", '@DicSvc.XLate("Location Name")');
+    }
+    function getLinkedBedsGridRowIndex(data) {
+        return getGridRowIndex("#linked-bed-grid", data);
+    }
+    function getPortServerLinkedBedsGridRowIndex(data) {
+        return getGridRowIndex("#linked-bed-grid-ports", data);
+    }
+    function openBedSelection(beds) {
+        $.ajax({
+            type: "POST",
+            url: '@Url.Action("GetBedsLocations", "Network")/?networkId=@Model.NetworkID',
+            data: JSON.stringify(beds),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (data) {
+              //  debugger;
+                var wnd = kndWndBedDetails.data("kendoWindow");
+                wnd.content('');
+                wnd.content(data.content.Result);
+                wnd.center().open();
+            },
+            error: function () {
+                currentPortGroup = undefined;
+            },
+            complete: function () {
+                kendo.ui.progress($("#telligenceDeviceWindow"), false);
+            }
+        });
+    }
+
+    function openBedSelectionByGrid() {
+        kendo.ui.progress($("#telligenceDeviceWindow"), true); // progess bar will intiate
+
+        var $grid = $("#divTLSystemDetail .beds > div:visible .k-grid");
+        var isbyPorts = $grid.parent().attr("data-ports");
+        var beds = !isbyPorts
+            ? $grid.data().kendoGrid.dataSource.data().map(function (e) { return e.Bed || e })
+            : [];
+
+        currentPortGroup = undefined;
+
+        openBedSelection(beds);
+    }
+
+    function openBedSelectionByGridItem(portGroup) {
+        kendo.ui.progress($("#telligenceDeviceWindow"), true); // progess bar will intiate
+
+        var bed = $("#divTLSystemDetail .beds > div:visible .k-grid")
+            .data().kendoGrid.dataSource
+            .get(portGroup).Bed;
+        var beds = bed ? [bed] : [];
+
+        currentPortGroup = portGroup;
+
+        openBedSelection(beds);
+    }
+
+    function setPortServerBed(portGroup, bed) {
+        var grid = $("#linked-bed-grid-ports").data("kendoGrid");
+        if (grid) {
+            if (portGroup !== undefined) {
+                grid.dataSource.get(portGroup).Bed = bed;
+            }
+            else {
+                var data = grid.dataSource.data();
+                data.forEach(p => { p.Bed = bed });
+                grid.dataSource.data(data);
+            }
+            grid.refresh();
+        }
+    }
+
+    function getPortServerBeds() {
+        var grid = $("#linked-bed-grid-ports").data("kendoGrid");
+        return grid ? grid.dataSource.data() : [];
+    }
+
+
+</script>
+<div class="card h-90 pt-1 pb-2" id="@strDialogID">
+
+    <input type="hidden" value="@(ViewBag.IsMDIDevice)" id="IsMDIDevice" />
+
+    <form asp-controller="Telligence" id="form_@strDialogID" asp-action="SaveDeviceDetail"
+          data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+          data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+        <div id="Results"></div>
+
+        <div style="height:350px">
+            <div asp-validation-summary="ModelOnly"></div>
+            @Html.HiddenFor(m => m.ID)
+
+            @Html.HiddenFor(m => m.TLLocationID)
+            <div style="width:60%; float:left;">
+                <div class="row mt-2">
+                    <div class="col-md-2 u-col-h-fixed">
+                        @Html.LabelFor(m => m.tl_ty_ID)
+                    </div>
+                    <div class="col-md-10 u-col-h-fixed">
+                        @(Html.Kendo().DropDownListFor(m => m.tl_ty_ID)
+                              .HtmlAttributes(new { id = "TLSystem_" + Guid.NewGuid().ToString() })
+                              .DataTextField("TLSystemGUID")
+                              .DataValueField("ID")
+                              .DataSource(source =>
+                              {
+                                  source.Read(read =>
+                                  {
+                                      read.Action("GetAllSystems", "Telligence");
+                                  });
+                              })
+                        )
+
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2 u-col-h-fixed">
+                        @Html.LabelFor(m => m.TLLocationDescriptor)
+                    </div>
+                    <div class="col-md-10 u-col-h-fixed">
+                        @Html.Kendo().TextBoxFor(m => m.TLLocationDescriptor).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "50" })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2 u-col-h-fixed">
+                        @Html.LabelFor(m => m.TLDeviceID)
+                    </div>
+                    <div class="col-md-5 u-col-h-fixed">
+                        @(Html.Kendo().NumericTextBoxFor(m => m.TLDeviceID).Format("#").Decimals(0))
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2 u-col-h-fixed">
+                        @Html.LabelFor(m => m.TLDeviceName)
+                    </div>
+                    <div class="col-md-10 u-col-h-fixed">
+                        @Html.Kendo().TextBoxFor(m => m.TLDeviceName).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "100" })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2 u-col-h-fixed">
+                        @Html.LabelFor(m => m.tl_MACAddress)
+                    </div>
+                    <div class="col-md-10 u-col-h-fixed">
+                        @Html.Kendo().TextBoxFor(m => m.tl_MACAddress).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "50" })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2 u-col-h-fixed">
+                        @Html.LabelFor(m => m.tl_IPAddress)
+                    </div>
+                    <div class="col-md-10 u-col-h-fixed">
+                        @Html.Kendo().TextBoxFor(m => m.tl_IPAddress).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "20" })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2 u-col-h-fixed">
+                        @Html.LabelFor(m => m.tl_DeviceType)
+                    </div>
+                    <div class="col-md-10 u-col-h-fixed">
+                        @(Html.Kendo().DropDownListFor(m => m.tl_DeviceType)
+                              .HtmlAttributes(new { umsctrlID = "TLDeviceType", id = "TLDeviceType_" + Guid.NewGuid().ToString() })
+                              .DataTextField("Text")
+                              .DataValueField("Value")
+                              .Events(e => e.Select("onDeviceTypeSelected"))
+                              .DataSource(source =>
+                              {
+                                  source.Read(read =>
+                                  {
+                                      read.Action("GetAllDeviceTypes", "Telligence");
+                                  });
+                              })
+
+                        )
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2 u-col-h-fixed">
+                        @Html.LabelFor(m => m.tl_psv_ID)
+                    </div>
+                    <div class="col-md-10 u-col-h-fixed">
+                        @(Html.Kendo().DropDownListFor(m => m.tl_psv_ID)
+                                      .HtmlAttributes(new {  umsctrlID = "TLPortServer", id = "TLPortServer_" + Guid.NewGuid().ToString() })
+                                      .DataTextField("Address")
+                                      .DataValueField("ID")
+                                      .DataSource(source =>
+                                      {
+                                          source.Read(read =>
+                                          {
+                                              read.Action("GetPortServersShort", "ConnectPlus");
+                                          });
+                                      })
+                        )
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2 u-col-h-fixed">
+                        @Html.LabelFor(m => m.HasNetwork)
+                    </div>
+
+                    @if (Model.HasNetwork)
+                    {
+                        <div class="col-md-4 u-col-h-fixed">
+                            <a href="@Url.Action("NetworkConfiguration", "Network")/@Model.NetworkID"
+                               class=" btn btnKendo" id="btnGoToNetwork"
+                               title="@(DicSvc.XLate("Network details") )">
+                                @(DicSvc.XLate("Go to related Network") )
+                            </a>
+                        </div>
+                        @Html.HiddenFor(m => m.NetworkID)
+                    }
+                    else
+                    {
+                        <div class="col-md-4 u-col-h-fixed">
+                            @Html.Kendo().CheckBoxFor(m => m.CreateNetwork).Label(" ")<span class="align-bottom">&nbsp;@DicSvc.XLate("Create Network entry")</span>
+                        </div>
+                    }
+
+                    <div class="col-md-2 u-col-h-fixed">
+                        @Html.LabelFor(m => m.HasPortServer)
+                    </div>
+
+                    @if (Model.HasPortServer)
+                    {
+                        <div class="col-md-4 u-col-h-fixed">
+                            <a href="@Url.Action("PortServerList","ConnectPlus")/@Model.tl_psv_ID"
+                               class=" btn btnKendo" id="btnGoToPortServer"
+                               title="@(DicSvc.XLate("Port Server details")) ">
+                                @(DicSvc.XLate("Go to related Port Server ") )
+                                @*<img src="~/images/workstation-100.png" style="height:18px;width:18px;"alt="@DicSvc.XLate("Port Server Details")"/>*@
+                            </a>
+                            @Html.HiddenFor(m => m.tl_psv_ID)
+                            <a href='#' onclick='showPSstatus(@Model.tl_psv_ID);' class="btn btnKendo"><i class="mdi mdi-magnify"></i>@DicSvc.XLate("STATUS")</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-md-4 u-col-h-fixed">
+                            @Html.Kendo().CheckBoxFor(m => m.CreatePortServer).Label(" ")<span class="align-bottom">&nbsp;@DicSvc.XLate("Create Port Server entry")</span>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="beds device-type-@((int)Model.tl_DeviceType)">
+                <div class="mt-2">
+                    @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.BedViewModel>(Model.BedList)
+                                  .Name("linked-bed-grid").HtmlAttributes(new { @class = "no-hover" })
+                                  .Events(ev => ev.DataBound("onDataBoundBeds"))
+                                  .Columns(columns =>
+                                  {
+                                      columns.Bound(e => e.BedId).Hidden().ClientTemplate("#= BedId #" + "<input type='hidden' name='BedList[#= getLinkedBedsGridRowIndex(data)#].BedId' value='#= BedId #' />");
+                                      columns.Bound(e => e.IdLocation).Hidden().ClientTemplate("#= IdLocation #" + "<input type='hidden' name='BedList[#= getLinkedBedsGridRowIndex(data)#].IdLocation' value='#= IdLocation #' />").Visible(false);
+                                      columns.Bound(e => e.Location.LocationName).ClientTemplate("#= Location.LocationName #" + "<input type='hidden' name='BedList[#= getLinkedBedsGridRowIndex(data)#].Location.LocationName' value='#= Location.LocationName #' />").Title(DicSvc.XLate("Location Name"));
+                                      columns.Bound(e => e.BedName).ClientTemplate("#= BedName #" + "<input type='hidden' name='BedList[#= getLinkedBedsGridRowIndex(data)#].BedName' value='#= BedName #' /><input type='hidden' name='BedList[#= getLinkedBedsGridRowIndex(data)#].BedIndex' value='#= BedIndex #' />").Title(DicSvc.XLate("Bed Name"));
+                                      columns.Bound(e => e.BedIndex).Visible(false);
+                                  })
+
+                                  .HtmlAttributes(new { style = "height:380px;width:95%" })
+                                  .Sortable(false)
+                                  .Scrollable()
+                                  .DataSource(dataSource => dataSource
+                                     .Ajax()
+                                     .Model(model =>
+                                     {
+                                         model.Id(p => p.BedId);
+                                         model.Field(p => p.BedCode);
+                                         model.Field(p => p.BedIndex);
+                                         model.Field(p => p.BedLocation);
+                                         model.Field(p => p.BedName);
+                                         model.Field(p => p.Selected);
+                                         model.Field(p => p.Location.LocationName);
+                                         model.Field(p => p.Location.ID);
+                                         model.Field(p => p.IdLocation);
+                                         model.Field(p => p.PatientId);
+                                         model.Field(p => p.RoomName);
+                                     })
+                                     .ServerOperation(false)
+                                  )
+                                  .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+                    )
+                </div>
+                <div class="mt-2" data-ports="true">
+                    @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.PortServerBedLinkViewModel>(Model.PortServerBedList)
+                                  .Name("linked-bed-grid-ports").HtmlAttributes(new { @class = "no-hover" })
+                                  .Columns(columns =>
+                                  {
+                                      columns.Bound(e => e.PortGroup).Title("MDI").HtmlAttributes(new { style="text-align:center;" }).ClientTemplate("#= PortGroup #" + "<input type='hidden' name='PortServerBedList[#= getPortServerLinkedBedsGridRowIndex(data)#].PortGroup' value='#= PortGroup #' />").Width(50);
+                                      columns.Bound(e => e.Bed).ClientTemplate("#= (Bed ? [Bed.Location.LocationName, Bed.BedName].join(' - ') : '') #");
+                                      columns.Bound(e => e.Bed.BedId).Hidden().ClientTemplate("# if (Bed) { #<input type='hidden' name='PortServerBedList[#= getPortServerLinkedBedsGridRowIndex(data)#].Bed.BedId' value='#= Bed.BedId #' /> # } #");
+                                      columns.Bound(e => e.Bed.IdLocation).Hidden().ClientTemplate("# if (Bed) { #<input type='hidden' name='PortServerBedList[#= getPortServerLinkedBedsGridRowIndex(data)#].Bed.IdLocation' value='#= Bed.IdLocation #' /> # } #");
+                                      columns.Bound(e => e.Bed.Location.LocationName).Hidden().ClientTemplate("# if (Bed) { #<input type='hidden' name='PortServerBedList[#= getPortServerLinkedBedsGridRowIndex(data)#].Bed.Location.LocationName' value='#= Bed.Location.LocationName #' /># } #");
+                                      columns.Bound(e => e.Bed.BedName).Hidden().ClientTemplate("# if (Bed) { #<input type='hidden' name='PortServerBedList[#= getPortServerLinkedBedsGridRowIndex(data)#].BedName' value='#= Bed.BedName #' /><input type='hidden' name='PortServerBedList[#= getPortServerLinkedBedsGridRowIndex(data)#].BedIndex' value='#= Bed.BedIndex #' /># } #");
+                                      columns.Bound(e=>e.PortGroup).ClientTemplate("<button type='button' " + (Model.HasNetwork ? "onclick='openBedSelectionByGridItem(#= PortGroup #)' " : "disabled='disabled' ") + " class='btn btn-default btn-sm p-0'><i class='mdi mdi-bed-empty mdi-18px'></i></button>").HtmlAttributes(new { style="text-align:center;" }).Title(" ").Width(50);
+                                  })
+
+                                  .HtmlAttributes(new { style = "height:380px;width:95%" })
+                                  .Sortable(false)
+                                  .Scrollable()
+                                  .DataSource(dataSource => dataSource
+                                     .Ajax()
+                                     .Model(model =>
+                                     {
+                                         model.Id(p => p.PortGroup);
+                                         model.Field(p => p.Bed.BedId);
+                                         model.Field(p => p.Bed.BedCode);
+                                         model.Field(p => p.Bed.BedIndex);
+                                         model.Field(p => p.Bed.BedLocation);
+                                         model.Field(p => p.Bed.BedName);
+                                         model.Field(p => p.Bed.Selected);
+                                         model.Field(p => p.Bed.Location.LocationName);
+                                         model.Field(p => p.Bed.Location.ID);
+                                         model.Field(p => p.Bed.IdLocation);
+                                         model.Field(p => p.Bed.PatientId);
+                                         model.Field(p => p.Bed.RoomName);
+                                     })
+                                     .ServerOperation(false)
+                                  )
+                                  .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+                    )
+                </div>
+                <button id="set-location" onclick="openBedSelectionByGrid();" style="float:left; width:6%;padding-top: 10px; margin-left: -16px;" class="btn btn-default" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Set beds")"><span class="mdi mdi-bed-empty mdi-24px"></span></button>
+            </div>
+        </div>
+
+
+    </form>
+
+    <div id="tlRemoteDevices"></div>
+
+    <div class="card-footer h-10 p-0 m-0  bg-white">
+        @(Html.Kendo().ToolBar()
+                      .Name("toolbarDev")
+                      .UmsDefaultErrors(DicSvc)
+                      .Items(
+                         items =>
+                         {
+                             items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode");
+                         }
+                      )
+                      .UmsDefaultSettings(DicSvc, "dev")
+        )
+    </div>
+
+</div>
+
+
+<script type="text/javascript">
+
+
+    function changeToEditMode() {
+        actualmode = 2;
+        
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+            toolBarAllEditSaveButton();
+            toolBarShowButtonByClass("modify-mode");
+            
+
+        $('#@strDialogID :input').attr('disabled', false);
+        $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(true);
+            }
+        });
+         $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoNumericTextBox");
+            if (cb) {
+                cb.enable(true);
+            }
+        });
+         $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoTimePicker");
+            if (cb) {
+                cb.enable(true);
+            }
+        });
+        if ($("#ID").val() =='0') {
+           $('#btnDelete').hide();
+        }
+        toggleGoToButtons(false);
+    }
+
+    function toggleGoToButtons(status)
+    {
+        if (status) {
+            $('#btnGoToPortServer').prop('disabled', false);
+            $('#btnGoToPortServer').removeClass('disabled');
+            $('#btnGoToNetwork').prop('disabled', false);
+            $('#btnGoToNetwork').removeClass('disabled');
+            
+        }
+        else {
+            $('#btnGoToPortServer').prop('disabled', true);
+            $('#btnGoToPortServer').addClass('disabled');
+            $('#btnGoToNetwork').prop('disabled', true);
+            $('#btnGoToNetwork').addClass('disabled');
+        }
+        
+    }
+
+    function changeToViewMode() {
+        actualmode = 1;
+        
+        $(".view-mode").show();
+        $(".modify-mode").hide();
+        toolBarAllEditSaveButton();
+        toolBarShowButtonByClass("view-mode");
+        $('#@strDialogID :input').attr('disabled', true);
+        $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(false);
+            }
+        });
+        $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoNumericTextBox");
+            if (cb) {
+                cb.enable(false);
+            }
+        });
+        $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoTimePicker");
+            if (cb) {
+                cb.enable(false);
+            }
+        });
+        toggleGoToButtons(true);
+    }
+
+    var actualmode;
+    function setWindowMode() {
+        if ('@Model.ID' !== '' && @Model.ID!== 0) {
+            actualmode = 1;
+        } else {
+            actualmode = 2;
+        }
+        setMode();
+    }
+    function setMode() {
+        if (actualmode === 2) {
+            changeToEditMode();
+            bedListToViewMode();
+        }
+        else {
+            changeToViewMode();
+        }
+        //debugger;
+
+
+
+        dialog.center().resize();
+    }
+    function bedListToViewMode() {
+        //debugger;
+         if ('@Model.HasNetwork'==='False') {
+             $('#set-location').attr('disabled', true);
+        }
+
+    }
+
+    function toolBarShowButtonByClass(clas) {
+        var tb = $("#toolbarDev").data("kendoToolBar");
+        tb.umsShowButtonByClass(clas);
+    }
+   function toolBarAllEditSaveButton() {
+        var tb = $("#toolbarDev").data("kendoToolBar");
+        tb.umsHideAllEditSaveButton();
+    }
+    var dialog = $("#telligenceDeviceWindow").data("kendoWindow");
+    dialog.bind("activate", setMode);
+    dialog.bind("resize", setMode);
+    $(document).ready(function () {
+        setWindowMode();
+        $('.btnEdit').off('click').on('click',function () {
+            changeToEditMode();
+            bedListToViewMode();
+        })
+        $('.btnCancel').on('click', function (e) {
+            e.preventDefault();
+            var currentID = $('#ID').val();
+            if (currentID && currentID != '' && currentID!='0') {
+                displayTLDeviceDetail({ ID: $('#ID').val() });
+            }
+            else {
+                dialog.close();
+            }
+
+        })
+        $('.btnClose').off('click').on('click',function () {
+            dialog.close();
+            $(this).closest(".k-state-focused").focus();
+        })
+        $('#btnCopy').off('click').on('click',function () {
+            //reset guid
+            $("#ID").val("");
+            changeToEditMode();
+        });
+        $('#btnDelete').off('click').on('click',function () {
+            umsConfirm('@DicSvc.XLate("Confirm Delete")', '@DicSvc.XLate("Do you really want to delete this Telligence Device?")', deleteTLDevice, cancelDeleteTLDevice);
+        });
+       $('#btnSavedev').off('click').on('click', function () {
+        if (OnValidation()) {
+            $("#form_@strDialogID").submit();
+        }
+        });
+    });
+
+
+    function deleteTLDevice() {
+        $.ajax({
+            url: '@Url.Action("DeleteDevice", "Telligence")',
+            type: 'POST',
+            data: { ID: '@Model.ID' },
+            async: false
+
+        }).done(function (data) {
+            if (data.success) {
+                $('#telligenceDeviceWindow').data('kendoWindow').close();
+                var grid = $("#" + gridIdName).data("kendoGrid");
+                grid.dataSource.read();
+            }
+            else {
+                umsErrorDialog("Error occured", data.errorMessage, 200, 200);
+            }
+            }).fail(function (response) {
+                umsErrorDialog("Error occured", response, 200, 200);
+        });
+
+    }
+
+    function cancelDeleteTLDevice() {
+
+        /* do nothing */
+    }
+
+    function OnValidation() {
+         var retValue = false;
+        var validator = $("#form_@strDialogID").kendoValidator().data("kendoValidator");
+        if (!validator.validate() ) {
+            try {
+                var errors = validator.errors();
+                $("#errors").html(buildValidationMessage(errors));
+            } catch (e) {
+                $("#errors").html(e);
+            }
+        }
+        else {
+            $("#errors").html("");
+            retValue = true;
+        }
+
+        return retValue;
+    }
+    function OnSuccess(response) {
+        if (response.success) {
+            var grid = $("#" + gridIdName).data("kendoGrid");
+            grid.dataSource.read();
+            dialog.close();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+    function OnFailure(response) {
+        //debugger;
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+</script>

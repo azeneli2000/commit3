@@ -1,0 +1,297 @@
+﻿@using ConfiguratorWeb.App.Models.DiaryWeb
+@model Category
+@{
+   var gridName = "catreoRdered";
+}
+<style>
+
+   .footerReorderGrid {
+      width: 974px;
+      position: relative;
+      right: 1px;
+      top: 18px;
+   }
+
+
+</style>
+
+
+<div class="card h-90 pt-1 pb-2">
+   <div id="CategoryDetailContainerR" class="card-body h-90 p-0 border-0" >
+      <div style="width: 100%">
+         <div style="width: 100%; height: 100%">
+            <div style="display: flex; flex-direction: row;">
+               @(Html.Kendo().Grid<Category>()
+   .Name(gridName).HtmlAttributes((new { style = "margin:8px;width:94%;" }))
+   .Navigatable(true)
+    .Selectable(s => s.Mode(GridSelectionMode.Single))
+   .Columns(columns =>
+   {
+      columns.Bound(e => e.ID).Visible(false);
+      columns.Bound(e => e.Text).Title(DicSvc.XLate("Name")).Width("55%").Filterable(false);
+      columns.Bound(e => e.Color).Title(DicSvc.XLate("Color")).HtmlAttributes((new { style = "text-align:center;font-weight:bold;font-size:12px;"})).ClientTemplate("<div style='background: #: Color # ; color: #= pickTextColorBasedOnBgColorAdvanced(Color)# ;' />#: Color #</div>").Width("25%").Filterable(false);
+      columns.Bound(e => e.LocationName).Title(DicSvc.XLate("Location")).Width("20%").Filterable(false);
+      columns.Bound(e => e.Index).Visible(false);
+      columns.Bound(e => e.IsSystem).Width("15%").ClientTemplateId("is_system_category").Filterable(false); 
+      columns.Bound(e => e.IsActive).Width("15%").ClientTemplate("<input class='check-col  k-checkbox k-checkbox-md k-rounded-md' disabled='disabled' type='checkbox' #=IsActive ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" }).Filterable(false);
+   })
+
+   //.UmsDefaultSettings(DicSvc)
+   //.Sortable()
+   //.Filterable()
+   .Scrollable()
+   //.Resizable(resize => resize.Columns(true))
+   .DataSource(dataSource => dataSource
+   .Ajax()
+   .Model(model =>
+   {
+      model.Id(o => o.ID);
+      model.Field(o => o.Text).Editable(false);
+      model.Field(o => o.Color).Editable(false);
+      model.Field(o => o.LocationID).Editable(false);
+      model.Field(o => o.IsActive).Editable(false);
+      model.Field(o => o.IsSystem).Editable(false);
+      model.Field(o => o.Index);
+
+   })
+
+   //.Events(events => events.Error("onGridError"))
+   .Read(read => read.Action("GetCategories", "DiaryWeb"))
+   ).NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+   )
+
+               <div style="display:flex; flex-direction:column;">
+                  <div class="arrowCategory" style="margin-top: 10px; margin-right: 7px;" disabled="disabled">
+                     <div style="display:flex; flex-direction:column;">
+                        <button id="moveCategoryUp"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base" style="margin-bottom: 1px;" type="button"><span class="k-icon k-i-arrow-60-up"></span></button>
+                        <button id="moveCategoryDown"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base" type="button"><span class="k-icon k-i-arrow-60-down"></span></button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+<div class="card-footer h-10 p-0 m-0 border bg-white">
+
+   @{
+      string postId = "RCat"; //use in case of multi toolbar
+   }
+   @(Html.Kendo().ToolBar()
+                              .Name("toolbarDiaryCategoryReorder")
+                              .UmsDefaultErrors(DicSvc, "errors")
+
+                              .UmsDefaultSettings(DicSvc, postId).HtmlAttributes(new {@style="height:49px;" })
+      )
+
+
+
+</div>
+         </div>
+      </div>
+   </div>
+</div>
+
+<script>
+       var toolbarDialogId = "RCat";
+
+    RCatToolBarShowButtonByClass("modify-mode") ;
+    RCatChangeToEditMode();
+   var RP_actualmode = 2;
+   var enableGridsR = false;
+   $("#catreoRdered").on("click", "tr.k-state-selected", function () {
+    
+      if (enableGridsR == true) {
+
+      $(".arrowCategory").attr('disabled', false);
+      $("#moveCategoryUp").attr('disabled', false);
+      $("#moveCategoryDown").attr('disabled', false);
+         checkAssociationIndex("@gridName", 3);
+         //$(".arrowSubject").css("display", "flex");
+         //$(".arrowSubject").css("direction", "column");
+     }
+   });
+
+
+   var toolbarDialogId = "";
+
+   function ordeRCatileIndex() {
+
+      var visibleGrid = $('#@gridName').data("kendoGrid");
+      for (var i = 0; i < visibleGrid.dataSource._data.length; i++) {
+         visibleGrid.dataSource._data[i].Index = i+1;
+      }
+
+   };
+
+   $("#moveCategoryDown").off('click').on("click", function (idx, elem) {
+      $("#moveCategoryUp").attr('disabled', false);
+      var visibleGrid = $('#@gridName').data("kendoGrid");
+      if (visibleGrid.dataSource._data.length > 1) {
+         var selected = visibleGrid.select();
+         if (selected.length > 0) {
+
+            $.each(selected, function (idx, elem) {
+               var dataItem = visibleGrid.dataItem($(this));
+               var index = visibleGrid.dataSource.indexOf(dataItem);
+               var maxIndex = visibleGrid.dataSource._data.length - 1;
+               if (index < maxIndex) {
+                  var newIndex = index + 1;
+
+                  visibleGrid.dataSource.remove(dataItem);
+                  visibleGrid.dataSource.insert(newIndex, dataItem);
+                  visibleGrid.select("tr:eq(" + (newIndex) + ")");
+
+                  orderCategoryGridsIndex("@gridName");
+               }
+               if (index == maxIndex - 1) {
+                  $("#moveCategoryDown").attr('disabled', true);
+               }
+            });
+         }
+      }
+   });
+   $("#moveCategoryUp").off('click').on("click", function (idx, elem) {
+      $("#moveCategoryDown").attr('disabled', false);
+
+      var visibleGrid = $("#@gridName").data("kendoGrid");
+      var selected = visibleGrid.select();
+      if (visibleGrid.dataSource._data.length > 1) {
+         if (selected.length > 0) {
+
+            $.each(selected, function (idx, elem) {
+               var dataItem = visibleGrid.dataItem($(this));
+               var index = visibleGrid.dataSource.indexOf(dataItem);
+               if (index > 0) {
+                  var newIndex = index - 1;
+                  visibleGrid.dataSource.remove(dataItem);
+                  visibleGrid.dataSource.insert(newIndex, dataItem);
+                  visibleGrid.select("tr:eq(" + (newIndex) + ")");
+
+                   orderCategoryGridsIndex("@gridName");
+               }
+               if (index == 1) {
+                  $("#moveCategoryUp").attr('disabled', true);
+               }
+            });
+         }
+      }
+
+   });
+
+
+   function ReorderCategory()
+   {
+      var grid = $("#@gridName").data("kendoGrid");
+      grid.clearSelection();
+      var listbox = $('#@gridName').getKendoGrid().dataSource.data();
+      var categoriesr = {};
+      for (let i = 0; i < listbox.length; i++) {
+         if (listbox[i].Text !== "") {
+           /* categoriesr.push({ ID: listbox[i].ID, Index: listbox[i].Index })*/
+            categoriesr[listbox[i].ID] = listbox[i].Index;
+         }
+      }
+
+      $.ajax({
+         url: '@Url.Action("ReorderDiaryCategory", "DiaryWeb")',
+         type: 'POST',
+         data: { categories : categoriesr },
+
+      })
+      .done(function (data) {
+         /*RCatChangeToViewMode();*/
+
+         var grid = $("#DiaryWebCategories").data("kendoGrid");
+         grid.dataSource.read();
+         var dialog = $('#DiaryCategoryDetailDialogR').data("kendoWindow");
+         dialog.close();
+      });
+
+   }
+
+   function RCatsetMode() {
+
+
+      if (RP_actualmode === 2) {
+          
+         RCatChangeToEditMode();
+      }
+      else {
+         RCatChangeToViewMode();
+      }
+   };
+
+   function RCatToolBarShowButtonByClass(buttonClass) {
+      var tb = $("#toolbarDiaryCategoryReorder").data("kendoToolBar");
+      tb.umsShowButtonByClass(buttonClass);
+   }
+   function RCatToolBarAllEditSaveButton() {
+      var tb = $("#toolbarDiaryCategoryReorder").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+
+   function RCatChangeToEditMode() {
+      enableGridsR = true;
+      var grid = $("#@gridName").data("kendoGrid");
+      grid.clearSelection();
+
+      //$(".arrowCategory").attr('disabled', true);
+      //$("#moveCategoryUp").attr('disabled', true);
+      //$("#moveCategoryDown").attr('disabled', true);
+   
+      RP_actualmode = 2;
+      //RCatToolBarAllEditSaveButton();
+      //RCatToolBarShowButtonByClass("modify-mode");
+      $('#btnSave'+toolbarDialogId).css("display", "block");
+      $('#btnClose'+toolbarDialogId).css("display", "block");
+   };
+
+   function RCatChangeToViewMode() {
+
+      enableGridsR = false;
+      var grid = $("#@gridName").data("kendoGrid");
+      grid.clearSelection();
+      RP_actualmode = 1;
+      RCatToolBarAllEditSaveButton();
+      RCatToolBarShowButtonByClass("view-mode");
+      $('#moveCategoryUp').attr('disabled', true);
+      $('#moveCategoryDown').attr('disabled', true);
+
+   };
+
+
+   $(document).ready(function () {
+
+      var dialog = $('#DiaryCategoryDetailDialogR').data("kendoWindow");
+      dialog.bind("activate", RCatsetMode);
+      dialog.bind("resize", RCatsetMode);
+
+      RCatsetMode();
+
+      $('#btnEdit'+toolbarDialogId).off('click').on('click', function () {
+
+
+         RCatChangeToEditMode();
+
+      });
+
+      $('#btnCancelRCat').off('click').on('click', function () {
+
+            dialog.close();
+      });
+
+      $('#btnSaveRCat').off('click').on('click', function () {
+         ReorderCategory();
+       
+      });
+
+      $('#btnClose'+toolbarDialogId).off('click').on('click', function () {
+         $("html").css("overflow-y", "hidden");
+
+         var grid = $("#DiaryWebCategories").data("kendoGrid");
+         grid.dataSource.read();
+         dialog.close();
+      });
+   });
+
+</script>

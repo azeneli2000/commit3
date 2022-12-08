@@ -1,0 +1,22 @@
+﻿@model ConfiguratorWeb.App.Models.DeviceDriverViewModel
+@{
+    Layout = null;
+}
+<div style="height:360px;padding-top: 10px;">
+    <div class="row">
+        <div class="col-md-2 u-col-h-fixed">
+            <label asp-for="PatientResolveNotCached" class="label-name">@DicSvc.XLate("Patient Resolve NOT cached")</label>
+        </div>
+        <div class="col-md-1 u-col-h-fixed">
+            @Html.Kendo().CheckBoxFor(m => m.PatientResolveNotCached).HtmlAttributes(new { @style = "margin-top: 6px;display: block;" })
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-2 u-col-h-fixed">
+            <label asp-for="SQLPatientResolve" class="label-name">@DicSvc.XLate("Patient Resolve")</label>
+        </div>
+        <div class="col-md-4 u-col-h-fixed">
+            @Html.TextAreaFor(m => m.SQLPatientResolve, new { @style = "width:100%;max-width:250%;height:177px;max-height:177px;border-color: #e4e4e4; resize:none;" })
+        </div>
+    </div>
+</div>

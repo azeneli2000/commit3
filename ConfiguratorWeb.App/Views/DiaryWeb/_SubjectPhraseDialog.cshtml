@@ -1,0 +1,252 @@
+﻿@using ConfiguratorWeb.App.Models.DiaryWeb
+@model Subject
+
+<input asp-for="ID" type="hidden" />
+<div id="editSubject">
+<div style="display:flex;flex-direction:row;width:100%;height:323px;border: 1px solid rgb(33 37 41 / 31%);">
+<div style="display:flex;flex-direction:column;width:300px;height:302px;order:0;margin: 12px 1px 7px 9px;">
+   <div class="editor-label">
+      <div class="col-md-1  u-col-h-fixed ">
+         <label for="NameD">@DicSvc.XLate("Text")</label>
+      </div>
+   </div>
+   <div class="editor-field">
+      <span class="k-widget k-textarea">
+         <textarea id="SubjectDiary" style="width: 275px;height: 162px ;resize: none;" required="" data-required-msg="Please enter a text."
+                   data-max-msg="Enter value between 1 and 200" data-role="textarea" aria-disabled="false" maxlength="200"
+                   rows="3" class="k-textbox" placeholder="Enter your text here."  autocomplete="off" aria-describedby="-error"
+                   aria-invalid="true"></textarea>
+
+      </span>
+   </div>
+   <div class="row" style="position: relative; top: 22px;">
+      <div style="display: flex; flex-direction: row; justify-content: space-between; width: 21%;">
+         <label style="padding-right: 11px; font-size: 14px;padding-top: 5px;">@DicSvc.XLate("IsActive")</label>
+         @*<input type="checkbox" id="IsActiveS" style="" />*@
+         @Html.Kendo().CheckBox().Name("IsActiveS").HtmlAttributes(new { @style = "position: relative; top: 4px;" })
+
+      </div>
+   </div>
+
+</div>
+<div style="width:250px;height:302px;order:1;display:flex;flex-direction:column;margin: 12px 1px 7px 9px;">
+
+<div style="display:flex;flex-direction:row;width: 700px;">
+ @{await Html.RenderPartialAsync("SubjectPhrase", Model);}
+ @{await Html.RenderPartialAsync("_CommonButtons", null);}
+
+ </div>
+</div>
+</div>
+   <div class="row">
+      <div class="window-footer col-7" style=" position: relative; top: 18px; margin-left: -25px;">
+         <button type="button" id="btnNewGridItemD" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary">@DicSvc.XLate("Save")</button>
+         <button type="button" id="brnCancelGridItemD"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base">@DicSvc.XLate("Cancel")</button>
+
+      </div>
+      <div class="col-5 " id="waysError" style="display: none; color: red; position: relative; top: 23px;right:330px;">@DicSvc.XLate("This input already exists")</div>
+      <div class="col-4 " id="waysError1" style="display: none; color: red; position: relative; top: 19px;left:200px;">@DicSvc.XLate("Input is required")</div>
+
+
+   </div>
+</div>
+<script>
+var isSeelectedPhSub;
+if('@Model.Text' != '')
+{
+    $("#SubjectDiary").val('@Model.Text');
+    if('@Model.IsActive'=='True')
+    {
+        $("#IsActiveS").prop("checked",true);
+    }
+    else
+    {
+        $("#IsActiveS").prop("checked",false);
+    }
+}
+else
+{
+ $("#SubjectDiary").val('');
+  $("#IsActiveS").prop("checked",true);
+}
+
+var idSelected ; 
+   $("#subjectGridph").on("click", "tr.k-state-selected", function () {
+    
+    var gridS = $("#subjectGridph").data("kendoGrid");
+    var dataItemSelectedS1 = gridS.dataItem(this);
+
+    $("#removeSubjectsPHBtn").css("display", "block");
+    $("#editPhSBtn").css("display", "block");
+    $(".arrowSubjectPH").attr('disabled', false);
+    $("#moveSubjectUpPH").attr('disabled', false);
+    $("#moveSubjectDownPH").attr('disabled', false);
+    checkAssociationIndex("subjectGridph", 5);
+    isSeelectedPhSub = dataItemSelectedS1;
+   });
+    $('#btnNewGridItemUpdateSPH').off('click').on('click', function (e) {
+
+        var grid2 = $("#subjectGridph").data("kendoGrid");
+        var dataItemSelectedSPH =  grid2.dataItem(this);
+        Subjects_Grid_savePH($("#SubPHtxt").val());
+
+    });    
+    
+    $('#btnNewGridItemUpdateSPHE').off('click').on('click', function (e) {
+        
+        Subjects_Grid_UpdatePH(isSeelectedPhSub.ID,$("#SubPHtxtEdit").val());
+
+    });
+   function Subjects_Grid_savePH(e)
+   {
+        
+    var ptw = $("#UpdateSubjectPH").data("kendoWindow");
+    var datasource = $("#subjectGridph").data("kendoGrid").dataSource
+    var grid = $("#subjectGridph").data("kendoGrid");
+    var data = datasource.data();
+    var i;
+    var count = 0;
+    for (i = 0; i < data.length; i++) {
+    var tempName = data[i].Text.replaceAll(' ', '').toUpperCase();
+    var sender = e.replaceAll(' ', '').toUpperCase();
+    if (tempName == sender) {
+    count++;
+    }
+    if (count >= 1) {
+    $("#waysError2SPH").css("display", "block");
+    $("#waysError1SPH").css("display", "none");
+
+    return false;
+    }
+
+    }
+    if ($("#SubPHtxt").val() == "") {
+    $("#waysError2SPH").css("display", "none");
+    $("#waysError1SPH").css("display", "block");
+
+    return false;
+    }
+
+    var arrayIdPH = [];
+    for (var k = 0;k< grid.dataSource._data.length; k++) {
+
+    arrayIdPH.push(grid.dataSource._data[k].ID);
+
+    }
+        var arrayIdPHI = [];
+    for (var k = 0;k< grid.dataSource._data.length; k++) {
+
+    arrayIdPHI.push(grid.dataSource._data[k].Index);
+
+    }
+    var newID;
+    var newIndex;
+    if(arrayIdPHI.length > 0)
+    {
+    newID= Math.max(...arrayIdPHI)+1;
+    newIndex= Math.max(...arrayIdPHI)+1;
+    }
+    else
+    {
+    newID = 0 ; 
+    newIndex = 0 ; 
+    }
+
+    datasource.insert({ID:0, Text: e, Subjet:'@Model.ID',Index:newIndex });
+    orderGridsIndex("subjectGridph");
+    ptw.close();
+    $("#SubPHtxt").val("");
+    //resetOrderButtonsPH();
+    
+ 
+   }
+
+   
+   function Subjects_Grid_UpdatePH(id,text)
+   {
+
+      
+    var ptw = $("#EditSubjectPH").data("kendoWindow");
+    var datasource = $("#subjectGridph").data("kendoGrid").dataSource
+    var grid = $("#subjectGridph").data("kendoGrid");
+    var data = datasource.data();
+
+    var dataItem =  grid.dataItem(grid.select());
+    var i;
+    var count = 0;
+    for (i = 0; i < data.length; i++) {
+    var tempName = data[i].Text.replaceAll(' ', '').toUpperCase();
+    var sender = text.replaceAll(' ', '').toUpperCase();
+    if (tempName == sender) {
+    count++;
+    }
+    if (count >= 1) {
+    $("#waysError2SPHE").css("display", "block");
+    $("#waysError1SPHE").css("display", "none");
+
+    return false;
+    }
+
+    }
+    if ($("#SubPHtxtEdit").val() == "") {
+    //alert("Name is required");
+    $("#waysError2SPHE").css("display", "none");
+    $("#waysError1SPHE").css("display", "block");
+
+    return false;
+    }
+   
+  
+
+    dataItem.set("Text", text);
+
+
+    $("#SubPHtxtEdit").val("");
+
+    resetOrderButtonsPH();
+    ptw.close();
+   }
+
+
+    var gridSH = $("#subjectGridph").data("kendoGrid");
+
+      $('#editPhSBtn').off('click').on('click', function (e) {
+                
+                var  dataItemSelectedSh = isSeelectedPhSub;
+               var ptw = $("#EditSubjectPH").data("kendoWindow");
+               $("#SubPHtxtEdit").val(dataItemSelectedSh.Text);
+               idSelected = dataItemSelectedSh.ID ; 
+               ptw.center();
+               ptw.open();
+
+         });
+
+
+$('#btnNewGridItemD').off('click').on('click', function (e) {
+       
+      Subjects_Grid_Update('@Model.ID',$("#SubjectDiary").val());
+
+});
+
+
+$('#brnCancelGridItemD').off('click').on('click', function (e) {
+    
+         customAddSubject = $("#EditS").data("kendoWindow");
+         resetOrderButtonsPH();
+         $("#waysError").css("display", "none");
+         $("#waysError1").css("display", "none");
+         $("#SubjectDiary").val("");
+         var grid = $("#subjectGrid").data("kendoGrid");
+         grid.clearSelection();
+         $("#moveSubjectUp").attr('disabled', true);
+         $("#moveSubjectDown").attr('disabled', true);
+         $("#removeSubjectsBtn").css("display", "none");
+         $("#editSubjectsBtn").css("display", "none");
+         customAddSubject.close();
+
+});
+
+ </script>
+
+
+

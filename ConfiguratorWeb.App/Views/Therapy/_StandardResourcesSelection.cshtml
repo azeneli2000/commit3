@@ -1,0 +1,95 @@
+﻿@model   List<Digistat.FrameworkStd.Model.Therapy.StandardResource>;
+@{
+   var gridName = "StandardResourcesSelectionGrid";
+}
+
+
+<div style="width: 100%">
+   <div class="row" style="width: 97%; height: 90%">
+
+      @(Html.Kendo().Grid<Digistat.FrameworkStd.Model.Therapy.StandardResource>()
+                              .Name(gridName)
+                              .Columns(columns =>
+                              {
+                                 columns.Bound(e => e.ResID).Visible(false);
+                                 columns.Bound(e => e.ResName).Title(DicSvc.XLate("Name"));
+                                 columns.Bound(e => e.ResVersion).Title(DicSvc.XLate("Version"));
+                                 //columns.Bound(e => e.Location.LocationName).Title(DicSvc.XLate("Location")).Width(500);
+
+                              })
+                              .Navigatable(true)
+                              .UmsDefaultPager(DicSvc)
+                              .UmsDefaultSettings(DicSvc)
+                              .DataSource(dataSource => dataSource
+                              .Ajax()
+                              .PageSize(20)
+                                .Model(model =>
+                                {
+                                   model.Id(o => o.ResID);
+                                   model.Field(o => o.ResName);
+                                   model.Field(o => o.ResVersion);
+                                })
+                              .Read(read => read.Action("ReadStandardResourcesSelection", "Therapy"))
+                              )
+                              .HtmlAttributes(new { style = "width:100%;" })
+                              .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+
+      )
+
+   </div>
+   <div class="row">
+      <button id="btnAddResourceSel" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" style="margin-left: 86%; border-radius: 4%;width: 91px;height: 26px;">Add Selected</button>
+      @*<button id="btnAddResourceSel" class="k-button" style="margin-left: 86%; border-radius: 4%;width: 91px;height: 26px;">Add Selected</button>*@
+      <p id="errorInsertResource" style="display:none; color:red;position:relative;bottom:28px;">@DicSvc.XLate("Resource already selected")</p>
+
+   </div>
+
+</div>
+
+<script>
+   $('#btnAddResourceSel').off('click').on('click', function (e) {
+
+         e.preventDefault();
+         var sourceGrid =  $("#@gridName").data("kendoGrid");
+         var destGrid = $("#TabLinkResourcesGrid").data("kendoGrid");
+          var datasource = $("#TabLinkResourcesGrid").data("kendoGrid").dataSource;
+         var rowsToAdd = sourceGrid.select();
+         var lastIndex = 0;
+         var destGridData = destGrid.dataSource.data();
+         for (var i = 0; i < destGridData.length ; i++)
+         {
+            if (destGridData[i].Index > lastIndex)
+            {
+               lastIndex = destGridData[i].Index;
+            }
+         }
+
+         for (var i = 0; i < rowsToAdd.length; i++)
+         {
+            var dataGrid = sourceGrid.dataItem(rowsToAdd[i]);
+            if (datasource._data.length == 0 && i==0) 
+               {
+                  var data = { IdResource: dataGrid.ResID, ResourceName: dataGrid.ResName, IsDefault: true, Index: lastIndex + 1 };
+                  destGrid.dataSource.add(data);
+               }
+               else
+               {
+               var data = { IdResource: dataGrid.ResID, ResourceName: dataGrid.ResName, IsDefault: false, Index: lastIndex + 1 };
+               for (var j = 0; j < destGrid.dataSource._data.length; j++) {
+                  if (destGrid.dataSource._data[j].ResourceName == data.ResourceName) {
+                     $("#errorInsertResource").css("display", "block");
+
+                     return false;
+                  }
+               }
+                  destGrid.dataSource.add(data);
+               }
+         }
+      $("#errorInsertResource").css("display", "none");
+         sourceGrid.clearSelection();
+         return false;
+      });
+
+
+</script>

@@ -1,0 +1,8 @@
+﻿#swagger-ui > section > div.topbar > div > div > a > img {
+   content: url('../images/ascomlogo.png');
+   height: 27px;
+}
+
+.swagger-ui .topbar {
+   background-color: #4a90e2;
+}

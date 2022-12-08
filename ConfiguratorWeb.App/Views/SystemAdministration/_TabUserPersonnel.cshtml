@@ -1,0 +1,45 @@
+﻿@{
+    Layout = null;
+}
+
+<div style="height:260px">
+   @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.PersonnelViewModel>()
+           .Name("personnel-grid_" + @ViewData["UserId"])
+    .Columns(columns =>
+    {
+        columns.Bound(e => e.ID).Visible(false);
+        columns.Bound(e => e.Name);
+        columns.Bound(e => e.FirstName);
+        columns.Bound(e => e.LastName);
+        columns.Bound(e => e.Qualification);
+        //columns.Command(command =>
+        //    {
+        //        command.Edit().Text(" ").UpdateText(" ").CancelText(" ");
+        //        command.Custom("deletecustom").Click("onDeleteItem").Text(" ");
+        //    }).Width(120);
+    })
+             //  .ToolBar(tools => tools.Create().Text("ADD NEW PERSONNEL"))
+             .Editable(editable => editable.Mode(GridEditMode.InLine))
+            .Scrollable(scrollable => scrollable.Virtual(true)).Sortable().Filterable().HtmlAttributes(new { style = "height:90%;margin:10px;" })
+
+                           .DataSource(dataSource => dataSource
+                                   .Ajax()
+                                   .Model(model =>
+                                   {
+                                       model.Id(o => o.ID);
+                                       model.Field(o => o.Name);
+                                       model.Field(o => o.FirstName);
+                                       model.Field(o => o.LastName);
+                                       model.Field(o => o.Qualification);
+                                   })
+                                             .Events(events => events.Error("error_handler_users"))
+                                                .Read(read => read.Action("ReadPersonnel", "SystemAdministration"))
+    //.Update(update => update.Action("UpdatePersonnel", "SystemAdministration"))
+    //.Create(create => create.Action("CreatePersonnel", "SystemAdministration"))
+    //   .Destroy(destroy => destroy.Action("DeletePersonnel", "SystemAdministration"))
+    )
+     .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+)
+</div>
+

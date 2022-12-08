@@ -1,0 +1,865 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@using Digistat.FrameworkStd.Enums.Vitals;
+@using Digistat.FrameworkStd.DictionaryTerms;
+
+@inject IDictionaryService DicSvc
+
+@model ConfiguratorWeb.App.Models.SDItemViewModel
+
+@{
+   Layout = null;
+   string pageGUID = Guid.NewGuid().ToString();
+   var bolIsPublished = ViewBag.IsPublished == true;
+}
+<script>
+   $(document).ready(function () {
+       var items = $('#vitalsDatasetItem_grid_' + $("#divVitalsItemDetail [name='StandardDatasetID']").val())
+           .data('kendoGrid')
+           .dataSource.data()
+           .filter(function (item) {
+               return item.ID != "@Model.ID" && (item.ItemTypeName == "@ParamType.List" || item.ItemTypeName == "@ParamType.NumericList") ;
+           });
+       items.unshift({ Name: "", Value: "" });
+       var ddlConditionalItemId = $("[name='ConditionalItemId']").data("kendoDropDownList");
+       var ddlConditionalSubItemId = $("[name='ConditionalSubItemId']").data("kendoDropDownList");
+
+       ddlConditionalItemId.dataSource.data(items);
+       ddlConditionalItemId.value($("[name='ConditionalItemId']").closest("[data-value]").attr("data-value") || "");
+
+       onConditionalItemIdChange();
+       ddlConditionalSubItemId.value($("[name='ConditionalSubItemId']").closest("[data-value]").attr("data-value") || "");
+
+       initializeTextAreaCSharp();
+   });
+
+   function onConditionalItemIdChange() {
+       var ddlConditionalItemId = $("[name='ConditionalItemId']").data("kendoDropDownList");
+       var ddlConditionalSubItemId = $("[name='ConditionalSubItemId']").data("kendoDropDownList");
+       var itemId = ddlConditionalItemId.value();
+       if (itemId) {
+           $.ajax({
+               url: '@Url.Action("GetAllSubItemsForItem", "Vitals")',
+               type: 'GET',
+               data: { itemID: itemId },
+               async: false
+           }).done(function (result) {
+               var subItems = (result && result.Data) || [];
+               subItems.unshift({ Label: "", Value: "" });
+               ddlConditionalSubItemId.dataSource.data(subItems);
+           });
+       }
+       else {
+           ddlConditionalSubItemId.value("");
+           ddlConditionalSubItemId.dataSource.data([]);
+       }
+       ddlConditionalSubItemId.enable(ddlConditionalSubItemId.dataSource.data().length > 1);
+   }
+
+   function resetDefaultValue() {
+       $(".default-value-display [name='DefaultValueType']").val("None");
+       $(".default-value-display .default-value-type").text("None");
+       $(".default-value-display [name='DefaultValue']").val("");
+       $(".default-value-display [name='StdParameterID']").val("");
+       $(".default-value-display [name='StdUnitOfMeasureID']").val("");
+       $(".default-value-display [name='ScoreID']").val("");
+       $(".default-value-display [name='DefaultValueType']");
+       $(".default-value-display [data-type^='default-value-']").hide();
+       $(".default-value-display [data-type='default-value-None']").show();
+   }
+
+   function changeType() {
+       resetDefaultValue();
+       SetViewByItemType()
+   }
+
+   function onItemTypeChange() {
+       if ($(".default-value-display [name='DefaultValueType']").val() !== "None"
+           && $("button#set-default-value").data("current-item-type") != $("#VitalsItemType_@pageGUID").val()) {
+           umsConfirm('@DicSvc.XLate("Confirm change type", Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+           '@DicSvc.XLate("Do you really want to change the item type? The default value will be reset.", Digistat.FrameworkStd.Enums.StringParseMethod.Js)', changeType, function () {
+               $("#VitalsItemType_@pageGUID").data("kendoDropDownList").value($("button#set-default-value").data("current-item-type"));
+           });
+       }
+       else {
+           changeType();
+       }
+   }
+
+   function getOcrDeviceId() {
+       var deviceId = $("#sd_Ocr").is(":checked")
+           ? +$("[name='sd_OcrDevice']").data("kendoDropDownList").value()
+           : -1;
+
+       return deviceId || -1;
+   }
+
+   function filterOcrParameters() {
+       return { deviceId: getOcrDeviceId() };
+   }
+
+
+</script>
+<div class="h-100" id="divVitalsItemDetail">
+   <div class="card pt-0 pb-2" style="height: 430px">
+      <form asp-controller="Vitals" id="form_DatasetItem_@Model.ID" asp-action="SaveSDItem" class="h-85"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccessItemDetail" kendo-auto-scroll="true"
+            data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+         <div id="Results"></div>
+         @Html.HiddenFor(m => m.StandardDatasetID)
+         <kendo-tabstrip name="tabstrip_ItemDetail_@Model.ID">
+            <scrollable enabled="true" />
+            <popup-animation>
+               <open effects="fade:in" />
+            </popup-animation>
+            <items>
+               <tabstrip-item text="@DicSvc.XLate("Item Details")" selected="true" id="tabstrip-@Model.ID-general">
+                  <content>
+                     @Html.HiddenFor(m => m.ID)
+                     <div class="row pt-3">
+                        <div class="col">
+                           <div class="row">
+                              <div class="col-md-4 u-col-h-fixed">
+                                 @Html.LabelFor(m => m.Name, new { @class = "field-required" })
+                              </div>
+                              <div class="col-md-8 u-col-h-fixed">
+                                 @Html.TextBoxFor(m => m.Name, new { @class = "k-input k-textbox control-required", @maxlength = "50" })
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-md-4 u-col-h-fixed">
+                                 @Html.LabelFor(m => m.Label, new { @class = "field-required" })
+                              </div>
+                              <div class="col-md-8 u-col-h-fixed">
+                                 @Html.TextBoxFor(m => m.Label, new { @class = "k-input k-textbox control-required", @maxlength = "50" })
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-md-4 u-col-h-fixed">
+                                 @Html.LabelFor(m => m.Unit)
+                              </div>
+                              <div class="col-md-8 u-col-h-fixed">
+                                 @Html.TextBoxFor(m => m.Unit, new { @class = "k-input k-textbox", @maxlength = "50" })
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-md-4 u-col-h-fixed">
+                                 @Html.LabelFor(m => m.ItemType)
+                              </div>
+                              <div class="col-md-8 u-col-h-fixed">
+                                 @(Html.Kendo().DropDownListFor(m => m.ItemType)
+                                 .HtmlAttributes(new { @style = "width:96%;", id = "VitalsItemType_" + @pageGUID })
+                                 .DataTextField("Text")
+                                 .DataValueField("Value")
+                                 .Events(e => e.Change("onItemTypeChange"))
+                                 .DataSource(source =>
+                                    {
+                                       source.Read(read =>
+                                       {
+                                          read.Action("GetAllItemTypes", "Vitals");
+                                       });
+                              }))
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-md-4 u-col-h-fixed">
+                                 @Html.LabelFor(m => m.Index)
+                              </div>
+                              <div class="col-md-3 u-col-h-fixed">
+                                 @(Html.Kendo().NumericTextBox<int>().Name("Index").Value(Model.Index)
+                                 .Decimals(0).Min(1)
+                                 .Format("#").HtmlAttributes(new { @class = "control-required w-100" }))
+                              </div>
+                              <div class="col-md-2 ml-5 u-col-h-fixed">
+                                 @Html.LabelFor(m => m.Required)
+                              </div>
+                              <div class="col-md-2 u-col-h-fixed ">
+                                 @Html.Kendo().CheckBoxFor(m => m.Required).Label(" ")
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-md-4 u-col-h-fixed">
+                                 @Html.LabelFor(m => m.PlaceHolder)
+                              </div>
+                              <div class="col-md-8 u-col-h">
+                                      @Html.TextBoxFor(m => m.PlaceHolder, new { @class = "k-input k-textbox control-required", @maxlength = "50" })
+
+                                 <small class="form-text text-muted">@DicSvc.XLate("Must start with '@'. Must be made of alphanumeric strings without spaces.")</small>
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-md-4 u-col-h-fixed">
+                                 @Html.LabelFor(m => m.OcrParameter)
+                              </div>
+                              <div class="col-md-8 u-col-h-fixed">
+                                 @(Html.Kendo().DropDownListFor(m => m.OcrParameter)
+                                 .HtmlAttributes(new { @style = "width:88%;", id = "VitalsOcrParameter_" + Model.ID })
+                                 .DataTextField("Text")
+                                 .DataValueField("Value")
+                                 .DataSource(source =>
+                                 {
+                                 source.Read(read =>
+                                 {
+                                 read.Action("GetAllOcrParameters", "Vitals").Data("filterOcrParameters");
+                                 });
+                                 }))
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col">
+                           <div class="row">
+                              <div class="col-md-4 px-0">
+                                 @Html.LabelFor(m => m.Description)
+                              </div>
+                              <div class="col-md-8 px-0">
+                                 <textarea asp-for="Description" class="k-input k-textarea" rows="2" style="min-height: auto; resize: none;overflow: auto;"></textarea>
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-md-4 u-col-h-fixed">
+                                 @Html.LabelFor(m => m.Min)
+                              </div>
+                              <div class="col-md-8 u-col-h-fixed">
+                                 @Html.TextBoxFor(m => m.Min, new { @class = "k-input k-textbox", @maxlength = "50" })
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-md-4 u-col-h-fixed">
+                                 @Html.LabelFor(m => m.Max)
+                              </div>
+                              <div class="col-md-8 u-col-h-fixed">
+                                 @Html.TextBoxFor(m => m.Max, new { @class = "k-input k-textbox", @maxlength = "50" })
+                              </div>
+                           </div>
+                           <div class="border pt-3">
+                              <partial name="_DisplayDefaultValue.cshtml" />
+                              <div class="row">
+                                 <div class="col text-right">
+                                    @(Html.Kendo().Button()
+                                    .Name("set-default-value")
+                                    .ThemeColor(ThemeColor.Primary)
+                                    .HtmlAttributes(new { type = "button" })
+                                    .Content(DicSvc.XLate("Set default value")))
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLate("Sub Items")" id="tabstrip-@Model.ID-subitems">
+                  <content>
+                     @{
+                        await Html.RenderPartialAsync("_TabDatasetSubItemList", Model);
+                     }
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLate("Item script")" id="tabstrip-@Model.ID-script">
+                  <content>
+                      <div class="row ">
+                           <div class="col-9 pt-1 text-center">
+                              <textarea asp-for="Script" class="c-sharp"></textarea>
+                           </div>
+                            <div class="col-3">
+                                    <div>
+                                    @DicSvc.XLate("Script for calculation of a SubItem")
+                                       <ul>
+                                          <li>
+                                             @DicSvc.XLate("Script language : C#")
+                                          </li>
+                                          <li>
+                                             @DicSvc.XLate("The script MUST RETURN the code of a SubItem")
+                                          </li>
+                                          <li>
+                                                <a href="javascript:toggleItemScriptExamples();">@DicSvc.XLate("Show/Hide Example/s")</a>
+                                                <div id="divItemScriptExamples" style="display:none;">
+                                                   <small>
+                                                      <b>Example</b>
+                                                      Given @@p1 as item’s placeholder and having two subitems with codes “SubItem_1” and “SubItem_2”. If user inserted value is greater than 10 select subitem with code =”SubItem_1” , else select subitem with code = “SubItem_2”.
+                                                      <br />
+                                                      <pre><code>
+   if (@@p1 > 10)
+   {
+   return "SubItem_1";
+   }
+   else
+   {
+   return "SubItem_2";
+   }
+
+
+</code></pre>
+                                                   </small>
+                                                </div>
+                                          </li>
+                                          
+                                       </ul>
+                                </div>
+
+                           </div>
+                          </div>
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLate("Condition")" id="tabstrip-@Model.ID-Condition">
+                  <content>
+                     <div class="row pt-3">
+                        <div class="col">
+                           <div class="row">
+                              <div class="col-md-4 u-col-h-fixed">
+                                 <label for="ConditionalItemId">@DicSvc.XLate("Item")</label>
+                              </div>
+                              <div class="col-md-8 u-col-h-fixed" data-value="@Model.ConditionalItemId">
+                                 @(Html.Kendo().DropDownList()
+                                 .Name("ConditionalItemId")
+                                 .HtmlAttributes(new { @style = "width:96%;", id = "VitalsConditionalItemId_" + @pageGUID })
+                                 .DataTextField("Name")
+                                 .DataValueField("ID")
+                                 .Events(e => e.Change("onConditionalItemIdChange")))
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-md-4 u-col-h-fixed">
+                                 <label for="ConditionalSubItemId">@DicSvc.XLate("Value")</label>
+                              </div>
+                              <div class="col-md-8 u-col-h-fixed" data-value="@Model.ConditionalSubItemId">
+                                 @(Html.Kendo().DropDownListFor(m => m.ConditionalSubItemId)
+                                 .HtmlAttributes(new { @style = "width:96%;", id = "VitalsConditionalSubItemId_" + @pageGUID })
+                                 .DataTextField("Label")
+                                 .DataValueField("ID")
+                                 .AutoBind(false))
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col">
+                        </div>
+                     </div>
+
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLate("HL7 message")" id="tabstrip-@Model.ID-HL7Message">
+                  <content>
+                     <div class="row pt-3">
+                        <div class="col">
+                           <div class="row">
+                              <div class="col-md-4 u-col-h-fixed">
+                                 <label asp-for="HL7Identifier"></label>
+                              </div>
+                              <div class="col-md-8 u-col-h-fixed">
+                                 @Html.TextBoxFor(m => m.HL7Identifier, new { @class = "k-input k-textbox", @maxlength = "20" })
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-md-4 u-col-h-fixed">
+                                 <label asp-for="HL7UnitIdentifier"></label>
+                              </div>
+                              <div class="col-md-8 u-col-h-fixed">
+                                 @Html.TextBoxFor(m => m.HL7UnitIdentifier, new { @class = "k-input k-textbox", @maxlength = "20" })
+                              </div>
+                           </div>
+                           <div class="row text-right">
+                              <div class="col">
+                                 @(Html.Kendo().Button()
+                                 .Name("copy-hl7-from-das")
+                                 .HtmlAttributes(new { type = "button", @class = "k-primary" })
+                                 .Content(DicSvc.XLate("Copy from DAS")))
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col">
+                        </div>
+                     </div>
+
+                  </content>
+               </tabstrip-item>
+
+            </items>
+         </kendo-tabstrip>
+
+      </form>
+   </div>
+   <div class="card-footer p-0 m-0 border-0 bg-white" style="height: 60px">
+      @(Html.Kendo().ToolBar()
+      .Name("toolbarItemDetail")
+      .UmsDefaultErrors(DicSvc)
+      //.UmsDefaultSettings(DicSvc, "")
+      .Items(items =>
+      {
+      items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDeleteItem").UmsHtmlButtonGeneric("modify-mode-item");
+      items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Save")).Id("btnSaveItem").UmsHtmlButtonGeneric("modify-mode-item btnRed");
+      items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnCancelItem").UmsHtmlButtonGeneric("modify-mode-item");
+      })
+      )
+   </div>
+</div>
+<script>
+
+   function setWindowModeItem() {
+       $("#divVitalsItemDetail").find(".modify-mode-item").show();
+       $("#divVitalsItemDetail").find(".view-mode-item").hide();
+
+       var isPublished = $("[data-published]").attr("data-published") == "true";
+
+       SetViewByItemType();
+
+       var ddlConditionalSubItemId = $("[name='ConditionalSubItemId']").data("kendoDropDownList");
+       ddlConditionalSubItemId.enable(ddlConditionalSubItemId.dataSource.data().length > 1);
+
+       if (isPublished) {
+           $('#btnDeleteItem').hide();
+           $('#divVitalsItemDetail').find(':input:not([id^="HL7"]):not([type="hidden"])').attr('disabled', true);
+           $('#divVitalsItemDetail').find(':input:not([id^="HL7"]):not([type="hidden"])').each(function () {
+               var $this = $(this);
+               var control = $this.data("kendoDropDownList") || $this.data("kendoTimePicker") || $this.data("kendoTimePicker");
+               control && control.enable(false);
+           });
+       }
+       else {
+           if ('@(Model.ID)' == guidEmpty) {
+               $('#btnDeleteItem').hide();
+           }
+           var controlOcrParameter = $("#VitalsOcrParameter_@Model.ID").data("kendoDropDownList");
+           controlOcrParameter && controlOcrParameter.enable(getOcrDeviceId() > 0);
+
+
+           $.each($("textarea"), function (_, tArea) {
+               var $tArea = $(tArea),
+                   editor = $tArea.data("editor");
+               if (editor && editor.setOptions) {
+                   editor.setOptions({ readOnly: false });
+               }
+           });
+
+       }
+
+       $(".default-value-display [name='DefaultValueType']").val() != "@DatasetItemDefaultValueType.DAS" && $("#copy-hl7-from-das").hide();
+
+       dialogItem.center().resize();
+   }
+
+   var dialogItem = $("#sdItemEditWindow").data("kendoWindow");
+    dialogItem.bind("activate", setWindowModeItem);
+    dialogItem.bind("resize", setWindowModeItem);
+   $(document).ready(function () {
+      if ('@(Model.ID)' == guidEmpty) {
+         var tabstrip = $("#tabstrip_ItemDetail_@(Model.ID)").data("kendoTabStrip");
+         //disable sub items tabstrip in case item detail in not saved
+         tabstrip.disable(tabstrip.tabGroup.children("li:eq(1)"), true); // enable tab 0 (detail tab)
+      }
+
+
+      setWindowModeItem();
+       $('#btnCancelItem').off('click').on('click', function (e) {
+           dialogItem.close();
+       });
+       $('#btnCloseItem').off('click').on('click', function () {
+           dialogItem.close();
+       });
+       $('#btnDeleteItem').click(function () {
+           umsConfirm('@DicSvc.XLate("Confirm Delete", Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+               '@DicSvc.XLate("Do you really want to delete this Item and all related SubItems?",Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+               deleteItem, cancelDeleteItem);
+       });
+
+      function OnValidationItem() {
+         var validator = $("#form_DatasetItem_@Model.ID").kendoValidator(
+           {
+             rules: {
+               PlaceHolder: function (input) {
+                 if (input.is("[name=PlaceHolder]")) {
+                   if ($.trim(input.val()) != "") {
+                     var chkRequired = $("#Required");
+                       if (chkRequired.is(":checked") || chkRequired.prop("disabled")) {
+                       return true;
+                     } else {
+                       return false;
+                     }
+                   }
+                 }
+                 return true;
+               },
+             },
+             messages: {
+                PlaceHolder: "@DicSvc.XLate("Item with placeholder must be marked as required")"
+             }
+          }).data("kendoValidator");
+
+         if (!validator.validate()) {
+            var errors = validator.errors();
+            $("#toolbarItemDetail #errors").html(buildValidationMessage(errors));
+            return false;
+         }
+         else {
+            $("#toolbarItemDetail #errors").html("");
+         }
+         return true;
+       }
+
+
+       $('#btnSaveItem').off('click').on('click', function () {
+           kendo.ui.progress($("#divVitalsDatasetEditWindow"), true);
+           if (OnValidationItem()) {
+               $("#form_DatasetItem_@Model.ID").submit();
+           }
+           kendo.ui.progress($("#divVitalsDatasetEditWindow"), false);
+       });
+
+       $('#copy-hl7-from-das').off('click').on('click', function () {
+          var paramId = $(".default-value-display [name='StdParameterID']").val();
+           var unitId = $(".default-value-display [name='StdUnitOfMeasureID']").val();
+           $("#HL7Identifier").val(paramId);
+           $("#HL7UnitIdentifier").val(unitId);
+       });
+
+       $('#set-default-value').click(function () {
+           $.ajax({
+               url: '@Url.Action("GetDefaultValueDialog", "Vitals")',
+               type: 'GET',
+               data: { id: "@(Model.ID)", type: $("button#set-default-value").data("current-item-type") },
+               async: false
+           }).done(function (dataHtml) {
+               var defaultValueType = $(".default-value-display [name='DefaultValueType']").val();
+               var dialog = $("#sdItemDefaultValue").data("kendoWindow");
+               dialog.content(dataHtml);
+
+               var ddlDefaultValueType = dialog.element.find("[name='DefaultValueType_']").data("kendoDropDownList");
+               ddlDefaultValueType && ddlDefaultValueType.value(defaultValueType);
+
+               onItemDefaultValueTypeChange();
+
+               switch (defaultValueType) {
+                    case "@DatasetItemDefaultValueType.DAS":
+                        $("#sdItemDefaultValue [name='StdParameterID_']").val($(".default-value-display [name='StdParameterID']").val());
+                        $("#sdItemDefaultValue [name='StdUnitOfMeasureID_']").val($(".default-value-display [name='StdUnitOfMeasureID']").val());
+                        break;
+                    case "@DatasetItemDefaultValueType.Score":
+                        var scoreId = $(".default-value-display [name='ScoreID']").val();
+                        if (scoreId) {
+                            $("#sdItemDefaultValue [name='ScoreName_']").val($(".default-value-display .score-name").text());
+                            $("#sdItemDefaultValue [name='ScoreID_']").val(scoreId);
+                        }
+                        break;
+                    case "@DatasetItemDefaultValueType.Sql":
+                        $("#sdItemDefaultValue [name='DefaultValue_Sql']").val($(".default-value-display [name='DefaultValue']").val());
+                        break;
+                    case "@DatasetItemDefaultValueType.Static":
+                        var value = $(".default-value-display [name='DefaultValue']").val();
+                        var $input = $("#sdItemDefaultValue [name='DefaultValue_Static']");
+                        var inputDropDownList = $input.data("kendoDropDownList");
+                        if (inputDropDownList) {
+                            inputDropDownList.value(value);
+                        }
+                        else {
+                            $input.val(value);
+                        }
+                        break;
+               }
+               dialog.element.find("#btnDSItemGetParameters").click(selectStandardParameter);
+               dialog.element.find("#btnDSItemGetUnitOfMeasure").click(selectUnitOfMeasure);
+               dialog.element.find("#btnScoreID").click(selectScore);
+
+               dialog.element.find("button[data-type='cancel']").click(function () { dialog.close(); });
+               dialog.element.find("button[data-type='ok']").click(function () {
+                   var ok = false;
+                   resetDefaultValue();
+                   var defaultValueType = (ddlDefaultValueType && ddlDefaultValueType.value()) || "@DatasetItemDefaultValueType.None";
+                   var btnHl7 = $("#copy-hl7-from-das").hide();
+                   switch (defaultValueType) {
+                        case "@DatasetItemDefaultValueType.DAS":
+                           var stdParameterID = $("#sdItemDefaultValue [name='StdParameterID_']").val();
+                           var stdUnitOfMeasureID = $("#sdItemDefaultValue [name='StdUnitOfMeasureID_']").val();
+                           if (stdParameterID && stdUnitOfMeasureID) {
+                               $(".default-value-display [name='StdParameterID']").val(stdParameterID);
+                               $(".default-value-display [name='StdUnitOfMeasureID']").val(stdUnitOfMeasureID);
+                               $(".default-value-display .das-param").html(stdParameterID);
+                               $(".default-value-display .das-unit").html(stdUnitOfMeasureID);
+                               btnHl7.show();
+                               ok = true;
+                           }
+                           break;
+                        case "@DatasetItemDefaultValueType.Score":
+                           var scoreId = $("#sdItemDefaultValue [name='ScoreID_']").val();
+                           var scoreName = $("#sdItemDefaultValue [name='ScoreName_']").val();
+                           if (scoreId) {
+                               $(".default-value-display [name='ScoreID']").val(scoreId);
+                               $(".default-value-display .score-name").html(scoreName);
+                               ok = true;
+                           }
+                           break;
+                       case "@DatasetItemDefaultValueType.Sql":
+                           var sql = $.trim($("#sdItemDefaultValue [name='DefaultValue_Sql']").val());
+                           if (sql) {
+                               $(".default-value-display [name='DefaultValue']").val(sql);
+                               $(".default-value-display [data-type='default-value-Sql'] textarea").val(sql);
+                               ok = true;
+                           }
+                           break;
+                        case "@DatasetItemDefaultValueType.Static":
+                           var $input = $("#sdItemDefaultValue [name='DefaultValue_Static']");
+                           var inputDropDownList = $input.data("kendoDropDownList");
+                           var value, valueToDisplay = null;
+                           if (inputDropDownList) {
+                               var item = inputDropDownList.dataItem();
+                               if (item) {
+                                   value = item.Value;
+                                   valueToDisplay = item.Text;
+                               }
+                           }
+                           else {
+                               value = valueToDisplay = $input.val();
+                           }
+                           if (value) {
+                               $(".default-value-display [name='DefaultValue']").val(value);
+                               $(".default-value-display .static-name").html(valueToDisplay);
+
+                               ok = true;
+                           }
+                           break;
+                   }
+                   if (ok) {
+                       $(".default-value-display [data-type='default-value-None']").hide();
+                       $(".default-value-display [data-type='default-value-" + defaultValueType + "']").show();
+                       $(".default-value-display [name='DefaultValueType']").val(defaultValueType);
+                       $(".default-value-display .default-value-type").text(defaultValueType);
+                   }
+
+                   dialog.close();
+               });
+
+               dialog.open().center();
+           });
+       });
+   });
+
+    function selectStandardParameter() {
+        $.ajax({
+            url: '@Url.Action("GetStandardParameterListDialog", "DAS3")',
+            type: 'GET',
+            data: { selectFunction: 'onDSItemStandardParamSelected' },
+            async: false
+         }).done(function (dataHtml) {
+            var itemDialog = $('#sdItemStandardParameter').data('kendoWindow');
+            itemDialog.content(dataHtml);
+            itemDialog.open();
+            itemDialog.center();
+         });
+    }
+
+    function selectUnitOfMeasure() {
+         $.ajax({
+            url: '@Url.Action("GetStandardUnitListDialog", "DAS3")',
+            type: 'GET',
+            data: { selectFunction: 'onDSItemStandardUnitSelected' },
+            async: false
+         }).done(function (dataHtml) {
+            var itemDialog = $('#sdItemStandardUnit').data('kendoWindow');
+            itemDialog.content(dataHtml);
+            itemDialog.open();
+            itemDialog.center();
+         });
+    }
+
+    function selectScore() {
+         $.ajax({
+            url: '@Url.Action("GetScoreIDListDialog", "Vitals")',
+            type: 'GET',
+            data: { onChangeEvent: 'onScoreIDSelect', selectedValue: $('#ScoreID').val()},
+            async: false
+         }).done(function (dataHtml) {
+            var itemDialog = $('#scoreIDDialogList').data('kendoWindow');
+            itemDialog.content(dataHtml);
+            itemDialog.open();
+            itemDialog.center();
+         });
+    }
+
+
+    function onDSItemStandardParamSelected(item) {
+        $("#sdItemDefaultValue [name='StdParameterID_']").val(item.ID);
+        $("#sdItemStandardParameter").data("kendoWindow").close();
+    }
+
+    function onDSItemStandardUnitSelected(item) {
+        $("#sdItemDefaultValue [name='StdUnitOfMeasureID_']").val(item.ID);
+        $('#sdItemStandardUnit').data('kendoWindow').close();
+    }
+
+    function onScoreIDSelect(item) {
+        var model = this.dataItem(this.select());
+        $("#sdItemDefaultValue [name='ScoreName_']").val(model.Text);
+        $("#sdItemDefaultValue [name='ScoreID_']").val(model.Value);
+        $("#scoreIDDialogList").data("kendoWindow").close();
+   }
+
+    function removeParameterID() {
+        $("#sdItemDefaultValue [name='StdParameterID_']").val("");
+   }
+
+    function removeUnitOfMeasureID() {
+        $("#sdItemDefaultValue [name='StdUnitOfMeasureID_']").val("");
+    }
+
+    function removeScore() {
+        $("#sdItemDefaultValue [name='ScoreName_']").val("");
+        $("#sdItemDefaultValue [name='ScoreID_']").val("");
+    }
+
+    function onItemDefaultValueTypeChange() {
+        var defaultValueType = $("#sdItemDefaultValue [name='DefaultValueType_']").val();
+        $("#sdItemDefaultValue [data-type^='default-value-']").hide();
+        $("#sdItemDefaultValue [data-type='default-value-" + defaultValueType + "']").show();
+    }
+
+   function cancelDeleteItem() {
+      //do nothing
+   }
+
+   function deleteItem() {
+      kendo.ui.progress($("#divVitalsDatasetEditWindow"), true);
+      $.ajax({
+         url: '@Url.Action("DeleteDatasetItem", "Vitals")',
+         type: 'POST',
+         data: { id: '@Model.ID' },
+         async: false
+
+      }).done(function (data) {
+         $('#sdItemEditWindow').data('kendoWindow').close();
+         var grid = $("#vitalsDatasetItem_grid_@(Model.StandardDatasetID)").data("kendoGrid");
+         grid.dataSource.read();
+      }).fail(function (response) {
+         umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+      });
+      kendo.ui.progress($("#divVitalsDatasetEditWindow"), false);
+   }
+
+    function OnSuccessItemDetail(response) {
+      if (response.success) {
+          var grid = $("#vitalsDatasetItem_grid_" + response.DSItem.StandardDatasetID).data("kendoGrid");
+          grid.dataSource.read();
+
+          var itemDialog = $('#sdItemEditWindow').data('kendoWindow');
+          itemDialog.close();
+      }
+      else {
+          window.umsAlert("Error occured", response.errorMessage, 400, 300);
+      }
+    }
+
+    function SetViewByItemType() {
+      var dpVitalsItemType = $("#VitalsItemType_@pageGUID").data("kendoDropDownList");
+      changeSubItemTabStatus(dpVitalsItemType);
+      changeScriptTabStatus(dpVitalsItemType);
+      changeMinMaxTextStatus(dpVitalsItemType);
+      changeRequiredCheckStatus(dpVitalsItemType);
+      changeDefaultValueStatus(dpVitalsItemType);
+      changeHL7Status(dpVitalsItemType);
+    }
+
+    function changeDefaultValueStatus(dpVitalsItemType) {
+      if (dpVitalsItemType) {
+        var strType = dpVitalsItemType.value();
+        var arrItemTab = [
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.Numeric)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.String)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.Boolean)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.List)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.NumericList)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.StringWithPresets)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.DateTime)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.Date)'
+        ];
+
+          $("button#set-default-value")
+              .data("current-item-type", strType)
+              .data("kendoButton").enable(arrItemTab.indexOf(strType) != -1);
+      }
+    }
+
+    function changeHL7Status(dpVitalsItemType) {
+      if (dpVitalsItemType) {
+        var strType = dpVitalsItemType.value();
+        var arrItemTab = [
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.Numeric)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.String)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.Boolean)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.List)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.NumericList)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.StringWithPresets)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.DateTime)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.Date)'
+          ];
+
+        var bHasHL7 = arrItemTab.indexOf(strType) != -1;
+
+        if (bHasHL7) {
+          $("#tabstrip_ItemDetail_@Model.ID").data("kendoTabStrip").enable($("#tabstrip-@Model.ID-HL7Message"));
+        } else {
+          $("#tabstrip_ItemDetail_@Model.ID").data("kendoTabStrip").disable($("#tabstrip-@Model.ID-HL7Message"));
+          $("#HL7Identifier, #HL7UnitIdentifier").val("");
+        }
+      }
+    }
+
+    function changeSubItemTabStatus(dpVitalsItemType) {
+      if (dpVitalsItemType) {
+
+        var arrItemTab = [
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.NumericList)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.List)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.StringWithPresets)'
+        ];
+
+        var bHasItemTab = arrItemTab.indexOf(dpVitalsItemType.value()) != -1;
+
+        if (bHasItemTab) {
+          $("#tabstrip_ItemDetail_@Model.ID").data("kendoTabStrip").enable($("#tabstrip-@Model.ID-subitems"));
+        } else {
+          $("#tabstrip_ItemDetail_@Model.ID").data("kendoTabStrip").disable($("#tabstrip-@Model.ID-subitems"));
+        }
+      }
+    }
+
+   function changeScriptTabStatus(dpVitalsItemType) {
+      if (dpVitalsItemType) {
+
+        var arrItemTab = [
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.NumericList)'
+        ];
+
+        var bHasScriptTab = arrItemTab.indexOf(dpVitalsItemType.value()) != -1;
+
+        if (bHasScriptTab) {
+          $("#tabstrip_ItemDetail_@Model.ID").data("kendoTabStrip").enable($("#tabstrip-@Model.ID-script"));
+        } else {
+          $("#tabstrip_ItemDetail_@Model.ID").data("kendoTabStrip").disable($("#tabstrip-@Model.ID-script"));
+        }
+      }
+    }
+
+    function changeMinMaxTextStatus(dpVitalsItemType) {
+      if (dpVitalsItemType) {
+        var arrMinMax = [
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.Numeric)',
+          '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.NumericList)'
+        ]
+        var bHasMinMax = arrMinMax.indexOf(dpVitalsItemType.value()) != -1;
+
+        if (bHasMinMax) {
+          $("#Max").attr('disabled', false);
+          $("#Min").attr('disabled', false);
+        } else {
+          $("#Max").attr('disabled', true);
+          $("#Min").attr('disabled', true);
+        }
+      }
+    }
+
+    function changeRequiredCheckStatus(dpVitalsItemType) {
+        if (dpVitalsItemType) {
+            var arrNotRequired = ['@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.OcrImage)', '@((int)Digistat.FrameworkStd.Enums.Vitals.ParamType.Boolean)'];
+            var bHasRequired = arrNotRequired.indexOf(dpVitalsItemType.value()) == -1;
+            var chkRequired = $("#Required").attr("disabled", !bHasRequired);
+            !bHasRequired && chkRequired.prop("checked", false).trigger("change");
+        }
+    }
+
+</script>
+

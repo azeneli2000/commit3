@@ -1,0 +1,185 @@
+﻿
+@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Enums
+@{
+   ViewData["Title"] = "FluidBalanceConfig";
+   var strGridName = "fluidbalance-grid";
+   var strDetailsDivIdf = "FluidBalanceDetail";
+
+
+
+}
+
+<style>
+
+
+
+   .k-grid td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+   }
+</style>
+@*<script src="~/lib/ace/src-noconflict/ace.js">
+   </script>
+   <script src="~/lib/ace/src-noconflict/mode-xml.js">
+   </script>
+   <script src="~/lib/ace/src-noconflict/ext-language_tools.js">
+   </script>
+   <script src="~/lib/ace/src-noconflict/ext-keybinding_menu.js">
+   </script>*@
+<script src="~/lib/ace/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/mode-xml.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/ext-language_tools.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/ext-keybinding_menu.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+
+<div class="h-100 text-center">
+   <div id="@strDetailsDivIdf">
+
+   </div>
+
+   <div class="card h-100 m-1 p-2 text-left">
+
+      @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.FluidBalance.FluidBalanceViewModel>
+          ()
+          .Name(strGridName)
+          .Columns(columns =>
+          {
+             columns.Bound(e => e.Id).Visible(false);
+             columns.Bound(e => e.Name).Title(DicSvc.XLate("Name"));
+             columns.Bound(e => e.Description).Title(DicSvc.XLate("Description"));
+             columns.Bound(e => e.Labels).Title(DicSvc.XLate("Labels"));
+             columns.Bound(e => e.Mode).Title(DicSvc.XLate("Mode")).ClientTemplate("#: ModeText #").HtmlAttributes(new { style = "font-weight: bold; text-align: center;" }).Filterable(ftb => ftb.Multi(true).CheckAll(true));
+             ;
+             columns.Bound(e => e.Sql).Width(500);
+             columns.Bound(e => e.Location.LocationName).Title(DicSvc.XLate("Location")).HtmlAttributes(new { style = "font-weight: bold; text-align: center;" });
+
+             columns.Bound(e => e.Once).Title(DicSvc.XLate("Once")).ClientTemplate("<input type='checkbox' #=Once ? checked='checked' :'' # class='check-col  k-checkbox' disabled='disabled' /><label class='k-checkbox-label'></label>").HtmlAttributes(new { @style = "text-align:center;" });
+             columns.Bound(e => e.Permanent).Title(DicSvc.XLate("Permanent")).ClientTemplate("<input type='checkbox' #=Permanent ? checked='checked' :'' # class='check-col  k-checkbox' disabled='disabled' /><label class='k-checkbox-label'></label>").HtmlAttributes(new { @style = "text-align:center;" });
+
+          })
+          .UmsDefaultToolbar("ADD NEW ITEM", DicSvc.XLate("ADD NEW ITEM"), "openDetail(0);", DicSvc)
+          .Navigatable(true)
+          .UmsDefaultPager(DicSvc)
+          .UmsDefaultSettings(DicSvc)
+          //.Scrollable(x => x.Height("auto"))
+          //.Filterable(ftb => ftb.Mode(GridFilterMode.Row))
+          .Events(ev => ev.DataBound("onDataBoundf"))
+          .DataSource(dataSource => dataSource
+          .Ajax()
+          .PageSize(25)
+          //.ServerOperation(true)
+          .Model(model =>
+          {
+             model.Id(o => o.Id);
+             model.Field(o => o.Name).Editable(false);
+             model.Field(o => o.Description).Editable(false);
+             model.Field(o => o.Labels).Editable(false);
+             model.Field(o => o.Sql).Editable(false);
+             model.Field(o => o.Mode).Editable(false);
+             model.Field(o => o.Permanent).Editable(false);
+             model.Field(o => o.Once).Editable(false);
+             model.Field(o => o.IdLocation).Editable(false);
+
+          })
+          .Events(events => events.Error("onGridError"))
+          .Read(read => read.Action("ReadFilteredFluidBalanceItems", "FluidBalance"))
+          )
+
+      )
+
+   </div>
+
+
+</div>
+
+
+
+<script>
+
+
+
+
+   function onDataBoundf(e) {
+      var grid = this;
+      grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+         function (e) {
+            var item = grid.dataItem($(e.target).closest('tr'));
+            onGridKeyEnterf(item);
+         });
+   };
+
+   function onGridKeyEnterf(item) {
+      var strItem = '0';
+      if (item) {
+         strItem = item.Id;
+      }
+      openDetail(strItem);
+   };
+
+
+
+   function openDetail(item) {
+
+      var windowWidget = $("#@strDetailsDivIdf").data("kendoWindow");
+      kendo.ui.progress(windowWidget.element, true);
+         $.ajax({
+            url: '@Url.Action("CurrentFluidBalanceItem", "FluidBalance")',
+            type: 'GET',
+               data: { selectedItem: item },
+
+         })
+         .done(function (dataHtml) {
+               var itemDialog = $('#@strDetailsDivIdf').data('kendoWindow');
+               itemDialog.content('');
+               itemDialog.content(dataHtml);
+               if (itemDialog.element.is(":hidden")) {
+                     itemDialog.open();
+                     itemDialog.center();
+               }
+            })
+            .fail(function (dataHtml) {
+                 var itemDialog = $('#@strDetailsDivIdf').data('kendoWindow');
+               itemDialog.content('');
+               itemDialog.content(dataHtml);
+               if (itemDialog.element.is(":hidden")) {
+                     itemDialog.open();
+                     itemDialog.center();
+               }
+            });
+      kendo.ui.progress(windowWidget.element, false);
+    }
+
+
+      var kndWndf;
+      $(document).ready(function () {
+         if (!kndWndf) {
+            kndWndf = $('#@strDetailsDivIdf').usmKendoWindow({
+               title: 'FluidBalance Editor',
+               height: 690,
+               width: 1000,
+               minWidth: 1230,
+               maxHeight: 705
+
+
+            });
+         }
+
+   });
+
+
+
+   function onGridError(e) {
+      if (e.errors) {
+         debugger;
+      }
+   }
+
+   function OnFailure(response) {
+      //debugger;
+      window.umsAlert('@DicSvc.XLate("Error occurred")', response.errorMessage, 400, 300);
+   }
+
+
+
+</script>

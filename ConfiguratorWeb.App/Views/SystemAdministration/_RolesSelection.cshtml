@@ -1,0 +1,117 @@
+﻿@model List<ConfiguratorWeb.App.Models.RoleViewModel>
+@inject Digistat.FrameworkStd.Interfaces.IPermissionsService PermSvc
+@{
+    Layout = null;
+}
+<div class="card" style="height:550px; padding: 15px 10px 0 10px;">
+
+
+
+
+    <script>
+
+        function onBedGridDataBound(e) {
+            var items = this.dataSource.view();
+            for (var i = 0; i < items.length; i++) {
+                if (items[i].Selected || items[i].Id == @PermSvc.GetUserRoleID()) {
+                    var row = this.tbody.find("tr[data-uid='" + items[i].uid + "']");
+                    this.select(row);
+                }
+                if (items[i].Id == @PermSvc.GetUserRoleID()) {
+                    this.select(row);
+
+                }
+            }
+        }
+
+
+        function onChange(e) {
+            var grid = e.sender;
+            var items = grid.dataSource.view();
+            for (var i = 0; i < items.length; i++) {
+                if (items[i].Id == @PermSvc.GetUserRoleID()) {
+                    var row = this.tbody.find("tr[data-uid='" + items[i].uid + "']");
+                    row.addClass('k-state-selected');
+                    row.find('.k-checkbox').prop("checked", true);
+                    //grid.select(row);
+                }
+            }
+        }
+
+
+
+        function submitGridChanges() {
+            var grids = $('[name=Roles-grid]');
+            var selectedItems = [];
+            for (var i = 0; i < grids.length; i++) {
+                var grid = $(grids[i]).data('kendoGrid');
+                var selectedRow = grid.select();
+                for (var k = 0; k < selectedRow.length; k++) {
+                    selectedItems.push(grid.dataItem(selectedRow[k]));
+                }
+            }
+            var selectedDataSource = [];
+            for (var i = 0; i < selectedItems.length; i++) {
+                var objElement = {
+                    UserID: '',
+                    RoleID: selectedItems[i].Id,
+                    RoleRef: selectedItems[i],
+                };
+                selectedDataSource.push(objElement);
+            }
+            $("#user-roles").data("kendoGrid").setDataSource(selectedDataSource);
+            $("#user-roles").data("kendoGrid").refresh();
+            rebindAllowableDeniable();
+            $('#roleSelectionDialog').data('kendoWindow').close();
+
+        }
+    </script>
+
+    <div style="height:450px;">
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.RoleViewModel>
+                    (Model)
+                    .Name("Roles-grid")
+                    .Columns(columns =>
+                    {
+                        columns.Select().Width(50);
+                        columns.Bound(e => e.Id).Visible(false);
+                        columns.Bound(e => e.RoleName).Title(DicSvc.XLate("Role Name"));
+
+                    })
+                    .Events(e => e.DataBound("onBedGridDataBound").Change("onChange"))
+                    .Sortable().Filterable().HtmlAttributes(new { style = "height:65%;margin:10px;" })
+                    .Sortable()
+                    .Scrollable()
+
+                    .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+        )
+    </div>
+    <div class=" h-10 p-0 m-0">
+        @(Html.Kendo().ToolBar()
+                        //.HtmlAttributes(new { style = "padding-top:30px;"})
+                        .Name("toolbarRoleSelection")
+                        .Items(
+                               items =>
+                               {
+                                   items.Add().Type(CommandType.Button).Text(DicSvc.XLate("OK")).Id("btnSelectRolesOK").UmsHtmlButtonGeneric("edit-mode");
+                                   items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Close")).Id("btnSelectRolesCancel").UmsHtmlButtonGeneric("edit-mode");
+                               }
+                            )
+        )
+    </div>
+
+
+</div>
+
+<script>
+    $(document).ready(function () {
+
+        $('#btnSelectRolesOK').click(function () {
+            submitGridChanges();
+        });
+
+        $('#btnSelectRolesCancel').click(function () {
+            $('#roleSelectionDialog').data('kendoWindow').close();
+        });
+    })
+</script>

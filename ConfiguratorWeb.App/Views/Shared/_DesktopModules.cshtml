@@ -1,0 +1,152 @@
+﻿@{
+   Layout = null;
+}
+<script id="noDataTemplate" type="text/x-kendo-tmpl">
+    # var value = instance.input.val(); #
+    # var id = instance.element[0].id; #
+    <div>
+        No modules found. Do you want to add a new module - '#: value #' ?
+    </div>
+    <br />
+    <button class="k-button" onclick="addNew('#: id #', '#: value #')" ontouchend="addNew('#: id #', '#: value #')">Add new item</button>
+</script>
+<script>
+
+
+    function setSelectedModules() {
+        var strModules = '';
+        if ($('#chkModuleAll').prop('checked')) {
+            strModules = "ALL";
+        }
+        else {
+            var aModules = $("#modulesList").data('kendoMultiSelect').value();
+            if (aModules.length > 0) {
+                strModules = aModules.join(';');
+            }
+        }
+
+        $('#Modules').val(strModules);
+        $('#networkDesktopModulesDialog').data('kendoWindow').close();
+    }
+
+    var _moduleList = [
+        @{
+        foreach (string s in Digistat.FrameworkStd.Helpers.ModuleLists.DesktopModules)
+        {
+            <text>{ ModuleName: "@s" },</text>
+        }
+        }
+        @{
+        foreach (string s in Digistat.FrameworkStd.Helpers.ModuleLists.MobileModules)
+        {
+            <text>{ ModuleName: "@s" },</text>
+        }
+        }
+    ];
+
+    var localDataSourceModuleList = new kendo.data.DataSource({ data: _moduleList });
+
+    function addNew(widgetId, value) {
+                   var widget = $("#" + widgetId).getKendoMultiSelect();
+                   var dataSource = widget.dataSource;
+                   dataSource.add({
+                   ModuleName: value
+                   });
+
+                   dataSource.sync();
+               }
+
+    $(document).ready(function () {
+        $("#modulesList").kendoMultiSelect({
+                   filter: "startswith",
+            dataTextField: "ModuleName",
+            dataValueField: "ModuleName",
+            dataSource: localDataSourceModuleList,
+            noDataTemplate: $("#noDataTemplate").html()
+        });
+
+        var lstModules = [];
+        var alreadySelectedModules = $('#Modules').val();
+        if (alreadySelectedModules) {
+            alreadySelectedModules = alreadySelectedModules.trim();
+            if (alreadySelectedModules.toUpperCase() == "ALL") {
+                $('#chkModuleAll').prop('checked', true)
+                changeModuleSelectorStatus(false);
+            }
+            else {
+                $('#chkModuleAll').prop('checked', false);
+                changeModuleSelectorStatus(true);
+                var arrModules = alreadySelectedModules.split(";");
+                for (var i = 0; i < arrModules.length; i++) {
+                    if (arrModules[i].trim().length > 0) {
+                        lstModules.push(arrModules[i].trim());
+                        addModulesToDatasourceIfNotExists(arrModules[i].trim());
+
+                    }
+                    $("#modulesList").data('kendoMultiSelect').value(lstModules);
+                }
+            }
+        }
+
+    });
+
+
+    function addModulesToDatasourceIfNotExists(modName)
+    {
+        var widget = $("#modulesList").getKendoMultiSelect();
+        var dataSource = widget.dataSource;
+        var isFound = false;
+        for (var i = 0; i < dataSource.data().length; i++) {
+            if (dataSource.data()[i].ModuleName.trim().toUpperCase() == modName.trim().toUpperCase()) {
+                isFound = true;
+                break;
+            }
+        }
+        if (!isFound) {
+            addNew('modulesList', modName);
+        }
+
+
+
+    }
+
+
+    function changeModuleSelectorStatus(status) {
+        $("#modulesList").data("kendoMultiSelect").enable(status);
+    }
+
+    function toggleModuleSelector() {
+        changeModuleSelectorStatus(!$('#chkModuleAll').prop('checked'));
+    }
+
+</script>
+<div class="card" style="height:550px; padding: 15px 10px 0 10px;">
+    <div class="row">
+        <div class="col-3">
+            @DicSvc.XLate("All Modules:")
+        </div>
+        <div class="col-9">
+            @Html.Kendo().CheckBox().Name("chkModuleAll").HtmlAttributes(new { onclick = "toggleModuleSelector()" })
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-3">
+            @DicSvc.XLate("These Modules only:")
+        </div>
+        <div class="col-9">
+            <div style="height:350px;">
+                <select id="modulesList" style="width: 100%;"></select>
+
+            </div>
+        </div>
+        
+    </div>
+        @(Html.Kendo().ToolBar()
+           .Name("toolbarDesktopModuleSelection")
+           .Items(items =>
+           {
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Apply")).Id("btnApplyModuleSelection").UmsHtmlButtonSave().Click("setSelectedModules").Hidden(false);
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnCancelModuleSelection").UmsHtmlButtonCancel().Click("closeModuleSelectionDialog").Hidden(false);
+           })
+        )
+    </div>

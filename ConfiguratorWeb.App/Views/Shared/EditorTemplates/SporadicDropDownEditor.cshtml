@@ -1,0 +1,20 @@
+﻿@model SporadicViewModel
+
+@(Html.Kendo().DropDownListFor(m => m)
+                      .HtmlAttributes(new { @style = "width:100%;" })
+                      .DataValueField("SporadicId")
+                      .DataTextField("SporadicName")
+                      
+                      .Events(ev => ev.Change("onChangeSporadic"))
+                  .DataSource(source =>
+                  {
+                      source.Read(read =>
+                      {
+                          read.Action("GetSporadicList", "Generic");
+                      });
+                  })
+                 // .Value(Model.Sporadic.ToString())
+)
+
+
+@Html.ValidationMessageFor(m => m)

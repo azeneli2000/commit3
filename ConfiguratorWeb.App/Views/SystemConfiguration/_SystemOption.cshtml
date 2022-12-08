@@ -1,0 +1,693 @@
+﻿@model ConfiguratorWeb.App.Models.SystemOptionViewModel
+@using System.Text;
+@using ConfiguratorWeb.App.Controllers
+@using Digistat.FrameworkStd.Enums
+@{
+   string[] actions = new string[] { "Close" };
+   Layout = null;
+
+   string strGuidFunction = Model.GUID.Replace("-", "_");
+   string strDialogID = "divSysOptDetail";
+
+   StringBuilder objSbDelete = new StringBuilder();
+   if (string.IsNullOrWhiteSpace(Model.Application))
+   {
+      objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete System Option \"{0}\" "),
+          Model.Name);
+   }
+   else
+   {
+      objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete System Option \"{0}\" for application \"{1}\" "),
+          Model.Name, Model.Application);
+   }
+
+   if (!string.IsNullOrEmpty(Model.HostName))
+   {
+      objSbDelete.AppendFormat(DicSvc.XLate("; Hostname = \"{0}\""), Model.HostName);
+   }
+   if (!string.IsNullOrEmpty(Model.UserName))
+   {
+      objSbDelete.AppendFormat(DicSvc.XLate("; User = \"{0}\""), Model.UserName);
+   }
+   if (!string.IsNullOrEmpty(Model.HospitalUnitName))
+   {
+      objSbDelete.AppendFormat(DicSvc.XLate("; Hospital Unit = \"{0}\""), Model.HospitalUnitName);
+   }
+   objSbDelete.Append("?");
+
+
+}
+<style type="text/css" media="screen">
+   .k-checkbox-label {
+      margin-top: 6px;
+   }
+
+   .ace_editor {
+      width: 100%;
+      height: 200px;
+   }
+</style>
+
+<script src="~/lib/ace/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/mode-xml.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/ext-language_tools.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/ext-keybinding_menu.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+
+<script type="text/javascript">
+
+   function manageBinaryValue(digRepoID) {
+      var objRepoDialog = $('#divDigistatRepoDialog').data('kendoWindow');
+      var repoID = $('#Value').val();
+      
+      $.ajax({
+         url: '@Url.Action("Index", "DigistatRepository")?strID=' + repoID,
+         type: 'GET',
+         data: { id: digRepoID },
+         async: false
+      }).done(function (dataHtml) {               
+         objRepoDialog.content(dataHtml);         
+         objRepoDialog.center();
+         objRepoDialog.open();
+      });
+   }
+
+   $(document).ready(function () {
+
+      $('#divDigistatRepoDialog').usmKendoWindow({
+         close: function(e) {},
+         title: '@DicSvc.XLate("Digistat Repository Manager", StringParseMethod.Js)',
+         height: 630,
+         width: '60%'
+      });
+      $('#divCrypterDialog').usmKendoWindow({
+         close: function(e) {},
+         title: '@DicSvc.XLate("Encripter text", StringParseMethod.Js)',
+         height: 350,
+         width: '60%'
+      });
+      $('#divReportMasterConfig').usmKendoWindow({
+         close: function(e) {},
+         title: '@DicSvc.XLate("Report Master Config", StringParseMethod.Js)',
+         height: 650,
+         width: '80%',
+         position: {
+            top: "10%", // or "100px"
+            left: "20%"
+         }
+      });
+      $('#divSysOptSmtpConfigDialog').usmKendoWindow({
+         close: function(e) {
+         },
+
+         height: '600px',
+         width: '600px',
+         position: {
+            top: "10%", // or "100px"
+            left: "20%"
+         }
+      });
+      $('#divSysOptSmtpUserReportConfigDialog').usmKendoWindow({
+         close: function(e) {
+         },
+
+         height: '550px',
+         width: '80%',
+         position: {
+            top: "10%", // or "100px"
+            left: "20%"
+         }
+      });
+   });
+</script>
+
+<script type="text/javascript">
+   function getXmlLogOptionEditor(parameters) {
+      var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+      var link = "@Url.Action("editLogOption", "SystemConfiguration")";
+      var strXml = $(textareaIdValueModelGuid).val();
+      $.ajax({
+         url: link,
+         type: 'POST',
+         data: { xmlString: strXml }
+      }).done(function(dataHtml) {
+         objRepoDialog.title('@DicSvc.XLateJs("Log Option")');
+         objRepoDialog.content(dataHtml);
+         objRepoDialog.open();
+         objRepoDialog.center();
+      });
+   }
+
+   function getXmlBrowserModulesConfigEditor() {
+      var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+      var link = "@Url.Action("EditBrowserModulesXml", "SystemConfiguration")";
+      var strXml = $(textareaIdValueModelGuid).val();
+      $.ajax({
+         url: link,
+         type: 'POST',
+         data: { xmlString: strXml }
+      }).done(function(dataHtml) {
+         objRepoDialog.title('@DicSvc.XLateJs("Browser Modules Config")');
+         objRepoDialog.content(dataHtml);
+         objRepoDialog.open();
+         objRepoDialog.center();
+
+      }).fail(function (response) {
+         umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+      });
+    }
+
+      function getDefaultUserRoles() {
+      var objDefaultRolesDialog = $('#divSysOptSmtpConfigDialog').data('kendoWindow');
+      var link = "@Url.Action("EditDefaultRoles", "SystemConfiguration")";
+      var strValue = $(textareaIdValueModelGuid).val();
+      $.ajax({
+         url: link,
+         type: 'POST',
+          data: { value: strValue, callbackFunction: "onUniteDefaultRolesSelected" }
+      }).done(function(dataHtml) {
+          objDefaultRolesDialog.title('@DicSvc.XLateJs("Roles")');
+          objDefaultRolesDialog.content(dataHtml);
+          objDefaultRolesDialog.open();
+          objDefaultRolesDialog.center();
+
+      }).fail(function (response) {
+         umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+      });
+   }
+
+   function getXmlReportMasterConfigEditor() {
+      var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+      var link = "@Url.Action("editReportMasterConfigXml", "SystemConfiguration")";
+      var strXml = $(textareaIdValueModelGuid).val();
+      $.ajax({
+         url: link,
+         type: 'POST',
+         data: { xmlString: strXml }
+      }).done(function(dataHtml) {
+         objRepoDialog.title('@DicSvc.XLateJs("Report Master Config")');
+         objRepoDialog.content(dataHtml);
+         objRepoDialog.open();
+         objRepoDialog.center();
+
+      });
+
+   }
+
+   function getXmlSmartCentralConfigEditor() {
+      var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+      var link = "@Url.Action("editSmartCentralConfigEditorXml", "SystemConfiguration")";
+      var strXml = $(textareaIdValueModelGuid).val();
+      $.ajax({
+         url: link,
+         type: 'POST',
+         data: { xmlString: strXml }
+      }).done(function(dataHtml) {
+         objRepoDialog.title('@DicSvc.XLateJs("Smart Central Config")');
+         objRepoDialog.content(dataHtml);
+         objRepoDialog.open();
+         objRepoDialog.center();
+
+      });
+
+   }
+
+   function getXmlCameraConfigEditor() {
+      var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+      var link = "@Url.Action("editCameraConfigEditorXml", "SystemConfiguration")";
+      var strXml = $(textareaIdValueModelGuid).val();
+      $.ajax({
+         url: link,
+         type: 'POST',
+         data: { xmlString: strXml }
+      }).done(function(dataHtml) {
+         if (dataHtml.success) {
+
+         }
+         objRepoDialog.height = "400";
+         objRepoDialog.title('@DicSvc.XLateJs("Camera Config")');
+         objRepoDialog.content(dataHtml);
+         objRepoDialog.open();
+         objRepoDialog.center();
+
+      }).fail(function(response) {
+         var str = '@DicSvc.XLate("An internal error occurred. See log for details.")';         
+         if(response && response.responseJSON){
+            str = response.responseJSON.Value.errorMessage;
+         }
+         umsErrorDialog("Error occured", str, 200, 200);
+      });
+   }
+
+   function getSMTPConfigurationEditor() {
+      var objRepoDialog = $('#divSysOptSmtpConfigDialog').data('kendoWindow');
+      var link = "@Url.Action("editSMTPConfigurationXml", "SystemConfiguration")";
+      var strXml = $(textareaIdValueModelGuid).val();
+      $.ajax({
+         url: link,
+         type: 'POST',
+         data: { xmlString: strXml }
+      }).done(function(dataHtml) {
+         objRepoDialog.height = "600px";
+         objRepoDialog.width = "600px";
+         objRepoDialog.title('@DicSvc.XLateJs("SMTP Server Configuration")');
+         objRepoDialog.content(dataHtml);
+         objRepoDialog.open();
+         objRepoDialog.center();
+
+      }).fail(function(response) {
+         var str = '@DicSvc.XLate("An internal error occurred. See log for details.")';          
+          if(response && response.responseJSON){
+            str = response.responseJSON.Value.errorMessage;
+          }
+          umsErrorDialog("Error occured", str, 200, 200);
+    });
+
+    }
+
+
+    function getSMTPUserReportConfigurationEditor () {
+        var objRepoDialog = $('#divSysOptSmtpUserReportConfigDialog').data('kendoWindow');
+        var link = "@Url.Action("editSMTPUserReportConfigurationXML", "SystemConfiguration")";
+        var strXml = $(textareaIdValueModelGuid).val();
+        $.ajax({
+        url: link,
+        type: 'POST',
+        data: { xmlString : strXml }
+        }).done(function (dataHtml) {
+        objRepoDialog.height = "800px";
+        objRepoDialog.width = "800px";
+        objRepoDialog.title('@DicSvc.XLateJs("User Issues Reporting Configuration")');
+        objRepoDialog.content(dataHtml);
+        objRepoDialog.open();
+        objRepoDialog.center();
+
+    }).fail(function (response) {
+       var str = '@DicSvc.XLate("An internal error occurred. See log for details.")';    
+       if(response && response.responseJSON){
+       str = response.responseJSON.Value.errorMessage;
+       }
+       umsErrorDialog("Error occured", str, 200, 200);
+       });;
+    }
+
+    function onUniteDefaultRolesSelected(value) {
+        if (editor && !$('#aceEditor').hasClass('d-none')) {
+            editor.getSession().setValue(value);
+            var textarea = $(textareaIdValueModelGuid).hide();
+            textarea.val(editor.getSession().getValue());
+
+        } else {
+            var textarea = $(textareaIdValueModelGuid);
+            textarea.val(value);
+        }
+        
+    }
+
+    function onChangeValue@(strGuidFunction)() {
+    if ($(".view-mode").is(":visible")) {
+    $(".btnEdit").trigger("click");
+    }
+    }
+</script>
+
+<div class="card h-90 pt-1 pb-2" id="@strDialogID">
+   <form asp-controller="SystemConfiguration" asp-action="SaveSystemOptionDetail" id="form_@strDialogID"
+         class="card-body h-90 p-0 border-0"
+         data-ajax-failure="OnFailure" data-ajax-success="OnSuccess" kendo-auto-scroll="true"
+         data-ajax="true" data-ajax-method="POST">
+
+      <div asp-validation-summary="ModelOnly"></div>
+      <input asp-for="GUID" type="hidden" />
+      <div class="container-fluid">
+         <div class="row mt-3">
+            <div class="col-sm-1 u-col-h-fixed">
+               <label asp-for="Name">@DicSvc.XLate("Name")</label>
+            </div>
+            <div class="col-sm-3 u-col-h-fixed">
+               <div class="input-group">
+                  <input asp-for="Name" class="k-input k-textbox txt-readonly" readonly="readonly" />
+               </div>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+               <label asp-for="HostName">@DicSvc.XLate("HostName")</label>
+            </div>
+            <div class="col-sm-6 u-col-h-fixed">
+               <div class="input-group">
+                  <input asp-for="HostName" class="form-control" />
+                  <div class="input-group-append">
+                     <button id="btnHostname" onclick="getCurrentHostname();" class="btn border" type="button" data-toggle="tooltip" data-placement="top">
+                        <span>@DicSvc.XLate("Set current hostname")</span>
+                     </button>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="row">
+            <div class="col-sm-1 u-col-h-fixed">
+               <label asp-for="Application">@DicSvc.XLate("Application")</label>
+            </div>
+            <div class="col-sm-3 u-col-h-fixed">
+               <div class="input-group">
+                  <input asp-for="Application" class="k-input k-textbox" readonly="readonly" />
+               </div>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+               <label asp-for="Type">@DicSvc.XLate("Type")</label>
+            </div>
+            <div class="col-sm-6 u-col-h-fixed">
+               <div class="input-group">
+                  <input asp-for="Type" class="k-input k-textbox txt-readonly" readonly="readonly" />
+               </div>
+            </div>
+         </div>
+
+         <div class="row">
+            <div class="col-sm-1 u-col-h-fixed ">
+               <label asp-for="HospitalUnitGUID">@DicSvc.XLate("Hospital Unit")</label>
+            </div>
+            <div class="col-sm-3 u-col-h-fixed">
+               <div class="input-group">
+                  <input asp-for="HospitalUnit.ShortName" readonly="readonly" class="form-control control-required" id="HospitalUnitName_@Model.GUID" />
+                  <input asp-for="HospitalUnitGUID" type="hidden" id="HospitalUnitGUID_@Model.GUID" style="width: 80%;" />
+                  <div class="input-group-append">
+                     <button id="btnHU_@Model.GUID" onclick="openHospitalUnitGrid@(strGuidFunction)();" class="btn border" type="button" title="@DicSvc.XLate("Set Hospital Unit")">
+                        <span class="mdi mdi-pencil"></span>
+                     </button>
+
+                  </div>
+               </div>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+               <label asp-for="UserName">@DicSvc.XLate("User")</label>
+            </div>
+            <div class="col-sm-6 u-col-h-fixed">
+               <div class="input-group">
+                  
+                  <input asp-for="UserFullName" readonly="readonly" class="form-control control-required" id="UserFullName" />
+                  <input asp-for="UserName" type="hidden" readonly="readonly" class="k-input k-textbox form-control control-required" />
+                  <div class="input-group-append">
+                     <button id="btnUsers_@Model.GUID" onclick="openUsersGrid@(strGuidFunction)();" class="btn border " type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Set User")">
+                        <span class="mdi mdi-pencil"></span>
+                     </button>
+                     <button id="btnUsersRemove_@Model.GUID" onclick="removeUserFromSysOpt();" class="btn border " type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Remove User")">
+                        <span class="mdi mdi-window-close "></span>
+                     </button>
+                  </div>
+
+               </div>
+            </div>
+         </div>
+         <div class="row">
+            <div class="col-sm-1 u-col-h-fixed">
+               <label asp-for="Description">@DicSvc.XLate("Description")</label>
+            </div>
+            <div class="col-sm-3 u-col-h-fixed">
+               <div class="input-group">
+                  <textarea asp-for="@Model.Description" rows="10" class="k-textarea w-100" style="resize: none;" readonly="readonly"></textarea>
+               </div>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+               <label asp-for="Value">@DicSvc.XLate("Value")</label>
+            </div>
+            @if (Model.Type == Digistat.FrameworkStd.Enums.OptionType.Integer || Model.Type == Digistat.FrameworkStd.Enums.OptionType.Float)
+            {
+               <div class="col-sm-2 u-col-h-fixed">
+                  @Html.SystemOptionValueByType(m => m.Value, Model.Type, Model.GUID)
+               </div>
+               <div class="col-sm-2 u-col-h-fixed ml-1">
+                  <input asp-for="LowerLimit" type="hidden" />
+                  <label asp-for="LowerLimit">@DicSvc.XLate("Lower Limit")</label> :
+                  <b>@Model.LowerLimit</b>
+               </div>
+               <div class="col-sm-2 u-col-h-fixed">
+                  <input asp-for="UpperLimit" type="hidden" />
+                  <label asp-for="UpperLimit">@DicSvc.XLate("Upper Limit")</label> :
+                  <b>@Model.UpperLimit</b>
+               </div>
+
+            }
+            else
+            {
+         <div class="col-sm-6 u-col-h-fixed">
+
+
+             @Html.SystemOptionValueByType(m => m.Value, Model.Type, Model.GUID)
+             <div id="aceEditor" class="border d-none" />
+             @{
+                 bool IsModuleManaged = (Model.Name == "ReportMasterConfig") ||
+                                        (Model.Name == "LogOptions") ||
+                                        (Model.Name == "SmartCentralConfig") ||
+                                        (Model.Name == "CustomModuleConfig") ||
+                                        (Model.Name == "UserPermissionProfileConfig") ||
+                                        (Model.Name == "SmartCentralTrendsConfig") ||
+                                        (Model.Name == "SmartCentralGridConfig") ||
+                                        (Model.Name == "SmartCentralAlarmAggregatorsConfig") ||
+                                        (Model.Name == "CameraConfig") ||
+                                        (Model.Name == "BrowserModules");
+
+             }
+
+             @if (Model.Type == Digistat.FrameworkStd.Enums.OptionType.Text)
+             {
+                 <div id='viewOnEditor' class='btn btn-outline-secondary ' style="display: none;" onclick="createEditor();return false;">@DicSvc.XLate("View in editor")</div>
+                 <div id='viewOnText' class='btn btn-outline-secondary' onclick="destroyEditor();return false;">@DicSvc.XLate("View in text area")</div>
+             }
+             @if (Model.Value.Trim().StartsWith("<?xml") || IsModuleManaged)
+             {
+                 <a href="#" id='validateXml1' class='btn btn-outline-info modify-mode' onclick="validateXml();return false;">@DicSvc.XLate("Validate")</a>
+             }
+             @if (IsModuleManaged)
+             {
+
+                 <a href="#" id='getXmlDefault' class='btn btn-outline-success modify-mode' onclick="getDefaultXml();return false;">@DicSvc.XLate("Get default")</a>
+             }
+             @switch ((Model.Name))
+             {
+                 case "LogOptions":
+                     <a href="#" onclick="getXmlLogOptionEditor();return false;"
+                        id='editLogOptions' class='btn btn-outline-secondary modify-mode'>@DicSvc.XLate("Custom editor")</a>
+                     break;
+                 case "ReportMasterConfig":
+                     <a href="#" onclick="getXmlReportMasterConfigEditor();return false;"
+                        id='editLogOptions' class='btn btn-outline-secondary modify-mode'>@DicSvc.XLate("Custom editor")</a>
+                     break;
+                 case "SmartCentralConfig":
+                     <a href="#" onclick="getXmlSmartCentralConfigEditor();return false;"
+                        id='editLogOptions' class='btn btn-outline-secondary modify-mode'>@DicSvc.XLate("Custom editor")</a>
+                     break;
+                 case "CameraConfig":
+                     <a href="#" onclick="getXmlCameraConfigEditor();return false;"
+                        id='editLogOptions' class='btn btn-outline-secondary modify-mode'>@DicSvc.XLate("Custom editor")</a>
+                     break;
+                 case "SMTPConfiguration":
+                     <a href="#" onclick="getSMTPConfigurationEditor();return false;"
+                        id='editSMTPOptions' class='btn btn-outline-secondary modify-mode'>@DicSvc.XLate("SMTP Server configuration")</a>
+                     break;
+                 case "SMTPUserReportConfiguration":
+                     <a href="#" onclick="getSMTPUserReportConfigurationEditor();return false;"
+                        id='editSMTPUserReportConfiguration' class='btn btn-outline-secondary modify-mode'>@DicSvc.XLate("Configuration")</a>
+                     break;
+                 case "BrowserModules":
+                     <a href="#" onclick="getXmlBrowserModulesConfigEditor();return false;"
+                        id='editBrowserModules' class='btn btn-outline-secondary modify-mode'>@DicSvc.XLate("Configuration")</a>
+                     break;
+                 case "DefaultUserRoles":
+                     <a href="#" onclick="getDefaultUserRoles();return false;"
+                        id='editDefaultRoles' class='btn btn-outline-secondary modify-mode'>@DicSvc.XLate("Configuration")</a>
+                     break;
+                 default:
+                     break;
+             }
+             @if (Model.Type == Digistat.FrameworkStd.Enums.OptionType.Text)
+             {
+                 <div id='popupCrypter' class='btn btn-outline-secondary  modify-mode' onclick="crypterEditor();return false;">@DicSvc.XLate("Encrypter")</div>
+             }
+         </div>
+            }
+
+
+         </div>
+      </div>
+   </form>
+</div>
+<div class="card-footer h-10 p-0 m-0 mt-1 border-0">
+   @(Html.Kendo().ToolBar()
+              .Name("toolbarDetail")
+              .UmsDefaultErrors(DicSvc)
+              .Items(
+                  items =>
+                  {
+                      items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode");
+                      items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode");
+                  }
+              )
+              .UmsDefaultSettings(DicSvc, "")
+        )
+</div>
+<div id="divDigistatRepoDialog"></div>
+<div id="divReportMasterConfig"></div>
+<div id="divSysOptSmtpConfigDialog"></div>
+<div id="divSysOptSmtpUserReportConfigDialog"></div>
+<div id="divCrypterDialog">
+   <textarea id="textToCrypt" class="form-control" style="resize: none;" cols="80" rows="5"></textarea>
+   <button id="criptNow" class="k-button k-buttonLarge my-3" onclick="encryptText();">@DicSvc.XLate("Encrypt")</button>
+   <textarea id="textEncrypted" class="form-control" style="resize: none;" cols="80" rows="5"></textarea>
+   
+
+</div>
+<script>
+    var _guid = '@Model.GUID';
+    var strDialogID = '@strDialogID';
+    var confirmDelTitle = '@DicSvc.XLate("Confirm delete")';
+    var confirmDelBody = '@objSbDelete.ToString()';
+    var textareaIdValueModelGuid = '#Value_'+_guid;
+    var modelType = '@Model.Type';
+    //var valueModelGuid = '#Value_'+_guid;
+    var modelName = '@Model.Name';
+    var urlActionTrytoserializexmlSystemconfiguration = '@Url.Action("TryToSerializeXml", "SystemConfiguration")';
+    var urlActionGetDefaultXmlSystemconfiguration = '@Url.Action("TryToGetDefaultXml", "SystemConfiguration")';
+    var xmlValidationTitle = "@DicSvc.XLate("Xml Validation", StringParseMethod.Js)";
+    var xmlIsCorrectlyValidated = "@DicSvc.XLate("Xml is correctly validated.", StringParseMethod.Js)";
+    function deleteSysOpt() {
+       $.ajax({
+          url: '@Url.Action("DeleteSystemOption", "SystemConfiguration")',
+          type: 'POST',
+          data: { guid: _guid },
+          async: false
+
+       }).done(function(data) {
+          $('#SystemOptionEditWindow').data('kendoWindow').close();
+          var grid = $("#system-options-grid").data("kendoGrid");
+          grid.dataSource.read();
+       }).fail(function(response) {
+          umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+       });
+
+    }
+    function crypterEditor() {
+       $('#textToCrypt').val(''); $('#textEncrypted').val('');
+       $('#divCrypterDialog').data('kendoWindow').center().open();
+    }
+    function encryptText() {
+       $.ajax({
+          url: '@Url.Action("EncryptString", "Generic")',
+          type: 'GET',
+          data: { text: $('#textToCrypt').val()}
+
+       }).done(function (data) {
+          $('#textEncrypted').val(data);
+       });
+    }
+
+    function getCurrentHostname() {
+       $.ajax({
+          url: '@Url.Action("GetCurrentWorkstationName", "Generic")',
+          type: 'GET',
+          async: false
+
+       }).done(function (data) {
+         $('#HostName').val(data);
+       });
+    }
+
+
+
+    function OnValidation() {
+
+
+    @*var validator = $("#form_@Model.GUID").kendoValidator(
+        {
+            //validate: function (e) {
+
+            //}
+        }).data("kendoValidator");
+
+        if (!validator.validate()) {
+
+            var errors = validator.errors();
+            var errorsMsg = "<div>";
+            var numitems = 0;
+            $(errors).each(function () {
+                if ($.trim(this) !== "") {
+                    if (numitems % 2 == 0) {
+                        errorsMsg = errorsMsg + "<div class=\"col-sm-3\"><div><span class=\" error-icon glyphicon glyphicon-exclamation-sign\"></span>" + this + "</div>";
+                    }
+                    else {
+                        errorsMsg = errorsMsg + "<div><span class=\"error-icon glyphicon glyphicon-exclamation-sign\"></span> " + this + "</div></div>";
+                    }
+                    numitems = numitems + 1;
+                }
+            });
+            errorsMsg = errorsMsg + "</div>";
+            $("#errors").html(errorsMsg);
+            ValidateTabs();
+            return false;
+        }
+        else {
+            $("#errors").html("");
+        }*@
+    return true;
+    }
+
+    function openHospitalUnitGrid@(strGuidFunction)() {
+       $.ajax({
+          url: '@Url.Action("GetHospitalUnits", "SystemConfiguration")',
+          type: 'GET',
+          data: { soID: _guid, huID: '@Model.HospitalUnitGUID' },
+          async: false
+
+       }).done(function (data) {
+          var dialog = $("#popupHospitalUnit").data("kendoWindow");
+          dialog.title('@DicSvc.XLate("HOSPITAL UNIT SELECTION")');
+          dialog.content(data);
+          dialog.center().open();
+       });
+    }
+
+    function openUsersGrid@(strGuidFunction)() {
+
+       $.ajax({
+          url: '@Url.Action("GetUsers", "SystemConfiguration")',
+          type: 'GET',
+          data: { username: '@Model.UserName', id: '@strGuidFunction' },
+          async: false
+
+       }).done(function (data) {
+          var dialog = $("#popupHospitalUnit").data("kendoWindow");
+          dialog.title('@DicSvc.XLate("USER SELECTION")');
+          dialog.content(data);
+          dialog.center().open();
+       });
+    }
+
+
+    function onUserSelected@(strGuidFunction)(e) {      
+      var item = e.sender.dataItem(e.sender.select());
+       if (item) {
+          var strUsrName = '[' + item.Abbrev + '] ' + item.Name;
+          $('#' + strDialogID +'   #UserName').val(item.Abbrev);
+          $('#' + strDialogID +'   #UserFullName').val(strUsrName);
+       }
+    }
+
+    function onDataBoundUsers@(strGuidFunction)(e) {
+       var that = this;
+
+       $(that.tbody).on("click", "tr", function (e) {
+       var grid = $("#so-users-grid@(strGuidFunction)").data("kendoGrid");
+       //save grid and current search form state and current url
+       var dataSource = grid.dataSource;
+
+       var keyVal = grid.dataItem($(e.currentTarget).closest("tr"))['Abbrev'];
+       $("#form_" + _guid + " #UserName").val(keyVal); //set username with abbrev
+       $("#form_" + _guid + " #UserName").trigger("input");
+       $('#popupHospitalUnit').data("kendoWindow").close();
+       if (!$(this).closest(".button-container").find(".modify-mode").is(":visible")) {
+           $('#btnEdit_' + _guid).trigger("click");
+       }
+    });
+
+}
+
+</script>
+<script src="~/js/systemOption.js" asp-append-version="true" ></script>

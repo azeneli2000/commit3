@@ -1,0 +1,188 @@
+﻿@{
+    Layout = null;
+}
+
+<script>
+     var grdSelUnit_IsSelectedFromCaller = false;
+     var bolAtLeastOneSelection = false;
+
+
+     function on_StdUnitSelectorDialog_UnitSelected(e) {
+         if (!grdSelUnit_IsSelectedFromCaller) {
+             //debugger;
+             var gridObj = $('#stdUnitSelectorAllTable').data('kendoGrid');
+             var selectedRows = gridObj.select();
+             var dataItem = gridObj.dataItem(selectedRows[0]);
+             @if (!string.IsNullOrEmpty(ViewBag.selectFunction))
+             {
+                string strOut = ViewBag.selectFunction;
+                @strOut<text>(dataItem);</text>
+             }
+         }
+
+     }
+
+
+
+     function on_StdUnitSelectorDialog_DataBound(e) {
+        //debugger;
+         @if(ViewBag.selectedID!=0)
+         {
+            <text>
+         var grdSelParm = $('#stdUnitSelectorAllTable').data('kendoGrid');
+                grdSelParm.items().each(function () {
+                var data = grdSelParm.dataItem(this);
+                    if (data.ID == @ViewBag.selectedID) {
+
+                        grdSelUnit_IsSelectedFromCaller = true;
+                        grdSelParm.select(this);
+                        scrollGridToSelected(grdSelParm);
+                        grdSelUnit_IsSelectedFromCaller = false;
+                    }
+             });
+
+         </text>
+
+         }
+     }
+
+     function scrollGridToSelected(gr) {
+         //debugger;
+         if (gr.select().length === 0) {
+             return;
+         }
+         var scrollContentOffset = gr.element.find("tbody").offset().top;
+         var selectContentOffset = gr.select().offset().top;
+         var distance = selectContentOffset - scrollContentOffset;
+
+         gr.element.find(".k-grid-content").animate({
+             scrollTop: distance
+         }, 400);
+
+         //g.content.scrollTop(g.select().position().top);
+
+     }
+
+
+       $(document).ready(function () {
+          //debugger;
+          @if (!string.IsNullOrEmpty(ViewBag.dialogID))
+          {
+             <text>
+              $('#btnStdUnitClose').off('click').on('click', function() {
+                  $('#@ViewBag.dialogID').data('kendoWindow').close();
+              });
+            </text>
+          }
+          @if (!string.IsNullOrEmpty(ViewBag.parRelatedUoMs))
+          {
+             <text>
+           if (!bolAtLeastOneSelection) {
+                 var objTs = $('#tabstrip_stduomfilterselector').data('kendoTabStrip');
+                 objTs.select(0);
+                 var objGrid = $('#stdUnitSelectorAllTable').data('kendoGrid');
+                 objGrid.dataSource.read();
+             }
+             </text>
+
+          }
+
+
+     });
+
+   function getAdditionalFilters() {
+      //debugger
+      var ret = null;
+      var objTs = $('#tabstrip_stduomfilterselector').data('kendoTabStrip');
+      if ($(objTs.select()[0]).data().id == 'tabstrip_stduomfilterselector-parameter') {
+         var uomids = '@ViewBag.parRelatedUoMs';
+         if (uomids && uomids != '') {
+            ret = {
+               parRelatedUOMs: uomids
+            };
+         }
+      }
+
+      return ret;
+   }
+
+
+   function onStdUomTabStripSelected(e) {
+      //debugger;
+      bolAtLeastOneSelection = true;
+      var objGrid = $('#stdUnitSelectorAllTable').data('kendoGrid');
+      objGrid.dataSource.read();
+   }
+
+
+</script>
+ <div style="text-align:center;">
+
+
+     <div class="row">
+         <div class="col-12">
+             <kendo-tabstrip name="tabstrip_stduomfilterselector"  style="margin-top: -13px;" on-activate="onStdUomTabStripSelected">
+                 <scrollable enabled="true" />
+                 <popup-animation>
+                     <open effects="fade:in" />
+                 </popup-animation>
+                 <items>
+                     <tabstrip-item text="@DicSvc.XLate("Reccomended for parameter")" selected="true"  data-id="tabstrip_stduomfilterselector-parameter">
+                         <content>
+                         </content>
+                     </tabstrip-item>
+                     <tabstrip-item text="@DicSvc.XLate("All")"  data-id="tabstrip_stduomfilterselector-all">
+                         <content>
+                           
+                         </content>
+                     </tabstrip-item>
+                 </items>
+             </kendo-tabstrip>
+
+         </div>
+     </div>
+     <div class="row">
+         <div class="col-12">
+             @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.StandardUnitViewModel>
+                        ()
+                        .Name("stdUnitSelectorAllTable").HtmlAttributes(new { @style = "width:100%; height: 400px;" })
+                        .Columns(columns =>
+                        {
+                            columns.Bound(e => e.ID).Width(100);
+                            columns.Bound(e => e.Print);
+                            columns.Bound(e => e.Description);
+                        })
+                        .Scrollable()
+                        .DataSource(dataSource => dataSource
+                        .Ajax()
+                        .PageSize(1000000)
+                        .Model(model =>
+                        {
+                            model.Id(o => o.ID);
+
+                        })
+                        .ServerOperation(false)
+
+
+                        .Read(read => read.Action("GetStandardUnits", "DAS3").Data("getAdditionalFilters"))
+                        ).NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No units found") + "</div>"))
+                        .Selectable(o => o.Enabled(true).Mode(GridSelectionMode.Single).Type(GridSelectionType.Row))
+
+                        .Sortable().Filterable()
+                        .Events(e => e.Change("on_StdUnitSelectorDialog_UnitSelected").DataBound("on_StdUnitSelectorDialog_DataBound"))
+                         .Pageable(p => p.Numeric(false)
+                                     .PreviousNext(false))
+                                     .AutoBind(false)
+             )
+         </div>
+     </div>
+     <div class="card-footer h-10 p-0 m-0 border-0 bg-white">
+         @(Html.Kendo().ToolBar()
+                    .Name("toolBarStdUnitSelector")
+                    .Items(items =>
+                    {
+                        items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Close")).Id("btnStdUnitClose").UmsHtmlButtonGeneric("modify-mode").Hidden(false);
+                    })
+         )
+     </div>
+ </div>

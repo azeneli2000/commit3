@@ -1,0 +1,118 @@
+﻿@{
+    string gridName = "actualdevices-grid";
+   ViewBag.Title = DicSvc.XLate("Actual device");
+}
+<script>
+    var gridIdName = "@gridName";
+</script>
+
+
+<div class="h-100 text-center">
+    <div class="card  m-1 p-2 text-left">
+
+      @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.ActualDeviceViewModel>()
+                           .Name(gridName)
+         .Columns(columns =>
+         {
+            columns.Template(@"<div style='width:30px; height:30px; background: url(data:image/#= Extension #;base64,#= Thumbnail #) no-repeat center center; background-size: contain;   '></div>").Width(44);
+            columns.Bound(e => e.Id).Width(80);            
+            columns.Bound(e => e.DeviceType).Hidden(true);
+            columns.Bound(e => e.DeviceTypeDescription).Filterable(a=>a.Multi(true));
+            columns.Bound(e => e.Name);
+            columns.Bound(e => e.SerialNumber);
+            columns.Bound(e => e.Mobile).Width(80).Title("M").HeaderHtmlAttributes(new { title = "Mobile" });
+            columns.Bound(e => e.Label); //.HtmlAttributes(new { @class = "col-editable" });
+            columns.Command(command =>
+            {
+               command.Edit().Text(" ").UpdateText(" ").CancelText(" ").UpdateIconClass("mdi mdi-content-save mdi-18px text-dark");
+            }).HtmlAttributes(new { @style = "text-align:center;" }).Width(100);
+         })
+         .Pageable(pager => pager
+            .Input(true)
+            .Numeric(true)
+            .Info(true)
+            .PreviousNext(true)
+            .Refresh(true)
+            .PageSizes(true)
+         )
+            .UmsDefaultSettings(DicSvc)
+         .Editable(edit=>edit.Mode(GridEditMode.InLine))
+         .DataSource(dataSource => dataSource
+            .Ajax()
+            .Model(model =>
+            {
+               model.Id(o => o.Id);
+               model.Field(o => o.Id).Editable(false);
+               model.Field(o => o.DeviceType).Editable(false);
+               model.Field(o => o.DeviceTypeDescription).Editable(false);
+               model.Field(o => o.Name).Editable(false);
+               model.Field(o => o.SerialNumber).Editable(false);
+               model.Field(o => o.Mobile).Editable(false);
+               model.Field(o => o.Label);
+            })
+            .PageSize(20)
+            .Events(events => events.Error("error_handler_devices"))
+            .Read(read => read.Action("ReadActualDevices", "Connect"))
+            .Update(update => update.Action("UpdateActualDevice", "Connect"))
+         )
+         .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+      )
+    </div>
+</div>
+
+
+<script>
+  
+ 
+
+    //function refreshGridScrolling() {
+    //    var grid = $("#drivers-grid").data("kendoGrid")
+    //    //reset the cached rowHeight:
+    //    grid._rowHeight = undefined;
+    //    //refresh the virtualScrollable option
+    //    grid.virtualScrollable.refresh();
+    //}
+  
+    function error_handler_devices(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            //alert(message);
+            window.umsAlert("Error Occured", message, 400, 300);
+        }
+    }
+
+   // function previewMode(detailEl) {
+   //}
+
+   // function editMode(detailEl) {
+
+
+   // }
+
+    //function requestEndHandler_actualdevices(evt) {
+
+    //   debugger;
+    //    if (evt.type == "create" || evt.type == "update") {
+    //        //check for errors in the response
+    //        if (evt.response == null || evt.response.Errors == null) {
+    //            showNotification('bottom', 'right', "Item successfully updated.", 'success');
+    //        }
+    //        else {
+    //           // window.umsAlert("Error Occured", evt.response.Errors, 400, 300);
+    //        }
+    //    }
+    //    //if (evt.type === "update") {
+    //    //    var data = evt.response.Data["ErrorMessage"];
+    //    //    window.umsAlert("Error Occured", data, 400, 300);
+    //    //}
+    //}
+
+
+</script>

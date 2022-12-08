@@ -1,0 +1,210 @@
+@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@model ConfiguratorWeb.App.Models.DictionaryTranslateViewModel
+@inject IDictionaryService DicSvc
+
+@{
+    Layout = null;
+    string keyID = Model.DictionaryKey.ToString();
+    string keyEmptyValueID = "0";
+    string formId = "formDetail";
+}
+<style>
+    .k-checkbox .k-invalid {
+
+    }
+</style>
+<div class="h-100">
+
+    <div class="card h-90 m-0 p-0  border-bottom-0 text-left" id="divItemDetail">
+        <form id="@formId" asp-controller="Dictionary" asp-action="AddKeyGroup"
+              data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+              data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+
+            <div class="row pt-3">
+                <div class="col-sm-2 u-col-h-fixed"> <span class="field-required">Key</span> </div>
+                <div class="col-sm-10 u-col-h-fixed">
+                    @Html.Kendo().TextBoxFor(m => m.DictionaryKey).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "255" })
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-2 u-col-h-fixed"> <label for="Module">Module</label> </div>
+                <div class="col-sm-10 u-col-h-fixed"> <input type="text" asp-for="Module" class="k-input k-textbox" > </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-2 u-col-h-fixed"> <label for="Description">Description</label> </div>
+                <div class="col-sm-10 u-col-h-fixed"> <input asp-for="Description" type="text" class="k-input k-textbox"  > </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-2 u-col-h-fixed"> Is System</div>
+                <div class="col-sm-2 u-col-h-fixed"> <input type="checkbox" asp-for="IsSystem" class="k-checkbox k-checkbox-md k-rounded-md" > <label for="IsSystem" class="k-checkbox-label"></label></div>
+                <div class="col-sm-8 u-col-h-fixed"></div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-2 u-col-h-fixed"> <label for="Language">Language</label> </div>
+                <div class="col-sm-10 u-col-h-fixed">
+                    <select id="Language" asp-for="Language">
+                        @{
+                            string lang4ui;
+                            foreach (string lang in Model.Language.Split(","))
+                            {
+                                if (!lang.Trim().Equals(string.Empty))
+                                {
+                                    lang4ui = System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(lang.ToLower());
+                                    <option value="@lang">@lang4ui</option>
+                                }
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-2 u-col-h-fixed"> <span class="field-required">Translation</span> </div>
+                <div class="col-sm-10 u-col-h-fixed"> <input asp-for="Value" type="text" class="form-control k-input k-textbox" id="Value" placeholder="Empty values won't be saved"> </div>
+            </div>
+
+        </form>
+    </div>
+    <div class="card-footer h-10 p-0 m-0 border-top bg-white">
+
+        @{
+            string postId = ""; //use in case of multi toolbar
+        }
+        @(Html.Kendo().ToolBar()
+              .Name("toolbarDetail")
+              .UmsDefaultErrors(DicSvc, "errors")
+              .Items(items =>
+              {
+                  items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Save")).Id("btnSave").UmsHtmlButtonGeneric("btnRed");
+                  items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnCancel").UmsHtmlButtonGeneric("");
+              })
+              //.UmsDefaultSettings(DicSvc, postId)
+              )
+    </div>
+</div>
+
+<script>
+
+   function submitGridChanges() {
+       debugger;
+      $.ajax({
+         type: 'POST',
+         url: '@Url.Action("AddKeyGroup", "Dictionary",  new { DictionaryKey = "DictionaryKey", Module = "Module",
+               Description = "Description", Value = "Value", Language = "Language", IsSystem = "IsSystem" } )',
+            data:  {
+               DictionaryKey: $("#DictionaryKey").val(),
+               Module: $("#Module").val(),
+               Description: $("#Description").val(),
+               Value: $("#Value").val(),
+               Language: $("#Language").val(),
+               IsSystem: $("#IsSystem").is(":checked")
+            }
+         })
+         .done(function () {
+            debugger;
+            closeThisView();
+            var grid = $("#dictionary-grid").data("kendoGrid");
+            grid.dataSource.read();
+         })
+         .fail( function () {
+            debugger;
+            //TODO log and inform user
+            alert("Failed to save new translation!");
+         });
+   }
+
+</script>
+
+
+
+
+<script type="text/javascript">
+    var consolelog = false;
+    var actualmode=0;
+    var divName = '#divItemDetail';
+    var dialog = $(popUpWindowName).data("kendoWindow");
+    var grid = $('#' + gridIdName).data("kendoGrid");
+
+    $(document).ready(function() {
+        //umsHideAllEditSaveButton();
+        //setWindowMode();
+        ////set up condition to know if it's a new item
+        //setMode();
+        $('#Language').kendoDropDownList();
+        $('#btnCancel' + '@postId').off('click').on('click', function () {
+                dialog.close();
+                return;
+
+        });
+        $('#btnSave'+'@postId').off('click').on('click', function() {
+            if (consolelog)console.log("btnSave called");
+            actionSave();
+        });
+
+        $("input[data-val-length-max]").each(function (index, element) {
+            element.setAttribute("maxlength", element.getAttribute("data-val-length-max"));
+        });
+    });
+
+
+
+    function actionSave()
+    {
+        if (OnValidation()) {
+            debugger;
+            //uncomment for production
+            $("#@formId").submit();
+            //submitGridChanges();
+        }
+    }
+
+    function OnValidation() {
+        debugger;
+        $('#IsSystem').attr('data-validate','false');
+        var retValue = true;
+        var customFieldValidation = function() {
+            var retFV = false;
+            //Only if we have field not validable by Model
+            try {
+                //retFV = $('#Location_LocationName').val().length === 0;
+            } catch (e) {
+                //
+            }
+            return retFV;
+        }
+        var validator = $("#@formId").kendoValidator().data("kendoValidator");
+        if (!validator.validate() ) {
+            retValue = false;
+            try {
+                var errors = validator.errors();
+                $("#errors").html(buildValidationMessage(errors));
+            } catch (e) {
+                $("#errors").html(e);
+            }
+        }
+        else {
+            $("#errors").html("");
+            retValue = true;
+        }
+
+        return retValue;
+    }
+    function OnSuccess(response) {
+        if (response.success) {
+            grid.dataSource.read();
+            dialog.close();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+    function OnFailure(response) {
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+</script>

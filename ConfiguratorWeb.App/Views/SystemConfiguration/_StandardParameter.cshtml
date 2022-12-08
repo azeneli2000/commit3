@@ -1,0 +1,655 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@using Digistat.FrameworkStd.Model
+@model ConfiguratorWeb.App.Models.StandardParameterViewModel
+@inject IDictionaryService DicSvc
+
+
+@{
+   Layout = null;
+   string keyID = Model.ID.ToString();
+   string keyEmptyValueID = "0";
+   string formId = "form_" + keyID;
+}
+@{
+   StringBuilder objSbDelete = new StringBuilder();
+   objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Item \"{0}\"  "),keyID);
+   objSbDelete.Append("?");
+}
+<style>
+   .k-multiselect-wrap li {
+      border-radius: 2px !important;
+      margin: 1px !important;
+      background-color: #21252920 !important;
+      border-color: #939393 !important;
+      padding: 2px 0.40em 2px 0.25em !important;
+   }
+
+   .k-multiselect-wrap .k-button .k-select {
+      margin-left: 0.5rem;
+   }
+
+   .dropdown-validation-error {
+      border: 1px solid red !important;
+      background-color: #FFF8F8 !important;
+   }
+</style>
+
+<script type="text/javascript">
+   var bSystemEditable = '@ViewBag.SystemModifiabled'=='@true'?true:false;
+   function onSUChanged(event) {
+      onSUChange(event);
+   }
+
+   function opFiltering(e) {
+      onSUFiltering(e);
+   }
+
+   function onOpenMs(e) {
+      onSUOpenMs(e);
+   }
+</script>
+<div class="h-100 ">
+   <div class="card h-80 m-0 p-0  text-left" id="divItemDetail">
+      <form asp-controller="SystemConfiguration" id="@formId" asp-action="SaveStandardParamDetail"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccess" style="overflow: auto"
+            data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+
+         @Html.HiddenFor(f => f.IsNew)
+         <div class="row mt-3">
+            <div class="col-2">
+               <label asp-for="ID" class=" field-required">@DicSvc.XLate("ID")</label>
+            </div>
+            <div class="col-4">
+               <input asp-for="ID" class="form-control control-required" readonly="readonly" maxlength="10" />
+            </div>
+            <div class="col-2">
+               <label asp-for="IsSystem" >@DicSvc.XLate("IsSystem")</label>
+            </div>
+            <div class="col-4">
+
+               @Html.Kendo().CheckBoxFor(m => m.IsSystem).Label(" ").HtmlAttributes(new { @class = "readonly"})
+            </div>
+
+         </div>
+         <div class="row">
+            <div class="col-2">
+               <label asp-for="Print" class=" field-required">@DicSvc.XLate("Print")</label>
+            </div>
+            <div class="col-4">
+               <input asp-for="Print" class="form-control control-required" maxlength="50" />
+            </div>
+            <div class="col-2">
+               <label asp-for="Description" class="field-required">@DicSvc.XLate("Description")</label>
+            </div>
+            <div class="col-4">
+               <input asp-for="Description" class="form-control control-required text-ellipsed" maxlength="250" />
+            </div>
+         </div>
+         <div class="row d-none">
+            <div class="col-2">
+               <label asp-for="Mnemonic">@DicSvc.XLate("Mnemonic")</label>
+            </div>
+            <div class="col-4">
+               <input asp-for="Mnemonic" class="form-control " maxlength="50" />
+            </div>
+            <div class="col-2">
+               <label asp-for="Type">@DicSvc.XLate("Type")</label>
+            </div>
+            <div class="col-4">
+               <input asp-for="Type" class="form-control readonly" maxlength="50" />
+            </div>
+         </div>
+         <div class="row">
+            <div class="col-2">
+               <label asp-for="DataType" class="field-required">@DicSvc.XLate("DataType")</label>
+            </div>
+            <div class="col-4">
+               @*<input asp-for="DataType" class="form-control control-required" maxlength="50" />*@
+               @(
+                  Html.Kendo().DropDownListFor(f => f.DataType).BindTo(new List<SelectListItem>()
+                  {
+                     new SelectListItem("STRING","STRING"),
+                     new SelectListItem("NUMERIC","NUMERIC"),
+                     new SelectListItem("WAVEFORM","WAVEFORM")
+                  }).Enable(false).HtmlAttributes(new { style = "height:30px;" })
+               )
+            </div>
+            <div class="col-2 d-none">
+               <label asp-for="CaseSensitive" class="field-required"></label>
+            </div>
+            <div class="col-4 d-none">
+               <input asp-for="CaseSensitive" class="form-control control-required" maxlength="50" />
+            </div>
+         </div>
+         <div class="row d-none">
+            <div class="col-2">
+               <label asp-for="UOMIds" class="field-required">@DicSvc.XLate("UOM list")</label>
+            </div>
+            <div class="col-4">
+               @Html.HiddenFor(m => m.UOMIds)
+
+               @(
+                  Html.Kendo().DataSource<StandardUnit>()
+                     .Name("dataSourceStandardUnit")
+
+                     .Ajax(ds => ds
+                     .PageSize(1000)
+                     .Read(read => read.Action("GetStandardUnit", "Generic", new { id = Model.UOMIds }))
+                     .ServerOperation(false)
+
+
+                         )
+               )
+               @(
+
+                  Html.Kendo().MultiSelect()    //For(m => m.UOMIds)
+                     .Name("msUOMIds")
+                     .DataTextField("Print")
+                     .DataValueField("ID")
+                     .ItemTemplate("#= ID #-#= Print #")
+                     .TagTemplate("#= ID #-#= Print #")
+                     .DataSource("dataSourceStandardUnit")
+                     .TagMode(MultiSelectTagMode.Multiple)
+                     .FooterTemplate("Total <strong>#: instance.dataSource.total() #</strong>")
+                     .Enable(false)
+                     //.EnforceMinLength(true)
+                     //.MinLength(2)
+                     //.AutoBind(true)
+                     .Filter(FilterType.Contains)
+                     .Animation(true)
+                     //.Virtual(true)
+                     .ClearButton(false)
+                     .Events(e => e.Change("onSUChanged").Filtering("opFiltering").Open("onOpenMs"))
+               )
+
+            </div>
+            <div class="col-2">
+               <label asp-for="UCUMCaseSensitive">@DicSvc.XLate("UCUM list")</label>
+            </div>
+            <div class="col-4">
+               <input asp-for="UCUMCaseSensitive" class="form-control readonly" maxlength="255" />
+            </div>
+         </div>
+         <div class="row d-none">
+
+            <div class="col-2">
+               <label asp-for="Devices" class="field-required">@DicSvc.XLate("Devices")</label>
+            </div>
+            <div class="col-4">
+               <input asp-for="Devices" class="form-control control-required" maxlength="255" />
+            </div>
+            <div class="col-2">
+               <label asp-for="Classes" class="field-required">@DicSvc.XLate("Classes")</label>
+            </div>
+            <div class="col-4">
+               <input asp-for="Classes" class="form-control control-required" maxlength="255" />
+            </div>
+         </div>
+         <div class="row d-none">
+            <div class="col-2">
+               <label asp-for="Parameters" class="field-required">@DicSvc.XLate("Parameters")</label>
+            </div>
+            <div class="col-10">
+               <input asp-for="Parameters" class="form-control control-required" maxlength="255" />
+            </div>
+         </div>
+         <div class="row d-none">
+            <div class="col-2">
+               <label asp-for="Notes">@DicSvc.XLate("Notes")</label>
+            </div>
+            <div class="col-10">
+               <input asp-for="Notes" class="form-control " maxlength="255" />
+            </div>
+         </div>
+      </form>
+
+   </div>
+   <div class="card-footer h-10 p-0 m-0 mt-1 border-0 bg-white">
+
+      @{
+         string postId = ""; //use in case of multi toolbar
+      }
+      @(Html.Kendo().ToolBar()
+            .Name("toolbarDetail")
+            .UmsDefaultErrors(DicSvc, "errors")
+            .Items(items =>
+            {
+                items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+                //items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode").Hidden(true);
+            })
+            .UmsDefaultSettings(DicSvc, postId)
+      )
+   </div>
+</div>
+
+<script type="text/javascript">
+   function onIdChanged(parameters) {
+      var id = parameters.value;
+      var intId = kendo.parseInt(id);
+      if (id.length>10 || isNaN(id) || intId == null || intId <= 0 || intId.toString() !== id ) {
+         window.umsErrorDialog("Error occured", "@DicSvc.XLateJs("Id not valid")", 200, 200);
+         return;
+      }
+      $('#errors').html('');
+      if (isNewSP) {
+         setTimeout(function () {
+            console.log("CheckStandardParameterId");
+            var dati = { id: intId };
+            $.ajax({
+               url: '@Url.Action("CheckStandardParameterId", "SystemConfiguration")',
+               type: 'POST',
+               data: dati
+               //async: false
+
+            }).done(function(data) {
+               //debugger;
+               if (!(data.success != undefined && data.success)) {
+                  window.umsErrorDialog("Error occured", data.errorMessage, 200, 200);
+                  //$("#ID").focus();
+                  $('#errors').html( data.errorMessage);
+               }
+            }).fail(function(response) {
+               //debugger;
+               window.umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            });
+         }, 200);
+      }
+   }
+   function onSUChange(event) {
+      //debugger;
+      var ms = event.sender; //.getKendoMultiSelect();
+      var values = ms.value();
+      var previous = $('#UOMIds').val().split(";");
+      var idx = -1;
+      var oldUcom = $("#UCUMCaseSensitive").val().split(";");
+      var newUcom = "";
+      for (var i = 0; i < values.length; i++) {
+         var val = values[i];
+         var bFounded = false;
+         for (var j = 0; j < previous.length; j++) {
+            bFounded = (previous[j] == val);
+            if (bFounded) {
+               idx = j;
+               break;
+            }
+         }
+         if (bFounded) {
+            newUcom += oldUcom[idx] + ";";
+         } else {
+            idx = -1;
+            var item = dataSourceStandardUnit.data().find(function (r) { return r.ID == val });
+            if (item != undefined) {
+               newUcom += item.UCUMCaseSensitive.trim() + ";";
+            }
+
+         }
+      }
+      $('#UOMIds').val(values.join(";"));
+      $('#UCUMCaseSensitive').val(newUcom.length > 1 ? newUcom.slice(0, -1) : newUcom);
+   }
+
+   function onSUFiltering(e) {
+      if (e.filter) {
+         var value = e.filter.value;
+         var newFilter = {
+            filters: [
+               { field: "ID", operator: "contains", value: value },
+               { field: "UCUMCaseSensitive", operator: "contains", value: value }
+            ],
+            logic: "or"
+         }
+         e.sender.dataSource.filter(newFilter);
+         e.preventDefault();
+      }
+      e.preventDefault();
+   }
+   function onSUOpenMs(e) {
+      e.sender.dataSource.filter('');
+      //e.preventDefault();
+   }
+   $(document).ready(function () {
+      var strUom = $('#UOMIds').val();
+      var msUom = $('#msUOMIds').getKendoMultiSelect();
+      if (strUom != "NA") {
+         msUom.value(strUom.split(";"));
+      } else {
+         msUom.value("8".split(";"));
+      }
+   });
+
+   var isNewSP = ('@Model.ID' == '' || '@Model.ID' =='0');
+   var consolelog = false;
+   var actualmode=0;
+   var divName = '#divItemDetail';
+   var dialog = $(popUpWindowName).data("kendoWindow");
+   var grid = $('#' + gridIdName).data("kendoGrid");
+   function changeToEditMode() {
+      actualmode = 2;
+      $(".modify-mode").show();
+      $(".view-mode").hide();
+      umsHideAllEditSaveButton();
+      toolBarShowButtonByClass("modify-mode");
+      if (isNewSP) {
+         //debugger;
+         $('#ID').removeClass("readonly");
+         $('#ID').attr('readonly', false);;
+         document.getElementsByName("ID").readonly=  false;
+         //document.getElementsByName("IsSystem").readonly=  true;
+         //$("#IsSystem").attr('disabled', true);
+      }
+      $(divName +' :input:not(.readonly)').attr('disabled', false);
+      $(divName +' :input').each(function () {
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+            if (!cb.wrapper.hasClass("readonly")) {
+               cb.enable(true);
+            }
+
+         } else {
+            cb = $(this).data("kendoMultiSelect");
+
+            if (cb ) {
+               if (!cb.wrapper.hasClass("readonly")) {
+                  cb.enable(true);
+               }
+            }
+         }
+         //cb = $(this).data("kendoNumericTextBox");
+         //if (cb) {
+         //    cb.enable(true);
+         //}
+      });
+      if (isNewSP) {
+         $('#btnDelete').hide();
+         //if (bSystemEditable) {
+         //   //$("#IsSystem").enable();
+         //   document.getElementsByName("IsSystem").readonly=  false;
+         //   $("#IsSystem").attr('disabled', false);
+         //}
+      }
+   }
+
+   function changeToViewMode() {
+      actualmode = 1;
+      $(".view-mode").show();
+      $(".modify-mode").hide();
+      umsHideAllEditSaveButton();
+      toolBarShowButtonByClass("view-mode");
+
+      $(divName +' :input').attr('disabled', true);
+      $(divName +' :input').each(function () {
+         //var cb = $(this).data("kendoDropDownList");
+         //if (cb) {
+         //    cb.enable(false);
+         //}
+         //cb = $(this).data("kendoNumericTextBox");
+         //if (cb) {
+         //    cb.enable(false);
+         //}
+      });
+
+      if ($('#IsSystem').is(":checked")) {
+         $('#btnEdit' + '@postId').hide();
+      }
+   }
+   function setWindowMode() {
+      //customize according model key
+      if ('@keyID' !== '@keyEmptyValueID') {
+         actualmode = 1;
+      } else {
+         //$('#BedName').attr('readonly', false);
+         actualmode = 2;
+      }
+   }
+
+   function setMode() {
+
+      if (actualmode === 2) {
+         $(divName +' :input').attr('disabled', true);
+         changeToEditMode();
+      }
+      else
+         changeToViewMode();
+   }
+
+
+   $(document).ready(function() {
+      //debugger;
+      if ($('#IsSystem').is(":checked")) {
+         $('#btnEdit' + '@postId').removeClass('view-mode').addClass('modify-mode').hide();
+      }
+      umsHideAllEditSaveButton();
+
+      setWindowMode();
+      //set up condition to know if it's a new item
+      setMode();
+      //debugger;
+
+      $('#btnEdit' + '@postId').off('click').on('click', function () {
+         if ($('#IsSystem').is(":checked")) {
+            window.umsAlert("Alert","System standard parameter are not editable");
+            return;
+         }
+         //if(consolelog)console.log("btnEdit called");
+         changeToEditMode();
+      });
+      $('#btnCancel' + '@postId').off('click').on('click', function () {
+         if (consolelog)console.log("btnCancel called");
+         // IF is new add, close the dialog
+         if ('@keyID'=='@keyEmptyValueID') {
+            dialog.close();
+            return;
+         }
+
+         //TODO: reload data
+         window.displayItemDetail('@keyID');
+         changeToViewMode();
+      });
+      $('#btnSave'+'@postId').off('click').on('click', function() {
+         if (consolelog)console.log("btnSave called");
+         actionSave();
+      });
+      $('#btnDelete').off('click').on('click', function () {
+         if ($('#IsSystem').is(":checked")) {
+            window.umsAlert("Alert","System standard parameter is not deletable");
+            return;
+         }
+         if (consolelog)console.log("btnDelete called");
+         umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteItem, cancelDeleteItem);
+      });
+      //$('#btnCopy').off('click').on('click', function () {
+      //    if (consolelog) console.log("btnCopy called");
+      //    $("#BedId").val("0");
+      //    $('#BedName').attr('readonly', false);
+      //    changeToEditMode();
+      //});
+      $('#btnClose' + '@postId').off('click').on('click', function () {
+         if (consolelog)console.log("btnClose called");
+         dialog.close();
+      });
+      $("input[data-val-length-max]").each(function (index, element) {
+         element.setAttribute("maxlength", element.getAttribute("data-val-length-max"))
+      });
+   });
+
+
+
+   function actionSave()
+   {
+      if (OnValidation()) {
+         //uncomment for production
+         document.getElementsByName("IsSystem").readonly=  false;
+         $("#IsSystem").attr('disabled', false);
+         $("#@formId").submit();
+      }
+   }
+
+   function OnValidation() {
+      var retValue = true;
+      var customFieldValidation = function() {
+         var retFV = false;
+         //Only if we have field not validable by Model
+         try {
+            //retFV = $('#Location_LocationName').val().length === 0;
+         } catch (e) {
+            //
+         }
+         return retFV;
+      }
+      var validator = $("#@formId").kendoValidator({
+         errorTemplate: "", //remove the additions kendo places to the right of each field.
+         rules: {
+            //msUOMIds: function(input) {
+            //   if (input.is("[name=msUOMIds]")) {
+            //      return input.val().length != 0;
+            //   }
+            //   return true;
+
+            //},
+            duplicatedId: function(input) {
+               if (input.is("[name=ID]")) {
+                  var value = 0;
+                  if (isNewSP) {
+                     $.ajax({
+                        url: '@Url.Action("CheckStandardParameterId", "SystemConfiguration")',
+                        type: 'POST',
+                        data: { id: input.val() },
+                        async: false
+
+                     }).done(function(data) {
+                        //debugger;
+                        if (!(data.success != undefined && data.success)) {
+                           value = -1;
+                        }
+                     }).fail(function(response) {
+                     });
+                  }
+                  return  value ==0;
+               }
+               return true;
+
+            },
+            minimumId: function(input) {
+               if (input.is("[name=ID]")) {
+                  if (isNewSP && !$('#IsSystem').is(":checked") && kendo.parseInt( input.val())<100000) {
+                     return false;
+                  }
+               }
+               return true;
+
+            }
+         },
+         messages: {
+            msUOMIds: "",
+            duplicatedId: "@DicSvc.XLateJs("ID already exists")",
+            minimumId:  "@DicSvc.XLateJs("ID for non system parameter must be >= 100000")"
+
+         },
+         validate: function (e) {
+            //Bizarrely, Kendo dropdowns and multiselect require special attention.
+
+            //Span with k-dropdown are kendo dropdown controls. They contain an input, which is used to store the value,
+            //and another span (which has .k-input-wrap) that controls the actual presentation.
+            //
+            //The problem is that k-invalid is placed on the input, which isn't even visible. So, we have to
+            //check the input for .k-invalid, and set a class on the span to control validation appearance.
+
+            var dropDowns = $(".k-dropdown");
+
+            $.each(dropDowns, function (key, value) {
+               var input = $(value).find("input.k-invalid");    //this is where Kendo foolishly places k-invalid
+               var span = $(this).find("span.k-dropdown-wrap"); //this span controls the dropdown's appearance.
+
+               //manually set the validation attributes. Note that input-validation-error would have been a better
+               //class to use here, but I think bootstrap.js must do some magic with it, because when I set it and then
+               //manually remove it, that caused the span to mysteriously become display: none.
+               if (input.length > 0) { //if there is an input in here with k-invalid...
+                  $(span).addClass("dropdown-validation-error");
+               } else {
+                  $(span).removeClass("dropdown-validation-error");
+               }
+            });
+            //var multiSel = $(".k-multiselect");
+
+            //$.each(multiSel, function (key, value) {
+            //   //debugger;
+            //   var input = $(value).find("select.k-invalid");    //this is where Kendo foolishly places k-invalid
+            //   var span = $(this).find("div.k-multiselect-wrap"); //this div controls the multiselect's appearance.
+            //   if (input.length > 0) { //if there is an input in here with k-invalid...
+            //      $(span).addClass("dropdown-validation-error");
+            //   } else {
+            //      $(span).removeClass("dropdown-validation-error");
+            //   }
+            //});
+         }
+      }).data("kendoValidator");
+      if (!validator.validate() ) {
+         retValue = false;
+         try {
+            var errors = validator.errors();
+            $("#errors").html(buildValidationMessage(errors));
+         } catch (e) {
+            $("#errors").html(e);
+         }
+      }
+      else {
+         $("#errors").html("");
+         retValue = true;
+      }
+
+      return retValue;
+   }
+   function OnSuccess(response) {
+      if (response.success) {
+         grid.dataSource.read();
+         dialog.close();
+      }
+      else {
+         window.umsAlert("Error occured", response.errorMessage, 400, 300);
+      }
+   }
+   function OnFailure(response) {
+      window.umsAlert("Error occured", response.errorMessage, 400, 300);
+   }
+   function toolBarShowButtonByClass(clas) {
+      var tb = $("#toolbarDetail").data("kendoToolBar");
+      tb.umsShowButtonByClass(clas);
+   }
+   function umsHideAllEditSaveButton()
+   {
+      var tb = $("#toolbarDetail").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+
+
+   function deleteItem() {
+      if ($('#IsSystem').is(":checked")) {
+         window.umsAlert("Alert","System standard parameter is not deletable");
+         return;
+      }
+      $.ajax({
+         url: '@Url.Action("DeleteStandardParameter", "SystemConfiguration")',
+         type: 'POST',
+         data: { id: '@keyID' },
+         async: false
+
+      }).done(function (data) {
+         if (data.success != undefined && data.success) {
+            dialog.close();
+            grid.dataSource.read();
+         } else {
+            $('#errors').html('not saved. reason:' + data.errorMessage);
+         }
+      }).fail(function (response) {
+         umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+      });
+
+   }
+
+   function cancelDeleteItem() {
+
+      /* do nothing */
+   }
+</script>

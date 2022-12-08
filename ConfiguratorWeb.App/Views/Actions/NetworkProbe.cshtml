@@ -1,0 +1,380 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@inject IDictionaryService DicSvc
+
+@using Digistat.FrameworkStd.Model
+
+@{
+   ViewBag.Title = DicSvc.XLate("Network Probe");
+
+   var networkGridName = "networkProbe-grid";
+}
+
+<style>
+
+   .ntwProbeGridIcon {
+      font-size: larger;
+      margin-left: 5px;
+   }
+
+   .my-custom-grid-class .k-grid-filter {
+      display: none;
+   }
+
+   #coverFilter {
+      background-color: transparent;
+      width: 98%;
+      position: absolute;
+      top: 108px;
+      height: 32px;
+      z-index: 2;
+      left: 15px;
+      display: none;
+   }
+
+   #wrapperProbeBtn {
+      background-color: transparent;
+      width: 5%;
+      position: absolute;
+      top: 67px;
+      height: 30px;
+      z-index: 2;
+      left: 32px;
+      cursor: not-allowed;
+      display: none;
+   }
+</style>
+<div id="coverFilter"></div>
+<div id="wrapperProbeBtn"></div>
+<div id="HostHWInfo"></div>
+<div style="text-align:center;height:100%;">
+   <div class="card h-100 m-1 p-2 text-left resizeOffsetGrids">
+      @(Html.Kendo().Grid<Digistat.FrameworkStd.Model.Monitoring.MonitoringDesktop>()
+                                              .Name(@networkGridName)
+                                              .Columns(columns =>
+                                              {
+                                                 columns.Bound(d => d.HU).Title(DicSvc.XLate("Hospital Unit")).Width("12%");
+                                                 columns.Bound(d => d.LocationName).Title(DicSvc.XLate("Location")).Width("11%");
+                                                 columns.Bound(d => d.Network.WorkstationLabel).Title(DicSvc.XLate("Label")).Width("12%");
+                                                 columns.Bound(d => d.Network.Id).Visible(false);
+                                                 columns.Bound(d => d.isNetworkEnabled).Visible(false);
+                                                 columns.Bound(d => d.Network.HostName).Width("17%");
+
+                                                 columns.Template("").Title(DicSvc.XLate("Ping")).Width("12%");
+                                                 columns.Bound(d=>d.Module).Title(DicSvc.XLate("Modules")).Width("12%");
+                                                 columns.Bound(d => d.User).Title(DicSvc.XLate("User")).Width("10%");
+                                                 //columns.Template("<a class='mdi mdi-camera-enhance-outline ntwProbeGridIcon' disabled_href='@Url.Action('', '', new { Host = HostName })'></a><a class='mdi mdi-information-outline ntwProbeGridIcon'  href='javascript:openHostnameHwDetail(\"#=HostName#\")'></a>").Title("Actions").Width(100);
+                                                 columns.Bound(d =>d.Status).ClientTemplate("#if(isNetworkEnabled){#<a title='Info Hw' class='btn btnKendo mdi mdi-alert-circle-outline' role='button'style='position:relative;left:35%;' onclick='openHostnameHwDetail(\"#=Network.HostName#\")'></a>#}#").Title("Status").Filterable(ftb => ftb.Multi(true).CheckAll(true)).Width("7%");
+                                              })
+                                              .ToolBar(toolbar =>
+                                              {
+                                                 toolbar.ClientTemplateId("GridToolbarTemplate");
+                                              })
+                                              .Scrollable()
+                                              .Resizable(resize => resize.Columns(true))
+                                              .Sortable().Filterable()
+
+
+                                              .Pageable(pageable => pageable
+                                                 .Input(false)
+                                                 .Numeric(false)
+                                                 .Info(false)
+                                                 .PreviousNext(false)
+                                                 .Refresh(true))
+                                              .DataSource(dataSource => dataSource
+                                                 .Ajax()
+                                                .Filter(f => f.Add(a => a.Status).IsEqualTo(Digistat.FrameworkStd.Model.Monitoring.StatusNetwork.ACTIVE))
+                                                 .Model(model =>
+                                                 {
+                                                 })
+                                                 .PageSize(1 << 16)
+                                                 .Read(read => read.Action("ReadDesktopItems", "SystemMonitoring"))
+                                              ).HtmlAttributes((new { style = "max-height: 1500px; min-width: 700px;" }))
+                                               .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+      )
+
+
+
+
+   </div>
+</div>
+
+
+
+<script id="GridToolbarTemplate" type="text/x-kendo-template">
+   <div class="refreshBtnContainer">
+        <a href="\\#" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" onclick="PerformProbe();" id="btnNetworkProbe" title="@DicSvc.XLate("Probe")">@DicSvc.XLate("PROBE") &nbsp; <span class="k-icon k-i-rss"></span></a>
+   </div>
+</script>
+
+<script>
+
+   var isTabchanged = false;
+   var hwinfoKndWndDialog;
+    $(document).ready(function () {
+          hwinfoKndWndDialog = $('#HostHWInfo').usmKendoWindow({
+
+                title: '@DicSvc.XLate("HW Info")',
+                height: 550,
+                width: 900,
+                minWidth: 900,
+                maxHeight: 550
+            });
+   });
+
+    function setClearValueAnStyleOnGrid() {
+      var grid = $('#@networkGridName').data('kendoGrid');
+        var rows = grid.tbody.children();
+        for (var j = 0; j < rows.length; j++) {
+            var row = $(rows[j]);
+            row.removeClass('umsPongOk');
+            row.removeClass('umsPongKo');
+
+        }
+    }
+   function setCellValueOnGrid(hostname, columnIndex, value, rowclass) {
+
+      try {
+         var grid = $('#@networkGridName').data('kendoGrid');
+         var rows = grid.tbody.children();
+         for (var j = 0; j < rows.length; j++) {
+            var row = $(rows[j]);
+            var dataItem = grid.dataItem(row);
+            if (dataItem.Network.HostName == hostname) {
+                row.addClass(rowclass);
+                $(row.children()[columnIndex]).text(value);
+                //$(row.children()[3]).text('pong');
+            }
+        }
+      } catch (err) {
+
+      }
+    }
+
+    function AfterProcessUMSMessagePage(msg) {
+        if (msg.packetType == 'PONG') {
+            var grid = $('#@networkGridName').data('kendoGrid');
+            var rows = grid.tbody.children();
+            var bNotFound = true;
+            for (var j = 0; j < rows.length; j++) {
+                var row = $(rows[j]);
+                var dataItem = grid.dataItem(row);
+                if (dataItem.Network.HostName == msg.sourceHost ) {
+
+                    $(row.children()[5]).text(UMSGetMsgOption(msg, "MODULES"));
+                    $(row.children()[6]).text(UMSGetMsgOption(msg, "USER"));
+                    //PingHostname(msg.sourceHost);
+                    bNotFound = false;
+                }
+            }
+            if (bNotFound) {
+               console.log(msg);
+            }
+        }
+    }
+
+    function UMSGetMsgOption(message, optionName) {
+        if (message.options != null) {
+            for (var index = 0; index < message.options.length; index++) {
+                if (message.options[index].key == optionName) {
+                    return message.options[index].value;
+                }
+            }
+        }
+        return null;
+    }
+
+    function PingHostname(hst) {
+      if (!ProbeCheck) {
+         return;
+      }
+
+      var req = $.ajax({
+              url: '@Url.Action("Ping", "Actions")',
+              data: { hostname: hst },
+                type: 'POST',
+              success: function (data) {
+                  if (data.Time > -1) {
+               		setCellValueOnGrid(data.Hostname, 4, data.Time + ' ms', 'umsPongOk');
+                  }
+                  else {
+               		setCellValueOnGrid(data.Hostname, 4, 'disconnected', 'umsPongKo');
+                  }
+
+         },
+         error: function () {
+
+         },
+         complete: function () {
+
+         }
+      }).always(function (xhr) {
+
+
+         RemoveProbeRequest(xhr);
+         PerformNextProbe();
+
+      });
+
+      ProbeRequest.push(req);
+    }
+
+   var probeCounter = 0;
+
+   function PerformNextProbe() {
+      var grid = $('#@networkGridName').data('kendoGrid');
+      if (probeCounter < grid.dataItems().length) {
+         PingHostname(grid.dataItems()[probeCounter++].Network.HostName);
+      }
+
+   }
+
+   $(document).ajaxStop(function () {
+
+      $("#wrapperProbeBtn").css("display", "none");
+      $("#coverFilter").css("display", "none");
+    $(".k-grid-filter").css("display", "block");
+   });
+
+   var probeCounter2 = 0;
+   function PerformProbe() {
+
+      debugger;
+
+       var grid = $('#@networkGridName').data('kendoGrid');
+      var view = grid.dataSource.view();
+      if (view.length > 0) {
+         $("#wrapperProbeBtn").css("display", "block");
+         $(".k-grid-filter").css("display", "none");
+         $("#coverFilter").css("display", "block");
+      }
+      else {
+         return; 
+      }
+
+      if (grid.dataItem) {
+            setClearValueAnStyleOnGrid();
+         ProbeCheck = true;
+         if (view.length < 8) {
+
+            for (probeCounter = 0; probeCounter < view.length; probeCounter++) {
+                  PingHostname(grid.dataItems()[probeCounter].Network.HostName);
+            }
+
+         }
+         else {
+            for (probeCounter = 0; probeCounter < 8; probeCounter++) {
+               PingHostname(grid.dataItems()[probeCounter].Network.HostName);
+
+            }
+         }
+
+
+         }
+
+
+        $.ajax({
+            url: '@Url.Action("ProbeAllNetwork", "Actions")',
+            type: 'POST',
+            success: function () {
+
+            },
+            error: function () {
+
+            }
+        });
+   }
+
+   function ProbeHost()
+   {
+      debugger;
+      var grid = $('#@networkGridName').data('kendoGrid');
+      if (grid.dataItem) {
+         var dataItems = grid.dataItems();
+         if (probeCounter < dataItems.length) {
+            for (var i = 0; i < 8 ; i++)
+            {
+               PingHostname(dataItems[probeCounter].Network.HostName);
+               probeCounter++;
+               if (probeCounter >= dataItems.length)
+               {
+                  var req = $.ajax({
+                     url: '@Url.Action("ProbeAllNetwork", "Actions")',
+                     type: 'POST',
+                     complete: function () {
+
+                     },
+                     success: function () {
+
+                     }
+                  }).always(function (xhr) {
+                     RemoveProbeRequest(xhr);
+                  });
+
+                  ProbeRequest.push(req);
+                  break;
+               }
+            }
+
+         }
+      }
+   }
+
+   function openHostnameHwDetail(hostname) {
+
+         var hwinfoid = "#HostHWInfo";
+         var windowWidget = $(hwinfoid).data("kendoWindow");
+         kendo.ui.progress(windowWidget.element, true);
+         $.ajax({
+            url: '@Url.Action("GetDesktopHWInfoPartial", "SystemMonitoring")',
+            type: 'GET',
+            data: { Hostname: hostname },
+
+         })
+         .done(function (dataHtml) {
+               var itemDialog = $(hwinfoid).data('kendoWindow');
+               itemDialog.content('');
+               itemDialog.content(dataHtml);
+            if (itemDialog.element.is(":hidden")) {
+               itemDialog.center();
+                     itemDialog.open();
+
+               }
+            })
+            .fail(function (dataHtml) {
+                  var itemDialog = $(hwinfoid).data('kendoWindow');
+               itemDialog.content('');
+               itemDialog.content(dataHtml);
+               if (itemDialog.element.is(":hidden")) {
+                     itemDialog.open();
+                     itemDialog.center();
+               }
+            });
+         kendo.ui.progress(windowWidget.element, false);
+   }
+
+   resizeGrid("networkProbe-grid");
+
+
+</script>
+
+
+
+<style>
+   .dgm-grid-command {
+      min-width: 0px !important;
+   }
+
+   .umsPongOk {
+      color: green !important;
+      font-weight: bold;
+   }
+
+   .umsPongKo {
+      color: red !important;
+   }
+</style>
+
+@*<a class='mdi mdi-camera-enhance-outline ntwProbeGridIcon' disabled_href='@Url.Action('', '', new { Host = Newtork.HostName })'></a>*@
+
+
+

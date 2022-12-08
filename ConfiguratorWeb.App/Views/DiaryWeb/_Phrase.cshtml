@@ -1,0 +1,416 @@
+﻿@using ConfiguratorWeb.App.Models.DiaryWeb
+@model Category
+@{
+   var gridName = "phrasesGrid";
+}
+
+
+<div id="editPhrase">
+   <div class="editor-field" >
+      <span class="k-widget k-textarea" style="width:100%;">
+         <textarea id="PhraseDiary" style="width:100%; resize: none;" required="" data-required-msg="Please enter a text."
+                   data-max-msg="Enter value between 1 and 200" data-role="textarea" aria-disabled="false" maxlength="200"
+                   rows="3" placeholder="Enter your text here." class="k-textbox" autocomplete="off" aria-describedby="-error"
+                   aria-invalid="true"></textarea>
+
+      </span>
+   </div>
+   <div class="row">
+      <div class="window-footer col-7" style=" position: relative; top: 27px; margin-left: -27px;">
+         <button type="button" id="btnNewGridItemP" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary">@DicSvc.XLate("Save")</button>
+         <button type="button" id="brnCancelGridItemP"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base">@DicSvc.XLate("Cancel")</button>
+
+      </div>
+      <div class="col-5"  id="waysError2p" style="display: none; color: red; position: relative; top: 16px;">@DicSvc.XLate("This input already exists")</div>
+      <div class="col-4" id="waysError1p" style="display: none; color: red; position: relative; top: 16px;">@DicSvc.XLate("Input is required")</div>
+
+   </div>
+</div>
+<div id="editPhraseUpdate">
+   <div class="editor-label">
+      <div class="col-md-1  u-col-h-fixed ">
+         <label for="NameUpdate">@DicSvc.XLate("Phrase")</label>
+      </div>
+   </div>
+   <div class="editor-field">
+      <span class="k-widget k-textarea">
+         <textarea id="PhraseDiaryUpdate" style="width: 300px; resize: none;" required="" data-required-msg="Please enter a text."
+                   data-max-msg="Enter value between 1 and 200" data-role="textarea" aria-disabled="false" maxlength="200"
+                   rows="3" placeholder="Enter your text here." class="k-textbox" autocomplete="off" aria-describedby="-error"
+                   aria-invalid="true"></textarea>
+
+      </span>
+   </div>
+   <div class="row">
+      <div class="window-footer col-7" style=" position: relative; top: 27px; margin-left: -27px;">
+         <button type="button" id="btnNewGridItemUpdate" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary">@DicSvc.XLate("Edit")</button>
+         <button type="button" id="brnCancelGridItemPUpdate"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base">@DicSvc.XLate("Cancel")</button>
+
+      </div>
+      <div class="col-5 " id="waysError2pUpdate"  style="display: none; color: red; position: relative; top: 34px;">@DicSvc.XLate("This input already exists")</div>
+      <div class="col-4 " id="waysError1pUpdate"  style="display: none; color: red; position: relative; top: 34px;">@DicSvc.XLate("Input is required")</div>
+
+   </div>
+</div>
+
+      @(Html.Kendo().Grid(Model?.Phrases)
+      .Name(gridName)
+      .Navigatable(true)
+      .Columns(columns =>
+      {
+         //columns.Bound(e => e.Enabled).ClientTemplate("<input id='#=Name#' style='position:relative;left:40%;' class='checkBoxCustomDiluents' type='checkbox' #= Enabled ? checked='checked': '' # />").Title("Default").Width("100px").Editable("noEditCheckbox");
+         columns.Bound(e => e.Text).Title("Phrases").HtmlAttributes((new { style = "border-color: rgb(33 37 41 / 31%);" }));
+         columns.Bound(e => e.Index).Visible(false);
+
+      })
+      //.Events(e => e.DataBound("onDataBound"))
+      .Scrollable()
+      .Selectable(s => s.Mode(GridSelectionMode.Single))
+      .DataSource(dataSource => dataSource
+                  .Ajax()
+                  .ServerOperation(true)
+                   .Model(model =>
+                   {
+                      model.Id(o => o.ID);
+                      model.Field(o => o.Category);
+                      model.Field(o => o.Index);
+                      model.Field(o => o.Text).Editable(true);
+                   })
+
+      )
+      .HtmlAttributes(new { @style = "height:200px;top:20px;width:732px;" })
+      .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No Phrases found") + "</div>"))
+      )
+
+
+<script>
+    
+/*  $("#phrasesGrid .k-dirty").addClass("k-dirty-clear"); */
+var customAddPhrase = $('#editPhrase').umsKendoWindow({
+
+    title: "@DicSvc.XLate("New Phrase")",
+    height: 250,
+    width: 500,
+    modal: true,
+
+
+
+});
+
+var customAddPhraseUpdate = $('#editPhraseUpdate').umsKendoWindow({
+
+    title: "@DicSvc.XLate("Edit Phrase")",
+    height: 250,
+    width: 500,
+    modal: true,
+
+
+
+});
+
+$('#addPhraseBtn').off('click').on('click', function (e) {
+
+
+    var ptw = $("#editPhrase").data("kendoWindow");
+    kendo.ui.progress(ptw.element, true);
+    if (ptw.element.is(":hidden")) {
+        ptw.open();
+
+        ptw.center();
+
+    }
+    kendo.ui.progress(ptw.element, false);
+
+});
+
+
+$('#removePhraseBtn').off('click').on('click', function (e) {
+    var grid = $("#@gridName").data("kendoGrid");
+    var dataItem = grid.select();
+    var datasource = $("#@gridName").data("kendoGrid").dataSource;
+
+    grid.removeRow(dataItem);
+
+    datasource.remove(dataItem);
+    $("#removePhraseBtn").css("display", "none");
+    $("#editPhBtn").css("display", "none");
+    $("#movePhUp").attr('disabled', true);
+    $("#movePhDown").attr('disabled', true);
+    isSeelectedPh = "";
+
+});
+
+$('#btnNewGridItemP').off('click').on('click', function (e) {
+
+    Phrase_Grid_save($("#PhraseDiary").val());
+});
+
+$('#btnNewGridItemUpdate').off('click').on('click', function (e) {
+
+    Update_Grid_save($("#PhraseDiaryUpdate").val());
+});
+
+$('#brnCancelGridItemP').off('click').on('click', function (e) {
+    var dialog = $("#editPhrase").data("kendoWindow");
+    $("#waysError1p").css("display", "none");
+    $("#waysError2p").css("display", "none");
+    $("#PhraseDiary").val("");
+    $("#removeSubjectsBtn").css("display", "none");
+    dialog.close();
+
+});
+
+$('#brnCancelGridItemPUpdate').off('click').on('click', function (e) {
+
+    var dialog = $("#editPhraseUpdate").data("kendoWindow");
+    $("#waysError1pUpdate").css("display", "none");
+    $("#waysError2pUpdate").css("display", "none");
+    $("#PhraseDiaryUpdate").val("");
+
+    var grid = $("#@gridName").data("kendoGrid");
+    grid.clearSelection();
+    dialog.close();
+
+});
+
+
+$(document).ready(function () {
+    var dialogx = $("#editPhrase").data("kendoWindow");
+    dialogx.bind("close", window_closeP);
+    var dialogy = $("#editPhraseUpdate").data("kendoWindow");
+    dialogy.bind("close", window_closePU);
+});
+
+function window_closeP(e) {
+
+    $("#waysError1p").css("display", "none");
+    $("#waysError2p").css("display", "none");
+    $("#waysError1pUpdate").css("display", "none");
+    $("#waysError2pUpdate").css("display", "none");
+    $("#removePhraseBtn").css("display", "none");
+    $("#editPhBtn").css("display", "none");
+
+    $("#PhraseDiary").val("");
+    resetPHOrderButtons();
+
+};
+
+function window_closePU(e) {
+
+    $("#waysError1p").css("display", "none");
+    $("#waysError2p").css("display", "none");
+    $("#waysError1pUpdate").css("display", "none");
+    $("#waysError2pUpdate").css("display", "none");
+    $("#removePhraseBtn").css("display", "none");
+    $("#editPhBtn").css("display", "none");
+    $("#PhraseDiaryUpdate").val("");
+    resetPHOrderButtons();
+};
+
+
+
+function resetPHOrderButtons() {
+    var grid = $("#@gridName").data("kendoGrid");
+    grid.clearSelection();
+    $("#movePhUp").attr('disabled', true);
+    $("#movePhDown").attr('disabled', true);
+    $("#removePhraseBtn").css("display", "none");
+}
+
+
+function Phrase_Grid_save(e) {
+    var ptw = $("#editPhrase").data("kendoWindow");
+    var datasource = $("#@gridName").data("kendoGrid").dataSource
+    var grid = $("#@gridName").data("kendoGrid");
+    var data = datasource.data();
+    var i;
+    var count = 0;
+    for (i = 0; i < data.length; i++) {
+        var tempName = data[i].Text.replaceAll(' ', '').toUpperCase();
+        var sender = e.replaceAll(' ', '').toUpperCase();
+        if (tempName == sender) {
+            count++;
+        }
+        if (count >= 1) {
+            $("#waysError2p").css("display", "block");
+            $("#waysError1p").css("display", "none");
+
+            return false;
+        }
+
+    }
+    if ($("#PhraseDiary").val() == "") {
+        //alert("Name is required");
+        $("#waysError1p").css("display", "block");
+        $("#waysError2p").css("display", "none");
+
+        return false;
+    }
+    
+    var arrayId = [];
+    var arrayIndex = [];
+    for (var k = 0; k < grid.dataSource._data.length; k++) {
+
+        arrayId.push(grid.dataSource._data[k].id);
+
+    }
+     for (var k = 0; k < grid.dataSource._data.length; k++) {
+
+        arrayIndex.push(grid.dataSource._data[k].Index);
+
+    }
+    var newID ; 
+    var newIndex ; 
+    if(arrayId.length > 0)
+     {
+         newID= Math.max(...arrayId)+1;
+         newIndex= Math.max(...arrayIndex)+1;
+     }
+     else
+     {
+         newID = 0 ; 
+         newIndex = 0 ; 
+     }
+
+    datasource.insert({Text: e, Category: '@Model.ID' ,Index:newIndex});
+    $("#PhraseDiary").val("");
+    resetPHOrderButtons();
+    orderGridsIndex("phrasesGrid");
+    ptw.close();
+}
+
+
+
+
+function Update_Grid_save(text) {
+  
+    var ptw = $("#editPhraseUpdate").data("kendoWindow");
+    var datasource = $("#@gridName").data("kendoGrid").dataSource
+    var grid = $("#@gridName").data("kendoGrid");
+    var data = datasource.data();
+    var i;
+    var count = 0;
+    for (i = 0; i < data.length; i++) {
+        var tempName = data[i].Text.replaceAll(' ', '').toUpperCase();
+        var sender = text.replaceAll(' ', '').toUpperCase();
+        if (tempName == sender) {
+            count++;
+        }
+        if (count >= 1) {
+            $("#waysError2pUpdate").css("display", "block");
+            $("#waysError1pUpdate").css("display", "none");
+
+            return false;
+        }
+
+    }
+    if ($("#PhraseDiaryUpdate").val() == "") {
+        //alert("Name is required");
+        $("#waysError1pUpdate").css("display", "block");
+        $("#waysError2pUpdate").css("display", "none");
+
+        return false;
+    }
+
+      
+    var dataItem =  grid.dataItem(grid.select());
+    dataItem.set("Text", text);
+
+    $("#PhraseDiaryUpdate").val("");
+    resetPHOrderButtons();
+    ptw.close();
+}
+var dataItemSelected;
+var grid = $("#@gridName").data("kendoGrid");
+
+$('#editPhBtn').off('click').on('click', function (e) {
+    if (enableGrids) {
+        dataItemSelected  =  grid.dataItem(grid.select());
+        var ptw = $("#editPhraseUpdate").data("kendoWindow");
+        $("#PhraseDiaryUpdate").val(dataItemSelected.Text);
+        kendo.ui.progress(ptw.element, true);
+        if (ptw.element.is(":hidden")) {
+        ptw.open();
+
+        ptw.center();
+
+        }
+        kendo.ui.progress(ptw.element, false);
+    }
+});
+
+$("#movePhDown").on("click", function (idx, elem) {
+    //$("#moveSubjectUp").css('display', "flex");
+    //$("#moveSubjectDown").css('display', "flex");
+
+    $("#movePhUp").attr('disabled', false);
+    var visibleGrid = $("#@gridName").data("kendoGrid");
+    if (visibleGrid.dataSource._data.length > 1) {
+        var selected = visibleGrid.select();
+        if (selected.length > 0) {
+
+            $.each(selected, function (idx, elem) {
+                var dataItem = visibleGrid.dataItem($(this));
+
+                var index = visibleGrid.dataSource.indexOf(dataItem);
+                var maxIndex = visibleGrid.dataSource._data.length - 1;
+                if (index < maxIndex) {
+                    var newIndex = index + 1;
+
+                    visibleGrid.dataSource.remove(dataItem);
+                    visibleGrid.dataSource.insert(newIndex, dataItem);
+                    visibleGrid.select("tr:eq(" + (newIndex) + ")");
+                    orderCategoryGridsIndex("@gridName");
+                }
+                if (index == maxIndex - 1) {
+                    $("#movePhDown").attr('disabled', true);
+                    visibleGrid.select("tr:eq(" + (newIndex) + ")");
+
+                }
+                isSeelectedPh = visibleGrid.dataItem(grid.select());
+            });
+        }
+    }
+    //$("#moveSubjectUp").css('display', "none");
+    //$("#moveSubjectDown").css('display', "none");
+
+});
+
+$("#movePhUp").on("click", function (idx, elem) {
+
+    //$("#moveSubjectUp").css('display', "flex");
+    //$("#moveSubjectDown").css('display', "flex");
+
+    $("#movePhUp").attr('disabled', false);
+    $("#movePhDown").attr('disabled', false);
+
+    var visibleGrid = $("#@gridName").data("kendoGrid");
+    var selected = visibleGrid.select();
+    if (visibleGrid.dataSource._data.length > 1) {
+        if (selected.length > 0) {
+
+            $.each(selected, function (idx, elem) {
+                var dataItem = visibleGrid.dataItem($(this));
+                var index = visibleGrid.dataSource.indexOf(dataItem);
+                if (index > 0) {
+                    var newIndex = index - 1;
+                    visibleGrid.dataSource.remove(dataItem);
+                    visibleGrid.dataSource.insert(newIndex, dataItem);
+                    visibleGrid.select("tr:eq(" + (newIndex) + ")");
+                    orderCategoryGridsIndex("@gridName");
+
+                }
+                if (index == 1) {
+                    $("#movePhUp").attr('disabled', true);
+                    visibleGrid.select("tr:eq(" + (newIndex) + ")");
+
+                }
+            isSeelectedPh =visibleGrid.dataItem(grid.select());
+            });
+        }
+    }
+    //$("#moveSubjectUp").css('display', "none");
+    //$("#moveSubjectDown").css('display', "none");
+});
+
+</script>

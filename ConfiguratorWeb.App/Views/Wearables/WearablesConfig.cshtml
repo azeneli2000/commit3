@@ -1,0 +1,211 @@
+﻿@using Digistat.FrameworkStd.Model.Mobile
+@{
+    ViewBag.Title = DicSvc.XLate("Wearables Configuration");
+}
+
+
+<div class="h-100 text-center ">
+    <div class="card h-100 m-1 p-2 text-left">
+        <div class="row">
+            <div class="col-md-12 ">
+                <h3>@DicSvc.XLate("Generate a QRCode for wearable devices")</h3>
+            </div>
+        </div>
+        <div class="row">
+
+        </div>
+        <div class="row">
+            <div class="col-2">
+                <label name="WearableTypeLabel" id="WearableTypeLabel" class="mt-2">@DicSvc.XLate("Select a wearable type")</label>
+            </div>
+            <div class="col-3">
+                @(Html.Kendo().DropDownList()
+                     .Name("WearableType")
+                           .HtmlAttributes(new { id = "WearableType", style = "width:100%;", @class = "form-control form-control-lg" })
+                           .DataTextField("Text")
+                           .DataValueField("Value")
+                           .BindTo(new List<SelectListItem>() {
+                           new SelectListItem() {
+                                 Text = "",
+                                 Value = "0"
+                           },
+                           new SelectListItem() {
+                                 Text = "Biovotion Everion",
+                                 Value = "1"
+                           },
+                           new SelectListItem() {
+                                 Text = "iHealth PO3",
+                                 Value = "2"
+                           },
+                           new SelectListItem() {
+                                 Text = "iHealth BP5",
+                                 Value = "3"
+                           },
+                           new SelectListItem() {
+                                 Text = "VivaLnk VV330",
+                                 Value = "4"
+                           },
+                           new SelectListItem() {
+                                 Text = "VivaLnk VV200",
+                                 Value = "5"
+                           },
+                           new SelectListItem() {
+                                 Text = "GBM WT1",
+                                 Value = "6"
+                           },
+                           new SelectListItem() {
+                                 Text = "Oxitone 1000M",
+                                 Value = "7"
+                           },
+                           new SelectListItem() {
+                                 Text = "iHealth KN-550BT",
+                                 Value = "9"
+                           },
+                           new SelectListItem() {
+                                 Text = "Vitalograph Model 4000",
+                                 Value = "10"
+                           },
+                           new SelectListItem() {
+                                 Text = "Vivalnk Checkme",
+                                 Value = "11"
+                           }
+                        })
+                        .Value("")
+                )
+
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-2 ">
+                <label name="WearableIdentifierLabel" id="WearableIdentifierLabel" class="mt-2">@DicSvc.XLate("--")</label>
+            </div>
+            <div class="col-3 text-left"><input type="text" class="form-control k-textbox" required id="txtWearableIdentifier" name="txtWearableIdentifier" value="" /> </div>
+        </div>
+       <div id="WearableVersionSelector" class="row">
+            <div class="col-2">
+                <label name="WearableVersionLabel" id="WearableVersionLabel" class="mt-2">@DicSvc.XLate("Select a wearable version")</label>
+            </div>
+            <div class="col-3">
+                @(Html.Kendo().DropDownList()
+                     .Name("WearableVersion")
+                           .HtmlAttributes(new { id = "WearableVersion", style = "width:100%;", @class = "form-control form-control-lg" })
+                           .DataTextField("Text")
+                           .DataValueField("Value")
+                           .BindTo(new List<SelectListItem>() { }
+                        ).Value("")
+                )
+
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-auto ">
+                <button type="button" class="btn k-buttonLarge btn-primary" id="btnGenerateQR">@DicSvc.XLate("QR Code")</button>
+            </div>
+        </div>
+
+
+    </div>
+    @(Html.Kendo().Dialog()
+         .Name("qr")
+         .Width(420)
+         .Modal(true)
+         .Visible(false)
+         .Title(DicSvc.XLate("Wearable QR Code"))
+         .Actions(actions =>
+         {
+            actions.Add().Text(DicSvc.XLate("CLOSE")).Primary(false);
+            actions.Add().Text(DicSvc.XLate("DOWNLOAD")).Action("onQRDownload").Primary(false);
+         })
+    )
+</div>
+<script>
+    function ShowQr(data) {
+        $('#qr').data("kendoDialog").content('<div id="qrCode"></div>');
+        $("#qrCode").kendoQRCode({
+            size: 350,
+            value: btoa(data)
+        });
+
+        $('#qr').data("kendoDialog").open();
+        return $('#qr').data("kendoDialog");
+    };
+
+    function onQRDownload() {
+        var qrCode = $("#qrCode").getKendoQRCode();
+        var varCurrentType = valueTypeLabel;
+        varCurrentType = varCurrentType.replace(/\s+/g, '-');
+        var varIdentifier = valueSerial;
+        if (valueType == "2" || valueType == "3" || valueType == "7") {
+            varIdentifier = valueMAC;
+            varIdentifier = varIdentifier.replace(/:/g, ''); 
+        }
+
+        qrCode.exportImage().done(function (data) {
+            kendo.saveAs({
+                dataURI: data,
+                fileName: varCurrentType + "_" + varIdentifier+"_"+"QR.png"
+            });
+        });
+    };
+
+</script>
+<script>    
+    var valueTypeLabel = "";
+    var valueType = "";
+    var valueSerial = "";
+    var valueMAC = "";
+    var valueVersion = "";
+
+    $("#WearableVersionSelector").hide();
+
+    $('#WearableType').change(function () {
+       valueTypeLabel = $("#WearableType").data("kendoDropDownList").text();
+       $("#WearableVersion").data("kendoDropDownList").dataSource.data([]);
+       $("#WearableVersionSelector").hide();
+
+        var value = $("#WearableType").val();
+        if (value == "0") {
+            $("#WearableIdentifierLabel").text('@DicSvc.XLateJs("--")');
+        }
+        else if (["2", "3", "7", "9", "10", "11"].indexOf(value) >= 0) {
+           $("#WearableIdentifierLabel").text('@DicSvc.XLateJs("MAC")');
+           if (value == "3") {
+              $("#WearableVersion").data("kendoDropDownList").dataSource.add({ "Text": "", "Value": "" })
+              $("#WearableVersion").data("kendoDropDownList").dataSource.add({ "Text": "S", "Value": "S" })
+              $("#WearableVersionSelector").show();
+           }
+        }
+        else {
+            $("#WearableIdentifierLabel").text('@DicSvc.XLateJs("Serial")');
+        }
+        $("#txtWearableIdentifier").val("");
+    });
+
+    $('#btnGenerateQR').click(function () {
+       valueType = $("#WearableType").val();
+       valueVersion = $("#WearableVersion").val();
+        var valueIdentifier = $("#txtWearableIdentifier").val();
+        
+        if (valueType == "0") {
+            window.umsAlert('@DicSvc.XLateJs("ERROR")', '@DicSvc.XLateJs("Missing wearable type")');
+            return;
+        }
+        if (valueIdentifier == "") {
+            window.umsAlert('@DicSvc.XLateJs("ERROR")', '@DicSvc.XLateJs("Missing wearable identifier")');
+            return;
+        }
+
+        valueSerial = valueIdentifier;
+
+       if (["2", "3", "7", "9", "10", "11"].indexOf(valueType) >= 0) {
+            valueMAC = valueIdentifier;         
+            valueSerial = valueIdentifier.replace(/:/g, ''); 
+       }
+        
+        
+        ShowQr(valueType + "|" + valueSerial + "|" + valueMAC + "|" +  valueVersion);
+    });
+
+</script>
+
+

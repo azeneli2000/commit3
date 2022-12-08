@@ -1,0 +1,162 @@
+﻿@{
+   string gridName = "SimpleChoiseGroups";
+   string popUpWindowName = "EditSimpleChoises";
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+    
+</script>
+
+<div class="card h-100 m-1 p-2 border-0" id="gridContainer">
+   <div id="@popUpWindowName"></div>
+
+   @(Html.Kendo().Grid<SimpleChoiceViewModel>()
+      .Name(gridName)
+      .UmsDefaultSettings(DicSvc)
+      .UmsDefaultToolbar("createGroup", "ADD NEW LIST","createNewList();" , DicSvc)
+      //Uncomment for use Pager
+      .UmsDefaultPager(DicSvc)
+      .Events(ev => ev.DataBound("onDataBound"))
+      .Columns(columns =>
+      {
+         columns.Bound(e => e.Group).Sortable(false);
+
+         columns.Bound(e => e.Choice).ClientGroupHeaderColumnTemplate(DicSvc.XLate("choices") +": #= count#");
+      })
+      .Groupable(g=>g.Enabled(false))
+      .DataSource(dataSource => dataSource
+         .Ajax()
+         //Uncomment for use Pager
+         .PageSize(20) //if pager is not enabled, remove this row
+         .Events(events => events.Error("error_handler_users"))
+         .Read(read => read.Action("ReadSimpleChoices", "ClinicalConfiguration"))
+         .Aggregates(a=>a.Add(p=>p.Group).Count())
+         .Group(g=>g.Add(p=>p.Group))
+      ))
+</div>
+
+<script type="text/javascript">
+
+    @{
+       string editItemTitle = "Edit Custom List";
+       string newItemTitle  = "Add Custom List" ;
+    }
+    var kndWnd;
+    var isJustCreated = false;
+
+    function createNewList() {
+       window.umsPrompt("@DicSvc.XLate("New simple choice")","insert list name", "").then(function(data) {
+             if (data.length > 0 ) {
+                $.ajax({
+                   url: '@Url.Action("CreateDetails", "ClinicalConfiguration")',
+                   type: 'GET',
+                   data: { groupId: data }
+                }).done(function(dataHtml) {
+                   if (dataHtml.success != undefined) {
+                      window.umsAlert("Warning", dataHtml.errorMessage);
+                      return;
+                   }
+                   isJustCreated = true;
+                   $('#' + gridIdName).data("kendoGrid").dataSource.read();
+                   var dialog = $(popUpWindowName).data('kendoWindow');
+                   dialog.title('@DicSvc.XLate(editItemTitle)');
+                   dialog.content(dataHtml).center().open();
+                });
+             }
+             
+          },
+          function() {
+             //
+          });
+       
+    }
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                maxHeight:500,
+                maxWidth:600,
+                title: '@DicSvc.XLate(editItemTitle)',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+
+        }
+
+    });
+
+
+    $(window).resize(function () {
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                for (var i = 0; i < kendoWindow.length; i++) {
+                    var win = $(kendoWindow[i]).data("kendoWindow");
+                    if (!win.element.is(":hidden")) {
+                        win.center();
+                        if (win.resize != undefined) {
+                            win.trigger('resize');
+                        }
+
+                    }
+                }
+            }
+        }, 100);
+    });
+
+    
+    function displayItemDetail(itemID) {
+       //debugger;
+        var windowWidget = $(popUpWindowName).data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+        $.ajax({
+            url: '@Url.Action("GetSimpleChoice", "ClinicalConfiguration")',
+            type: 'GET',
+            data: { groupId: itemID }
+        }).done(function (dataHtml) {
+           if (typeof dataHtml.success != 'undefined' && !dataHtml.success ) {
+              
+              window.umsAlert("@DicSvc.XLate("Error")", dataHtml.errorMessage);
+              return;
+           }
+            kendo.ui.progress(windowWidget.element, true);
+			var dialog = $(popUpWindowName ).data('kendoWindow');
+            if (itemID ==='') {
+                dialog.title('@DicSvc.XLate(newItemTitle)');
+            } else {
+                dialog.title('@DicSvc.XLate(editItemTitle)');
+            }
+            dialog.content(dataHtml).center().open();
+
+        });
+    }
+    //
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem( $(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+    }
+    function onGridKeyEnter(item) {
+        //replace Key
+        displayItemDetail(item.Group);
+    };
+
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            window.umsAlert("Alert",message);
+        }
+    }
+</script>

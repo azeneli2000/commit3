@@ -1,0 +1,70 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <!-- 15.0 is for VS2017, adjust if necessary -->
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">15.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+    <!-- This is what will cause the templates to be transformed when the project is built (default is false) -->
+    <TransformOnBuild>true</TransformOnBuild>
+    <!-- Set to true to force overwriting of read-only output files, e.g. if they're not checked out (default is false) -->
+    <OverwriteReadOnlyOutputFiles>true</OverwriteReadOnlyOutputFiles>
+    <!-- Set to false to transform files even if the output appears to be up-to-date (default is true)  -->
+    <TransformOutOfDateOnly>false</TransformOutOfDateOnly>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+    <GenerateAssemblyTrademarkAttribute>false</GenerateAssemblyTrademarkAttribute>
+    <NoWarn>1701;1702;NETSDK1138;CS0168</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="BL\Hubs\**" />
+    <EmbeddedResource Remove="BL\Hubs\**" />
+    <None Remove="BL\Hubs\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="BL\TherapyDataManager.cs.bak" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="BL\Hubs\IMessageCenterManager.cs" />
+    <Compile Include="BL\Hubs\MessageCenterManager.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DotNetCore.NPOI" Version="1.2.3" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="NetCore.AutoRegisterDi" Version="2.1.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\DigistatFramework\Digistat.Dal\Digistat.Dal.csproj" />
+    <ProjectReference Include="..\..\DigistatFramework\Digistat.FrameworkStd\Digistat.FrameworkStd.csproj" />
+    <ProjectReference Include="..\..\TelligenceMDIApp\TelligenceMDIWeb\TelligenceXMLRPCClient\TelligenceXMLRPCClient.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="UMS.DAS.Common">
+      <HintPath>..\..\DigistatFramework\Digistat.FrameworkStd\ExtLib\UMS.DAS.Common.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!--<ItemGroup>
+    <None Update="Properties\SharedAssembly.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SharedAssembly.cs</LastGenOutput>
+    </None>
+  </ItemGroup>-->
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+  <!--<Import Project="$(VSToolsPath)\TextTemplating\Microsoft.TextTemplating.targets" />-->
+</Project>

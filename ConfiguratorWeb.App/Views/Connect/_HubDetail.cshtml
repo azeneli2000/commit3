@@ -1,0 +1,20 @@
+﻿@model ConfiguratorWeb.App.Models.HubViewModel
+@{
+    Layout = null;
+}
+<div style="height:270px">
+    <div class="row">
+        <div class="col-md">
+            <label asp-for="HubID" class="label-name"></label>
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            <input asp-for="HubDescription" class="k-input k-textbox" />
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            <input asp-for="HostName" class="k-input k-textbox" />
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            <input asp-for="HubLocation" class="k-input k-textbox" />
+        </div>
+    </div>
+</div>

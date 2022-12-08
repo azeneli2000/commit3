@@ -1,0 +1,275 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@using Digistat.FrameworkStd.Enums;
+@model TherapyItemModel
+@{
+   var gridName = "MixtureComponentsSelection";
+}
+
+
+
+<div style="width: 100%">
+   <div class="row" style="width: 97%; height: 90%">
+      @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.Therapy.TherapyItemModel>()
+                                                                    .Name(gridName)
+                                                                    .Columns(columns =>
+                                                                    {
+                                                                       columns.Bound(e => e.Name).Title(DicSvc.XLate("Name"));
+                                                                       columns.Bound(e => e.QuantityDose.Concentration).Title(DicSvc.XLate("Concentration")).Filterable(false);
+                                                                       columns.Bound(e => e.QuantityDose.Amount).Title(DicSvc.XLate("Amount")).Filterable(false);
+                                                                       columns.Bound(e => e.QuantityDose.Volume).Title(DicSvc.XLate("Volume")).Filterable(false);
+                                                                       columns.Bound(e => e.ItemTypeString).Hidden(true);
+                                                                       columns.Bound(e => e.Classification.LocationName);
+                                                                       columns.Bound(e => e.Classification.SearchLevel).Hidden(true);
+                                                                       columns.Bound(e => e.Classification.LocationRef).Hidden(true);
+
+                                                                    })
+                                                                  .Navigatable(true)
+                                                                  .Selectable(selectable => selectable
+                                                                  .Mode(GridSelectionMode.Multiple))
+                                                                 .PersistSelection(true)
+                                                                 .Scrollable(scrollable => scrollable.Height("250px"))
+                                                                  .UmsDefaultPager(DicSvc)
+                                                                  .Sortable()
+                                                                  .Filterable(filterable => filterable
+                                                                 .Extra(false)
+                                                                 .Operators(operators => operators
+                                                                     .ForString(str => str.Clear()
+                                                                         .Contains("Contains")
+                                                                     ))
+                                                                 )
+                                                                  //.UmsDefaultSettings(DicSvc)
+                                                                  .DataSource(dataSource => dataSource
+                                                                                 .Ajax()
+                                                                                 .PageSize(8)
+                                                                                 .Model(model =>
+                                                                                 {
+                                                                                    model.Field(o => o.Id);
+                                                                                    model.Field(o => o.Name);
+                                                                                    model.Field(o => o.QuantityDose.Concentration);
+                                                                                    model.Field(o => o.QuantityDose.Amount);
+                                                                                    model.Field(o => o.QuantityDose.Volume);
+                                                                                    model.Field(o => o.ItemType).DefaultValue(Digistat.FrameworkStd.Enums.TherapyItemType.Action);
+                                                                                    model.Field(o => o.Classification.SearchLevel);
+                                                                                    model.Field(o => o.Classification.LocationRef);
+                                                                                    model.Field(o => o.Classification.LocationName);
+                                                                                 }))
+
+                                                               .HtmlAttributes(new { style = "width:100%;height:290px;" })
+                                                               .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+      )
+   </div>
+   <div class="row">
+      <button id="addMixtureCompButton" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" style="margin-left: 86%; border-radius: 4%;width: 91px;height: 26px;">Add Selected</button>
+      <p id="errorInsertAction" style="display:none; color:red;position:relative;bottom:26px;">@DicSvc.XLate("Action already selected")</p>
+   </div>
+
+</div>
+
+<script>
+
+   var mixtureFilters =
+      [
+         {
+            logic: "and",
+            filters:
+               [
+                  { field: 'ItemTypeString', operator: 'eq', value: 'Action' }
+                  ,
+                  {
+                     logic: "or",
+                     filters:
+                        [
+                           { field: 'SearchLevel', operator: 'eq', value: 0 },
+                           { field: 'SearchLevel', operator: 'eq', value: 2 },
+                           { field: 'SearchLevel', operator: 'eq', value: 4 },
+                           { field: 'SearchLevel', operator: 'eq', value: 6},
+                        ]
+                  }
+               ]
+         }
+      ];
+
+   var protocolFilters = [
+      {
+         logic: "and",
+         filters:
+            [
+               {
+                  logic: "or",
+                  filters:
+                     [
+                        { field: 'ItemTypeString', operator: 'eq', value: 'Action' },
+                        { field: 'ItemTypeString', operator: 'eq', value: 'Mixture' }
+                     ]
+               },
+               {
+                  logic: "or",
+                  filters: [
+                     { field: 'SearchLevel', operator: 'eq', value: 0 },
+                     { field: 'SearchLevel', operator: 'eq', value: 3 },
+                     { field: 'SearchLevel', operator: 'eq', value: 5 },
+                     { field: 'SearchLevel', operator: 'eq', value: 6 }
+                  ]
+               }
+            ]
+      }];
+
+   $(document).ready(function () {
+      var LocationID = temp_loc;
+      var gridObject = $("#MixtureComponentsSelection").data("kendoGrid");
+      //gridObject.dataSource.transport.options.read.url = "/Therapy/ReadFilteredStandardActions?LocationID=" + LocationID;
+      var url = "@Url.Action("ReadFilteredStandardActions", "Therapy")"+"?LocationID=" + LocationID;
+      gridObject.dataSource.transport.options.read.url = url;
+      gridObject.dataSource.read();
+      var grid = $("#@gridName").data("kendoGrid");
+      if ($("#typeTherapy").val() == "@TherapyItemType.Mixture.ToString()") {
+
+         grid.dataSource.filter(mixtureFilters);
+      }
+      else if ($("#typeTherapy").val() == "@TherapyItemType.Protocol.ToString()") {
+
+         grid.dataSource.filter(protocolFilters);
+      }
+
+      var dialog = $("#ComponentSelectionWindow").data("kendoWindow");
+      
+      if ($("#typeTherapy").val() == null) {
+         dialog.title("Profile Component Selection");
+      }
+      else {
+         dialog.title($("#typeTherapy").val() + " Component Selection");
+
+      }
+      //RemoveLocationNull($('#MixtureComponentsSelection').getKendoGrid().dataSource.data(), LocationID, "#MixtureComponentsSelection");
+
+   });
+
+
+   $('#addMixtureCompButton').off('click').on('click', function (e) {
+
+      e.preventDefault();
+      var sourceGrid =  $("#@gridName").data("kendoGrid");
+      var destGrid = null;
+      if ($("#typeTherapy").val() == "@TherapyItemType.Protocol.ToString()") {
+         destGrid = $("#itemsGrid").data("kendoGrid");
+      } else {
+         destGrid = $("#MixtureComponents").data("kendoGrid");
+      }
+
+      if (destGrid == null) {
+         switch (typeGridSelected) {
+            case 1:
+               destGrid = $("#ActionsProfiles").data("kendoGrid");
+               break;
+            case 2:
+               destGrid = $("#MixturesProfiles").data("kendoGrid");
+               break;
+            case 3:
+               destGrid = $("#ProtocolsProfiles").data("kendoGrid");
+               break;
+         }
+
+      }
+
+      
+      var rowsToAdd = sourceGrid.select();
+
+      for (var i = 0; i < rowsToAdd.length; i++)
+      {
+
+         var dataGrid = sourceGrid.dataItem(rowsToAdd[i]);
+         var data = { IdChild: dataGrid.Id, IdFather: parseInt('@Model.Id'), Name: dataGrid.Name, Description: dataGrid.Description, Amount: dataGrid.QuantityDose.Amount, Volume: dataGrid.QuantityDose.Volume, Concentration: dataGrid.QuantityDose.Concentration, LocationRef: dataGrid.Classification.LocationRef,LocationName: dataGrid.Classification.LocationName };
+         associatedItemArray.push(dataGrid.Id);
+         for (var j = 0; j < destGrid.dataSource._data.length; j++) {
+            if (destGrid.dataSource._data[j].Name == data.Name) {
+               $("#errorInsertAction").css("display", "block");
+               associatedItemArray.pop(dataGrid.Id);
+               return false;
+            }
+         }
+            destGrid.dataSource.add(data);
+
+      }
+      $("#errorInsertAction").css("display", "none");
+
+      sourceGrid.clearSelection();
+      return false;
+   });
+
+   function filterProfileTables(type) {
+      
+      var grid =  $("#@gridName").data("kendoGrid");
+      switch (type) {
+         case 1:
+
+            grid.dataSource.filter(
+               [
+                  {
+                     logic: "and",
+                     filters:
+                        [
+                           { field: 'ItemTypeString', operator: 'eq', value: 'Action' }
+                           ,
+                           {
+                              logic: "or",
+                              filters: [
+                                 { field: 'SearchLevel', operator: 'eq', value: 0 },
+                                 { field: 'SearchLevel', operator: 'eq', value: 1 },
+                                 { field: 'SearchLevel', operator: 'eq', value: 4 },
+                                 { field: 'SearchLevel', operator: 'eq', value: 5 }
+                              ]
+                           }
+                        ]
+                  }
+               ]);
+            break;
+         case 2:
+            grid.dataSource.filter(
+               [
+                  {
+                     logic: "and",
+                     filters:
+                        [
+                           { field: 'ItemTypeString', operator: 'eq', value: 'Mixture' }
+                           ,
+                           {
+                              logic: "or",
+                              filters: [
+                                 { field: 'SearchLevel', operator: 'eq', value: 0 },
+                                 { field: 'SearchLevel', operator: 'eq', value: 2 },
+                                 { field: 'SearchLevel', operator: 'eq', value: 3 },
+                                 { field: 'SearchLevel', operator: 'eq', value: 5 }
+                              ]
+                           }
+
+                        ]
+                  }
+               ]);
+            break;
+         case 3:
+            grid.dataSource.filter(
+               [
+                  {
+                     logic: "and",
+                     filters:
+                        [
+                           { field: 'ItemTypeString', operator: 'eq', value: 'Protocol' }
+                           ,
+                           {
+                              logic: "or",
+                              filters: [
+                                 { field: 'SearchLevel', operator: 'eq', value: 0 },
+                                 { field: 'SearchLevel', operator: 'eq', value: 3 },
+                                 { field: 'SearchLevel', operator: 'eq', value: 5 },
+                                 { field: 'SearchLevel', operator: 'eq', value: 6 }
+                              ]
+                           }
+                        ]
+                  }
+               ]);
+            break;
+      }
+   }
+</script>
+

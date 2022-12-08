@@ -1,0 +1,303 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@using Digistat.FrameworkStd.UMSLegacy;
+@model ConfiguratorWeb.App.Models.PermissionViewModel
+@inject IDictionaryService DicSvc
+@inject ISystemOptionsService sysOptSvc
+@{
+    bool bolNewPermissionMgr = UMSFrameworkParser.ConvertToBoolean(sysOptSvc.GetSystemOption(string.Empty, null, null, null, "UseRolesForPermissions", true).Value);
+}
+@{
+    StringBuilder objSbDelete = new StringBuilder();
+    objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Item \"{0}\" for application \"{1}\" "),
+        "Id of item", "other APP");
+    objSbDelete.Append("?");
+}
+@{
+    Layout = null;
+    string keyID = Model.Id.ToString();
+    string keyEmptyValueID = "0";
+    string formId = "form_" + keyID;
+}
+
+
+<div class="h-100 ">
+    <div class="card h-90 m-0 p-0 border-0 text-left" id="divItemDetail">
+        <form asp-controller="SystemAdministration" asp-action="SavePermissionDetail" id="@formId"
+              data-ajax-failure="OnFailure" data-ajax-success="OnSuccess" class="mt-0"
+              data-ajax="true" data-ajax-method="POST">
+
+
+
+
+            <kendo-tabstrip name="tabstrip_@Model.Id" style="" class="border">
+                <scrollable enabled="true" />
+                <popup-animation>
+                    <open effects="fade:in" />
+                </popup-animation>
+                <items>
+                    <tabstrip-item text="@DicSvc.XLate("General")" selected="true" id="tabstrip-@Model.Id-pagedetail">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabPermissionDetail", Model);}
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Enabled Users")" id="tabstrip-@Model.Id-enabledusers">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabEnabledUsers", new ViewDataDictionary(new Microsoft.AspNetCore.Mvc.ModelBinding.EmptyModelMetadataProvider(), new Microsoft.AspNetCore.Mvc.ModelBinding.ModelStateDictionary()) { { "PermissionId", Model.Id }, { "PermissionLevel", Model.PriorityLevel } });}
+                        </content>
+                    </tabstrip-item>
+                </items>
+            </kendo-tabstrip>
+
+           @Html.ValidationSummary()
+
+           @Html.HiddenFor(m => m.Id)
+           @Html.HiddenFor(m => m.PriorityLevel)
+           @Html.HiddenFor(m => m.FunctionName)
+        </form>
+    </div>
+    <div class="card-footer h-10 p-0 m-0 border-top-0 bg-white">
+
+        @{
+            string postId = ""; //use in case of multi toolbar
+        }
+        @(Html.Kendo().ToolBar()
+                              .Name("toolbarDetail")
+                              .UmsDefaultErrors(DicSvc, "errors")
+
+                              .UmsDefaultSettings(DicSvc, postId)
+        )
+    </div>
+</div>
+<script type="text/javascript">
+    var consolelog = false;
+    var actualmode=0;
+    var divName = '#divItemDetail';
+    var dialog = $(popUpWindowName).data("kendoWindow");
+    var grid = $('#' + gridIdName).data("kendoGrid");
+    function changeToEditMode() {
+        actualmode = 2;
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("modify-mode");
+
+        $(divName +' :input').attr('disabled', false);
+        $(divName +' :input').each(function () {
+            var cb = $(this).data("kendoNumericTextBox");
+            if (cb) {
+                cb.enable(true);
+            }
+        });
+    }
+
+    function changeToViewMode() {
+        actualmode = 1;
+        $(".view-mode").show();
+        $(".modify-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("view-mode");
+
+        $(divName +' :input').attr('disabled', true);
+        $(divName +' :input').each(function () {
+            var cb = $(this).data("kendoNumericTextBox");
+            if (cb) {
+                cb.enable(false);
+            }
+        });
+    }
+    function setWindowMode() {
+        //customize according model key
+        if ('@keyID' !== '@keyEmptyValueID') {
+            actualmode = 1;
+        } else {
+            //$('#BedName').attr('readonly', false);
+            actualmode = 2;
+        }
+    }
+
+    function setMode() {
+        if (actualmode === 2)
+            changeToEditMode();
+        else
+            changeToViewMode();
+    }
+
+
+    $(document).ready(function() {
+        umsHideAllEditSaveButton();
+        setWindowMode();
+        //set up condition to know if it's a new item
+        setMode();
+        $('#btnEdit' + '@postId').off('click').on('click', function () {
+            if(consolelog)console.log("btnEdit called");
+            changeToEditMode();
+        });
+        $('#btnCancel' + '@postId').off('click').on('click', function () {
+            if (consolelog)console.log("btnCancel called");
+            // IF is new add, close the dialog
+            if ('@keyID'=='@keyEmptyValueID') {
+                dialog.close();
+                return;
+            }
+            _minLevel = @Model.PriorityLevel;
+            //TODO: reload data
+            displayItemDetail('@keyID');
+            changeToViewMode();
+        });
+        $('#btnSave'+'@postId').off('click').on('click', function() {
+            if (consolelog)console.log("btnSave called");
+            actionSave();
+        });
+        $('#btnDelete').off('click').on('click', function () {
+            if (consolelog)console.log("btnDelete called");
+            umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteItem, cancelDeleteItem);
+        });
+        //$('#btnCopy').off('click').on('click', function () {
+        //    if (consolelog) console.log("btnCopy called");
+        //    $("#BedId").val("0");
+        //    $('#BedName').attr('readonly', false);
+        //    changeToEditMode();
+        //});
+        $('#btnClose' + '@postId').off('click').on('click', function () {
+            if (consolelog)console.log("btnClose called");
+            dialog.close();
+        });
+        $("input[data-val-length-max]").each(function (index, element) {
+            element.setAttribute("maxlength", element.getAttribute("data-val-length-max"))
+        });
+
+        @if (bolNewPermissionMgr)
+        {
+           <text>
+            $('#btnEdit' + '@postId').hide();
+            </text>
+        }
+    });
+
+
+
+    function actionSave()
+    {
+        if (OnValidation()) {
+            //uncomment for production
+            $("#@formId").submit();
+
+        }
+    }
+
+    function OnValidation() {
+        var retValue = true;
+        var customFieldValidation = function() {
+            var retFV = false;
+            //Only if we have field not validable by Model
+            try {
+                //retFV = $('#Location_LocationName').val().length === 0;
+            } catch (e) {
+                //
+            }
+            return retFV;
+        }
+        var validator = $("#@formId").kendoValidator().data("kendoValidator");
+        if (!validator.validate() ) {
+            retValue = false;
+            try {
+                var errors = validator.errors();
+                $("#errors").html(buildValidationMessage(errors));
+            } catch (e) {
+                $("#errors").html(e);
+            }
+        }
+        else {
+            $("#errors").html("");
+            retValue = true;
+        }
+
+        return retValue;
+    }
+    function OnSuccess(response) {
+        if (response.success) {
+            grid.dataSource.read();
+            dialog.close();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+    function OnFailure(response) {
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+    function toolBarShowButtonByClass(clas) {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsShowButtonByClass(clas);
+    }
+    function umsHideAllEditSaveButton()
+    {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsHideAllEditSaveButton();
+    }
+
+
+
+    function OnValidation() {
+
+        //update permission level val
+        $("#PriorityLevel").val($("#PriorityLevel_@Model.Id").val());
+
+        var validator = $("#form_@Model.Id").kendoValidator(
+        {
+            validate: function (e) {
+                if ($.trim($("#PriorityLevel_@Model.Id").val()) == "") {
+                    $("#PriorityLevel_@Model.Id").parent().css("border-color", "red");
+                    $("#PriorityLevel_@Model.Id").parent().css("background-color", "#fff8f8");
+                    return false;
+                }
+                else {
+                    $("#PriorityLevel_@Model.Id").parent().css("border-color", "#f0f0f0");
+                    $("#PriorityLevel_@Model.Id").parent().css("background-color", "#fafafa");
+                }
+            }
+        }).data("kendoValidator");
+
+
+        if (!validator.validate() ) {
+            retValue = false;
+            try {
+                var errors = validator.errors();
+                $("#errors").html(buildValidationMessage(errors));
+                ValidateTabs();
+            } catch (e) {
+                $("#errors").html(e);
+            }
+
+        }
+        else {
+            $("#errors").html("");
+            retValue = true;
+        }
+
+
+        return retValue;
+
+    }
+
+    function ValidateTabs() {
+        $("#tabstrip_@Model.Id").find("span.k-link").removeClass("tab-invalid");
+        var invalidTabs = [];
+        $("input.k-invalid").each(function () {
+            var idInvalid = $(this).attr('id');
+            var tabContentId = $("#" + idInvalid).closest("div[role='tabpanel']").attr("id");
+
+            var tabId = $("#tabstrip_@Model.Id").find("li[aria-controls='" + tabContentId + "']").attr("id");
+            $("#" + tabId + " span.k-link").addClass("tab-invalid");
+
+            if ($.inArray(tabId, invalidTabs) < 0) {
+                //add to array
+                invalidTabs.push(tabId);
+            }
+        });
+        if (invalidTabs.length > 0)
+            $("#" + invalidTabs[0]).trigger("click");
+    }
+</script>

@@ -1,0 +1,180 @@
+﻿@model ConfiguratorWeb.App.Models.DeviceDriverViewModel
+@{
+   Layout = null;
+}
+<style>
+    .btn.border {
+        padding: 1px 6px !important;
+    }
+</style>
+<script>
+
+      function setAbilitations(driverId) {
+      if (driverId === '' || actualmode == 1) {
+          $("#DriverType_@Model.Id.ToString()").data("kendoDropDownList").enable(false);
+          $("#AlarmSystemType_@Model.Id.ToString()").data("kendoDropDownList").enable(false);
+          $("#ConnectionType_@Model.Id.ToString()").data("kendoDropDownList").enable(false);
+       }
+       else {
+          $("#DriverType_@Model.Id.ToString()").data("kendoDropDownList").enable(true);
+          $("#AlarmSystemType_@Model.Id.ToString()").data("kendoDropDownList").enable(true);
+          $("#ConnectionType_@Model.Id.ToString()").data("kendoDropDownList").enable(true);
+       }
+   }
+
+    function onChangeDriverType() {
+       //debugger;
+        var dtItem = $("#IdDriverRepository_@Model.Id.ToString()").data("kendoDropDownList").dataItem();
+        if (dtItem) {
+            var tabstrip = $("#tabstrip_@Model.Id").data("kendoTabStrip");
+            var driverTypeItem = $("#DriverType_@Model.Id").data("kendoDropDownList").dataItem();
+            if (driverTypeItem) {
+                if (driverTypeItem.Text == '@UIHtmlHelper.GetDeviceTypeCentral(DicSvc)') {
+                    tabstrip.enable("li#tabstrip-@Model.Id-patientresolve");
+                }
+                else {
+                    tabstrip.disable("li#tabstrip-@Model.Id-patientresolve");
+                }
+            }
+
+        }
+        if(typeof (checkWarning)!= 'undefined')
+           checkWarning();
+    }
+
+   function onDriverRepositoryDataBound(e) {
+      var setDefaults = @(Model.Id == 0 ? "true" : "false");
+      reloadDriverChildrenValues('@Model.Id.ToString()', setDefaults, '@Url.Action("GetDriverDefaultValues", "Generic")' + '?idRepository=' + e.sender.dataItem().Value);
+
+      setAbilitations(e.sender.dataItem().Value);
+   }
+
+    function onSelectDeviceDriver(e) {
+       var setDefaults = @(Model.Id == 0 ? "true" : "false");
+       reloadDriverChildrenValues('@Model.Id.ToString()', setDefaults, '@Url.Action("GetDriverDefaultValues", "Generic")' + '?idRepository=' + e.dataItem.Value);
+
+       setAbilitations(e.dataItem.Value);
+       //debugger;
+       var connectionTypedropdownlist = $("#ConnectionType_@Model.Id").data("kendoDropDownList");
+       connectionTypedropdownlist.select(-1);
+       $('#u-info').html('please check custom communication parameters');
+    }
+
+    function openDASBrokersGrid() {
+        //debugger;
+        var selComputerName = $("#ComputerName").val();
+        $.ajax({
+            url: '@Url.Action("GetDASBrokerList", "Connect")',
+            type: 'GET',
+            data: { selectedDASBroker: selComputerName, idField: "ComputerName",idModel:"@(Model.Id)"},
+            async: false
+
+        }).done(function (data) {
+            if (!dasBrokerWnd) {
+               //debugger;
+               dasBrokerWnd = $('#dasBrokerSelectionDialog').usmKendoWindow({
+                  height: '500px',
+                  width: '700px'
+               }).getKendoWindow();
+            }
+            dasBrokerWnd.title('@DicSvc.XLate("SELECT DAS BROKER")');
+            dasBrokerWnd.content(data);
+            dasBrokerWnd.center().open();
+        });
+    }
+</script>
+
+<div style="height:360px;padding-top: 10px;">
+
+   <div class="row">
+      <div class="col-md-4 u-col-h-fixed">
+         @Html.LabelFor(m => m.IdDriverRepository, "Select a device driver", new { @class = "label-name field-required" })
+      </div>
+      <div class="col-md-3 u-col-h-fixed">
+         @(Html.Kendo().DropDownListFor(m => m.IdDriverRepository)
+            .HtmlAttributes(new { @style = "width:100%;", id = "IdDriverRepository_" + Model.Id.ToString() })
+            .DataTextField("Text")
+            .DataValueField("Value")
+            .DataSource(source =>
+            {
+               source.Read(read =>
+               {
+                  read.Action("GetDeviceDriverNameList", "Generic");
+               });
+            })
+            .Events(ev => ev.Select("onSelectDeviceDriver").DataBound("onDriverRepositoryDataBound"))
+         )
+      </div>
+   </div>
+
+   <div class="row">
+      <div class="col-md-4 u-col-h-fixed">
+         <label asp-for="DriverType" class="label-name field-required">@DicSvc.XLate("Choose mapping type between data and beds/patients")</label>
+      </div>
+      <div class="col-md-3 u-col-h-fixed">
+         <input type="hidden" id="storedDriverType" value="@Model.DriverType" />
+         @(Html.Kendo().DropDownListFor(m => m.DriverType)
+               .HtmlAttributes(new { @style = "width:100%;", id = "DriverType_" + Model.Id.ToString() })
+               .DataTextField("Text")
+               .DataValueField("Value")
+               .Events(ev => ev.Change("onChangeDriverType"))
+
+         )
+
+
+         <span asp-validation-for="DriverType"></span>
+      </div>
+   </div>
+
+   <div class="row">
+      <div class="col-md-4 u-col-h-fixed">
+         <label asp-for="ComputerName" class="label-name field-required">@DicSvc.XLate("DAS Broker")</label>
+      </div>
+      <div class="col-md-5 u-col-h-fixed">
+              <div class="input-group ">
+                  <input asp-for="ComputerName" class="k-input k-textbox" />
+                  <div class="input-group-append">
+                      <button id="btnOpenDasBroker" onclick="openDASBrokersGrid();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Set DAS Broker")">
+                          <span class="mdi mdi-18px mdi-pencil"></span>
+                      </button>
+                  </div>
+              </div>
+      </div>
+   </div>
+
+   <div class="row">
+      <div class="col-md-4 u-col-h-fixed">
+         <label asp-for="DeviceName" class="label-name">@DicSvc.XLate("Add a description to identify this instance")</label>
+      </div>
+      <div class="col-md-5 u-col-h-fixed">
+         <input asp-for="DeviceName" class="k-input k-textbox" style="width:100%"  maxlength="50"/>
+      </div>
+   </div>
+
+   <div class="row">
+      <div class="col-md-4 u-col-h-fixed">
+         @Html.LabelFor(m => m.AlarmSystemType, "Choose alarm system type", new { @class = "label-name field-required" })
+      </div>
+      <div class="col-md-3 u-col-h-fixed">
+         <input type="hidden" id="storedAlarmSystemType" value="@Model.AlarmSystemType"/>
+         @(Html.Kendo().DropDownListFor(m => m.AlarmSystemType)
+            .HtmlAttributes(new { @style = "width:100%;", id = "AlarmSystemType_" + Model.Id.ToString() })
+            .DataTextField("Text")
+            .DataValueField("Value")
+              //.DataSource(source =>
+            //{
+            //   source.Read(read =>
+            //   {
+            //      read.Action("GeAlarmSystemTypeNameList", "Generic").Data("filterAlarmSystemType");
+            //   })
+            //   .ServerFiltering(true);
+            //})
+            .Enable(false)
+              //.AutoBind(true)
+              //.CascadeFrom("IdDriverRepository")
+              )
+         
+      </div>
+   </div>
+</div>
+

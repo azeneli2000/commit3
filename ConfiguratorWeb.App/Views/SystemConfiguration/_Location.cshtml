@@ -1,0 +1,316 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@inject IDictionaryService DicSvc
+@model ConfiguratorWeb.App.Models.LocationViewModel
+@{
+    StringBuilder objSbDelete = new StringBuilder();
+    objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Item \"{0}\" for Unit \"{1}\" "),
+        Model.LocationName, Model.HospitalUnitName);
+    objSbDelete.Append("?");
+}
+
+@{
+    Layout = null;
+}
+@{
+    string strGuidFunction = Model.ID.ToString();
+    string formId = "form_location_" + Model.ID;
+}
+
+<div>
+    <div class="card px-0 py-2" style="height:160px;" id="divItemDetail">
+        <form asp-controller="SystemConfiguration" asp-action="SaveLocationDetail" id="@formId"
+              data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+              data-ajax="true" data-ajax-method="POST">
+
+            <div asp-validation-summary="ModelOnly"></div>
+            <input asp-for="ID" type="hidden" />
+            <input asp-for="LocationIndex" type="hidden" />
+
+            <div class="row mt-2">
+                <div class="col-2">
+                    <label asp-for="LocationName" class="label-name field-required">@DicSvc.XLate("Name")</label>
+                </div>
+                <div class="col-4">
+                    <input asp-for="LocationName" class="k-input k-textbox w-100" />
+                </div>
+                <div class="col-2">
+                    <label asp-for="LocationCode" class="label-name">@DicSvc.XLate("Code")</label>
+                </div>
+                <div class="col-4">
+                    <input asp-for="LocationCode" class="k-input k-textbox w-100" />
+                </div>
+                
+            </div>
+            <div class="row mt-2">
+                <div class="col-2">
+                    <label asp-for="UniteCode" class="label-name">@DicSvc.XLate("Unite Code")</label>
+                </div>
+                <div class="col-4">
+                    <div class="input-group ">
+
+                        <input asp-for="UniteCode" class="k-input k-textbox" />
+                        <div class="input-group-append ">
+                            <button id="btnInfoUniteCode" class="btn lh-1-0 border ig-24px" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("What is this?")">
+                                <span class="mdi  mdi-information-outline mdi-24px"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <label asp-for="HospitalUnitGUID" class="label-name">@DicSvc.XLate("HospitalUnit")</label>
+                </div>
+                <div class="col-4">
+                    <div class="input-group">
+                        <input asp-for="HospitalUnitGUID" type="hidden" id="HospitalUnitGUID_@Model.ID" />
+                        <input asp-for="HospitalUnitName" readonly="readonly" class="k-input k-textbox control-required" id="HospitalUnitName_@Model.ID" />
+                        <span class="input-group-append">
+                            <button id="btnHospitalUnitName" onclick="openHospitalUnitGrid();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Set H.U."><span class="mdi mdi-pencil"></span></button>
+
+                            <button id="btnHospitalUnitRemove" onclick="removeHospitalUnit();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Remove H.U."><span class="mdi mdi-close"></span></button>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-2">
+               <div class="col-2">
+                  <label class="label-name">@DicSvc.XLate("Location Id")</label>
+               </div>
+               <div class="col-4">
+                  <input class="k-input k-textbox w-100" readonly="readonly" value="@Model.ID" />
+               </div>
+               
+                
+            </div>
+        </form>
+    </div>
+
+    <div class="card-footer h-10 p-0 m-0 border-0 bg-white">
+        @{
+            string postId = ""; //use in case of multi toolbar
+        }
+        @(Html.Kendo().ToolBar()
+              .Name("toolbarDetail")
+              .UmsDefaultErrors(DicSvc, "errors")
+              .Items(items =>
+              {
+                  items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+              })
+              .UmsDefaultSettings(DicSvc, postId)
+              )
+    </div>
+</div>
+
+        <kendo-window name="popupHospitalUnits"
+                      draggable="false"
+                      scrollable="false"
+                      visible="false"
+                      width="650"
+                      modal="true"
+                      title="@DicSvc.XLate("HOSPITAL UNIT SELECTION")"
+                      resizable="false"
+                      >
+            <popup-animation enabled="false" />
+        </kendo-window>
+
+
+        <script type="text/javascript">
+
+            function openHospitalUnitGrid() {
+
+                kendo.ui.progress( $("#popupHospitalUnits"), true);
+                $.ajax({
+                        url: '@Url.Action("GetHospitalUnits", "SystemConfiguration")',
+                        type: 'GET',
+                        data: { soID: '@Model.ID', huID:'@Model.HospitalUnitGUID' },
+                        cache:false
+                    }).done(function (data) {
+                        debugger;
+                        var dialogAbout = $("#popupHospitalUnits");
+                        dialogAbout.data("kendoWindow").content(data);
+                        dialogAbout.data("kendoWindow").center().open();
+                    }).always(function() {
+                        kendo.ui.progress( $("#popupHospitalUnits"), false);
+                    })
+                    ;
+            }
+
+
+            var consolelog = false;
+            var actualmode=0;
+            var divName = '#divItemDetail';
+            var dialog = $(popUpWindowName).data("kendoWindow");
+            var grid = $('#' + gridIdName).data("kendoGrid");
+            function changeToEditMode() {
+                actualmode = 2;
+                $(".modify-mode").show();
+                $(".view-mode").hide();
+                umsHideAllEditSaveButton();
+                toolBarShowButtonByClass("modify-mode");
+
+                $(divName +' :input').attr('disabled', false);
+                $(divName +' :input').each(function () {
+                    var cb = $(this).data("kendoNumericTextBox");
+                    if (cb) {
+                        cb.enable(true);
+                    }
+                });
+                if ('@Model.ID' =='0') {
+                   $('#btnDelete').hide();
+                }
+                $('#btnInfoUniteCode').off('click').on('click', function () {
+                     window.umsAlert('@DicSvc.XLate("Unite Code")', '@DicSvc.XLate("Bed code in Ascom Unite - Used for Digistat-Unite integration")');
+                 });
+            }
+
+            function changeToViewMode() {
+                actualmode = 1;
+                $(".view-mode").show();
+                $(".modify-mode").hide();
+                umsHideAllEditSaveButton();
+                toolBarShowButtonByClass("view-mode");
+
+                $(divName +' :input').attr('disabled', true);
+                $(divName +' :input').each(function () {
+                    var cb = $(this).data("kendoNumericTextBox");
+                    if (cb) {
+                        cb.enable(false);
+                    }
+                });
+                $('#btnInfoUniteCode').off('click');
+            }
+            function setWindowMode() {
+                //customize according model key
+                if ('@Model.ID' !== '0') {
+                    actualmode = 1;
+
+                } else {
+                    actualmode = 2;
+                }
+            }
+
+            function setMode() {
+                if (actualmode === 2)
+                    changeToEditMode();
+                else
+                    changeToViewMode();
+            }
+
+
+            $(document).ready(function() {
+                umsHideAllEditSaveButton();
+                setWindowMode();
+                //set up condition to know if it's a new item
+                setMode();
+                $('#btnEdit' + '@postId').off('click').on('click', function () {
+                    if(consolelog)console.log("btnEdit called");
+
+                    changeToEditMode();
+                });
+                $('#btnCancel' + '@postId').off('click').on('click', function () {
+                    if (consolelog)console.log("btnCancel called");
+                    if ('@Model.ID'=='0') {
+                        dialog.close();
+                        return;
+                    }
+                    displayDetailDialog(@Model.ID);
+                    changeToViewMode();
+                });
+                $('#btnSave'+'@postId').off('click').on('click', function() {
+                    if (consolelog)console.log("btnSave called");
+                    actionSave();
+                });
+                $('#btnDelete').off('click').on('click', function () {
+                    if (consolelog)console.log("btnDelete called");
+                    umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteSysOpt, cancelDeleteSysOpt);
+                });
+                $('#btnClose' + '@postId').off('click').on('click', function () {
+                    if (consolelog)console.log("btnClose called");
+                    dialog.close();
+                });
+            });
+
+
+
+            function actionSave()
+            {
+                if (OnValidation()) {
+                    //uncomment for production
+                    $("#@formId").submit();
+                }
+            }
+
+
+            function OnValidation() {
+                var retValue = false;
+                var validator = $("#@formId").kendoValidator().data("kendoValidator");
+                if (!validator.validate() ) {
+                    try {
+                        var errors = validator.errors();
+                        $("#errors").html(buildValidationMessage(errors));
+                    } catch (e) {
+                        $("#errors").html(e);
+                    }
+                }
+                else {
+                    $("#errors").html("");
+                    retValue = true;
+                }
+
+                return retValue;
+            }
+            function OnSuccess(response) {
+                if (response.success) {
+                    grid.dataSource.read();
+                    dialog.close();
+                }
+                else {
+                    window.umsAlert("Error occured", response.errorMessage, 400, 300);
+                }
+            }
+            function OnFailure(response) {
+                //debugger;
+                window.umsAlert("Error occured", response.errorMessage, 400, 300);
+            }
+            function toolBarShowButtonByClass(clas) {
+
+                var tb = $("#toolbarDetail").data("kendoToolBar");
+                tb.umsShowButtonByClass(clas);
+            }
+            function umsHideAllEditSaveButton()
+            {
+                var tb = $("#toolbarDetail").data("kendoToolBar");
+                tb.umsHideAllEditSaveButton();
+            }
+
+
+            function deleteSysOpt() {
+                $.ajax({
+                    url: '@Url.Action("DeleteLocation", "SystemConfiguration")',
+                    type: 'POST',
+                    data: { id: '@Model.ID' }
+
+                }).done(function (data) {
+                    if (!data.success) {
+                        window.umsAlert("Error occured", data.errorMessage, 400, 300);
+                    }
+                    dialog.close();
+                    grid.dataSource.read();
+                }).fail(function (response) {
+                    umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+                });
+
+            }
+
+            function cancelDeleteSysOpt() {
+
+                /* do nothing */
+            }
+
+
+            function removeHospitalUnit() {
+                $('#HospitalUnitGUID_@Model.ID').val('');
+                $('#HospitalUnitName_@Model.ID').val('');
+            }
+        </script>

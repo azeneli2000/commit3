@@ -1,0 +1,277 @@
+﻿@using Digistat.FrameworkStd.Model.Mobile
+@{
+    ViewBag.Title = DicSvc.XLate("Apk Update");
+}
+
+
+<div class="h-100 text-center">
+    <div class="card  m-1 p-2 text-left">
+        @(Html.Kendo().Grid<DigistatMobileAPK>()
+            .Name("apk-grid")
+            .Columns(columns =>
+            {
+                columns.Bound(d => d.Version);
+                columns.Bound(d => d.Name);
+                columns.Bound(d => d.File);
+                columns.Command(command => { command.Custom("Destroy").Click("APK.onDestroy").IconClass("k-icon k-i-close").Text("DELETE"); }).Width(128);
+            })
+            .ToolBar(toolbar =>
+            {
+                toolbar.ClientTemplateId("GridToolbarTemplate");
+            })
+            .UmsDefaultSettings(DicSvc)
+            .LoaderType(GridLoaderType.LoadingPanel)
+            .Pageable(pageable => pageable
+               .Input(false)
+               .Numeric(false)
+               .Info(false)
+               .PreviousNext(false)
+               .Refresh(true))
+            .DataSource(dataSource => dataSource
+               .Ajax()
+               .Model(model =>
+               {
+                   model.Id(o => o.Version);
+                   model.Field(o => o.Name).Editable(false);
+                   model.Field(o => o.File).Editable(false);
+               })
+               .PageSize(1 << 16)
+               .Read(read => read.Action("GetApkList", "Apk"))
+               .Destroy(update => update.Action("RemoveApk", "Apk"))
+            )
+             //.NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+        )
+
+        @(Html.Kendo().Dialog()
+            .Name("apk-uploader")
+            .Width(600)
+            .Modal(true)
+            .Visible(false)
+            .Events(e => e.Close("APK.onUploadDialogClose"))
+            .Content(
+               "<div>" + "<p>Version: </p>" +
+                  @Html.Kendo().TextBox().Name("version_code").HtmlAttributes(new { style = "width:100%;" }).ToHtmlString() + "<br><br>" +
+                  @Html.Kendo().Upload().Name("files").Multiple(false)
+                     .Events(e => e.Upload("APK.onUpload").Error("APK.onError").Success("APK.onSuccess").Select("APK.onSelected").Complete("APK.onCompleted").Clear("APK.onClear"))
+                     .Validation(validation => validation.AllowedExtensions(new string[] { ".apk" }))
+                     .Async(a => a
+                        .Save("Upload", "Apk")
+                        .ChunkSize(65536)
+                        .AutoUpload(false)
+                     ).ToHtmlString() +
+               "</div>"
+            )
+        )
+
+        @(Html.Kendo().Dialog()
+            .Name("notification")
+            .Width(500)
+            .Modal(true)
+            .Visible(false)
+            .Actions(actions =>
+            {
+               actions.Add().Text("Ok").Action("").Primary(true);
+            })
+        )
+
+        @(Html.Kendo().Dialog()
+            .Name("confirmation")
+            .Width(500)
+            .Modal(true)
+            .Visible(false)
+            .Closable(false)
+            .Actions(actions =>
+            {
+               actions.Add().Text("Yes").Action("APK.onDestroyConfirm").Primary(true);
+               actions.Add().Text("No").Action("APK.onDestroyCanceled");
+            })
+        )
+
+        @(Html.Kendo().Dialog()
+            .Name("progress")
+            .Modal(true)
+            .Title("Waiting")
+            .Visible(false)
+            .Closable(false)
+            .Content(
+               "<p style='text-align:center;font-weight: bold;'>...</p>" +
+               @Html.Kendo().ProgressBar()
+                  .Name("progressBar")
+                  .Min(0)
+                  .Max(0)
+                  .Type(ProgressBarType.Value)
+                  .Animation(a => a.Duration(4000)).ToHtmlString()
+            )
+        )
+
+    </div>
+</div>
+
+<script id="GridToolbarTemplate" type="text/x-kendo-template">
+    <div>
+        <a href="\\#" class="k-pager-add-apk  k-button k-button-md k-button-solid-base k-button-icontext k-grid-add" title="Refresh"><span class="k-icon k-i-plus"></span>NEW APK VERSION</a>
+    </div>
+</script>
+
+<script>
+
+   window.APK = {};
+
+   (function (A) {
+      'use strict';
+
+      var _uploading = false;
+
+      function ShowDialog(id, title, content) {
+         if (title !== null || title !== undefined) {
+            $('#' + id).data("kendoDialog").title(title);
+         }
+         if (content !== null || content !== undefined) {
+            $('#' + id).data("kendoDialog").content(content);
+         }
+         $('#' + id).data("kendoDialog").open();
+         return $('#' + id).data("kendoDialog");
+      };
+
+      function CloseDialog(id) {
+         $('#' + id).data("kendoDialog").close();
+         return $('#' + id).data("kendoDialog");
+      };
+
+      function ShowProgress() {
+         $('#progress').data("kendoDialog").open();
+         var pb = $("#progressBar").data("kendoProgressBar");
+         pb.value(false);
+      };
+
+      function HideProgress() {
+         $('#progress').data("kendoDialog").close();
+      };
+
+
+      A.onAdd = function (ev) {
+         ev.preventDefault();
+         $("#version_code").val("");
+         var upload = $("#files").data("kendoUpload");
+         upload.clearAllFiles();
+         ShowDialog("apk-uploader", "Upload APK");
+      };
+
+      A.onSuccess = function (ev) {
+         _uploading = false;
+
+         var filename = ev.files[0].name;
+         var session = ev.files[0].uid;
+         var version = $("#version_code").val()
+
+         CloseDialog("apk-uploader");
+         ShowProgress();
+         var data = {
+            filename: filename,
+            version: version,
+            session: session
+         };
+
+         $.ajax({
+            url: '@Url.Action("Notify", "Apk")',
+            type: 'POST',
+            data: data,
+            success: function (resp) {
+               $('#apk-grid').data('kendoGrid').dataSource.read();
+               ShowDialog("notification", "Upload successul", filename);
+               HideProgress();
+            },
+            error: function (resp) {
+               ShowDialog("notification", "Upload error", filename);
+               HideProgress();
+            }
+         });
+
+      };
+
+      A.onSelected = function (ev) {
+         var upload = $("#files").data("kendoUpload");
+         upload.clearAllFiles();
+
+         try {
+            if (ev.files[0].name) {
+               var numberPattern = /([0-9]*\.?[0-9]+)+/g;
+               var res = ev.files[0].name.match(numberPattern);
+               if (res.length > 0) {
+                  $("#version_code").val(res[res.length - 1].replace(new RegExp("\\.", 'g'), ''));
+               }
+            }
+         } catch (err) {
+            //invalid filename: do nothing
+            $("#version_code").val("");
+         }
+      };
+
+      A.onError = function (ev) {
+         $("#files").attr("disabled", false)
+         $("#version_code").attr("disabled", false);
+
+         _uploading = false;
+         ShowDialog("notification", "Error", "upload failed");
+      };
+
+      A.onCompleted = function (ev) {
+         _uploading = false;
+
+         $("#files").attr("disabled", false)
+         $("#version_code").attr("disabled", false);
+      };
+
+      A.onUpload = function (ev) {
+         $("#files").attr("disabled", true)
+         $("#version_code").attr("disabled", true);
+
+         _uploading = true;
+         ev.data = {
+            version: $("#version_code").val()
+         };
+      };
+
+      A.onUploadDialogClose = function () {
+         if (_uploading) {
+            $("#files").data("kendoUpload").removeAllFiles();
+            $("#files").data("kendoUpload").trigger("error");
+         }
+      };
+
+      A.onClear = function () {
+         _uploading = false;
+         $("#version_code").val("");
+      };
+
+      var _actualItem = null;
+
+      A.onDestroy = function (ev) {
+         _actualItem = this.dataItem($(ev.currentTarget).closest("tr"));
+         ShowDialog("confirmation", "Deleting APK " + _actualItem.Version, "Are you sure?")
+      };
+
+      A.onDestroyConfirm = function (ev) {
+         $('#apk-grid').data('kendoGrid').dataSource.remove(_actualItem);
+         $('#apk-grid').data('kendoGrid').dataSource.sync();
+      };
+
+      A.onDestroyCanceled = function (ev) {
+         _actualItem = null;
+      };
+
+      $(document).ready(function () {
+         $(".k-pager-add-apk").click(A.onAdd);
+      });
+
+   })(window.APK);
+
+</script>
+
+<style>
+
+    #apk-uploader .k-upload-files {
+        overflow-y: auto;
+        height: 80px;
+    }
+</style>

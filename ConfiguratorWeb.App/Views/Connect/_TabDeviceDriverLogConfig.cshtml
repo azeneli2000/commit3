@@ -1,0 +1,76 @@
+﻿@model ConfiguratorWeb.App.Models.DeviceDriverViewModel
+@{
+   Layout = null;
+}
+
+
+<div style="height:360px;padding-top: 10px;">
+   <div class="panel-wrap">
+      <div class="row">
+         <div class="col-1 ">
+            <div style="padding-left: 3px;padding-top: 0.5rem;">
+               <label asp-for="LogEnabled" class="label-name">@DicSvc.XLate("Log Enabled")</label>
+            </div>
+         </div>
+         <div class="col-2 u-col-h-fixed">
+            @Html.Kendo().CheckBoxFor(m => m.LogEnabled).HtmlAttributes(new { @style = "margin-top: 6px;display: block;" })
+         </div>
+      </div>
+      <div class="row">
+         <div class="col-3">
+            <div id="log-destinations" class="card ">
+               <div class="row mb-3 ml-0 pl-0 ums-header">Log Destinations</div>
+               <div>
+                   @for (int i = 0; i < Model.LogDestinations.Count; i++)
+                   {
+                       @* Re-enable the network log in a future version   *@
+                       string strStyle = string.Empty;
+                       @if (Model.LogDestinations[i].LogDestination == Digistat.FrameworkStd.Enums.LogDestination.Network)
+                       {
+                           strStyle = "style=display:none;";
+                       }
+                       <div class="col-12" @strStyle>
+                           @Html.HiddenFor(m => Model.LogDestinations[i].LogDestination)
+
+
+                           @Html.Kendo().CheckBoxFor(m => m.LogDestinations[i].Value).Label(Model.LogDestinations[i].Label).HtmlAttributes(new { @class = "log-config" }).Enable(Model.LogEnabled)
+
+
+
+                       </div>
+                   }
+
+
+
+               </div>
+            </div>
+
+         </div>
+         <div class="col-3 ">
+         <div id="log-level" class="card ">
+            <div class="row mb-3 ml-0 pl-0 ums-header">Options</div>
+            <div>
+               @for (int i = 0; i < Model.LogLevels.Count; i++)
+               {
+                  <div class="col-12">
+                     @Html.HiddenFor(m => Model.LogLevels[i].LogLevel)
+                     @Html.Kendo().CheckBoxFor(m => m.LogLevels[i].Value).Label(Model.LogLevels[i].Label).HtmlAttributes(new { @class = "log-config" }).Enable(Model.LogEnabled)
+                  </div>
+
+               }
+
+            </div>
+
+         </div>
+      </div>
+   </div>
+
+
+</div>
+
+
+
+
+
+
+

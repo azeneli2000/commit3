@@ -1,0 +1,82 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@model ConfiguratorWeb.App.Models.Telligence.TelligenceCfgSettingsViewModel
+@inject IDictionaryService DicSvc
+@{
+    Layout = null;
+}
+<form asp-controller="Telligence" id="form_XmlRpcSettings" asp-action="SaveXMLRPCSettings"
+      data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+      data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+
+    <div class="card" style="height:360px; padding: 15px 10px 0 10px;">
+
+
+        <div class="row">
+            <div class="col-md-4 u-col-h-fixed">
+                @Html.LabelFor(m => m.ServerURL)
+            </div>
+            <div class="col-md-8 u-col-h-fixed">
+                @Html.Kendo().TextBoxFor(m => m.ServerURL).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "100" })
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4 u-col-h-fixed">
+                @Html.LabelFor(m => m.UserName)
+            </div>
+            <div class="col-md-8 u-col-h-fixed">
+                @Html.Kendo().TextBoxFor(m => m.UserName).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "50" })
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 u-col-h-fixed">
+                @Html.LabelFor(m => m.Password)
+            </div>
+            <div class="col-md-8 u-col-h-fixed">
+                @Html.Kendo().TextBoxFor(m => m.Password).HtmlAttributes(new { @class = "k-input k-textbox",@type="password", @maxlength = "50" })
+            </div>
+        </div>
+
+        <div class="button-container">
+            <div class="col-md-2 u-col-h-fixed">
+                <div id="xmlRpcSettingsError" class="errorSpan"></div>
+            </div>
+            <div class="col-md-10 u-col-h-fixed">
+                <div class="modify-mode">
+                    <button id="btnTLXmpRcpSettingsOK" class="btnSave" type="button">@DicSvc.XLate("OK")</button>
+                    <button id="btnTLXmpRcpSettingsCancel" class="btnCancel" type="button">@DicSvc.XLate("CANCEL")</button>
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </div>
+</form>
+    <script>
+
+
+        $('#btnTLXmpRcpSettingsOK').click(function () {
+            $('#form_XmlRpcSettings').submit();
+        })
+
+
+        $('#btnTLXmpRcpSettingsCancel').click(function () {
+            $('#tlXmlRpcSettings').data('kendoWindow').close();
+        })
+
+        function OnSuccess(response) {
+            if (response.success) {
+                $('#tlXmlRpcSettings').data('kendoWindow').close();    
+            }
+            else {
+                window.umsAlert("Error occured", response.errorMessage, 400, 300);
+            }
+        }
+        function OnFailure(response) {
+            $('#xmlRpcSettingsError').text('@DicSvc.XLate("An error occurred")');
+        }
+
+
+    </script>

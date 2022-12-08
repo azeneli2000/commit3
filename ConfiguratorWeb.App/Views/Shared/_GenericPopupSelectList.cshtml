@@ -1,0 +1,60 @@
+﻿@model IEnumerable<SelectListItem>
+@{
+    Layout = null;
+    string soId = (string)ViewBag.soID;
+}
+@{ 
+   //title and select function
+   string titleName = ViewBag.ColumnDescriptionTitle;
+   string onChangeEvent = ViewBag.OnSelectEvent;
+   object htmlAttributes = ViewBag.HtmlAttributes;
+   string selectedVal = ViewBag.SelectedValue;
+}
+
+<script>
+
+    function onDataBoundEvent(e) {
+        var grid = $("#popup-grid").data("kendoGrid");
+        var data = grid.dataSource.data();
+        for (var i = 0; i < data.length; i++) {
+            if (data[i].Value == '@selectedVal') {
+                var select = grid.tbody.find('tr[data-uid="' + data[i].uid + '"]');
+                grid.select(select);
+            }
+        }
+    }
+
+</script>
+
+<div style="text-align:center;">
+
+    @(Html.Kendo().Grid(Model)
+                  .Name("popup-grid").HtmlAttributes(htmlAttributes) //(new { style = "height:360px;margin-top:10px;" })
+                  .Columns(columns =>
+                  {
+                      columns.Bound(e => e.Value).Visible(false);
+                      columns.Bound(e => e.Text).Title(titleName).HtmlAttributes(new { @style = "text-align:left;" });
+                  })
+                  .Pageable(pager => pager
+                          .Input(false)
+                          .Numeric(true)
+                          .Info(true)
+                          .PreviousNext(true)
+                          .Refresh(false)
+                          .PageSizes(false)
+                          ) //it's not working
+                  .Sortable(true)
+                  .Filterable()
+                  .Selectable()
+                  .Scrollable()
+                  .Events(ev => ev.Change(onChangeEvent).DataBound("onDataBoundEvent"))
+                  .DataSource(dataSource => dataSource
+                      .Ajax()
+                      .ServerOperation(false)
+                  .PageSize(20)
+                  )
+                  .NoRecords(x => x.Template("<div class='text-center'>" + DicSvc.XLate("No records found") + "</div>"))
+    )
+</div>
+
+

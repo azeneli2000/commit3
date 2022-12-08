@@ -1,0 +1,155 @@
+﻿
+<div class="container-fluid">
+    <div class="row">
+        <div class="col">
+            <label for="ssCmb">StockRoom:</label>
+
+            @(Html.Kendo().DropDownList()
+                .Name("ssCmb")
+                .HtmlAttributes(new { @style = "width:17.3%;", id = "stockRoomDropDown", display = "inline" })
+                .DataTextField("StockRoomShortName")
+                .DataValueField("StockRoomId")
+                .OptionLabel("All")
+                .Events(events =>
+                {
+                    events.Select("onSelectStockRoom");
+                })
+                .DataSource(source =>
+                {
+                    source.Read(read =>
+                    {
+                        read.Action("GetStockRooms", "StockManagement");
+                    });
+                })
+                )
+        </div>
+        <div class="col">
+            <label for="sgCmb">CabinetGroup:</label>
+
+            @(Html.Kendo().DropDownList()
+                .Name("sgCmb")
+                .OptionLabel("All")
+                .DataTextField("CabinetGroupShortName")
+                .DataValueField("CabinetGroupId")
+                .Events(events =>
+                {
+                    events.Select("onSelectCabinetGroup");
+                })
+                .DataSource(source =>
+                {
+                    source.Read(read =>
+                    {
+                        read.Action("GetCabinetGroups", "StockManagement")
+                    .Data("filterStockRooms");
+                    })
+                    .ServerFiltering(true);
+
+                })
+                .Enable(false)
+                .AutoBind(false)
+                .CascadeFrom("ssCmb")
+                )
+        </div>
+        <div class="col">
+            <label for="sgCmb">Cabinet:</label>
+            @(Html.Kendo().DropDownList()
+                .Name("cabCmb")
+                .OptionLabel("All")
+                .DataTextField("CabinetShortName")
+                .DataValueField("CabinetId")
+                .Events(events =>
+                {
+                    events.Select("onSelectCabinet");
+                })
+                .DataSource(source =>
+                {
+                    source.Read(read =>
+                    {
+                        read.Action("GetCabinets", "StockManagement")
+                    .Data("filterCabinetGroups");
+                    })
+                    .ServerFiltering(true);
+
+                })
+                .Enable(false)
+                .AutoBind(false)
+                .CascadeFrom("sgCmb")
+                )
+        </div>
+
+        <div class="col">
+            <label for="sgCmb">Location:</label>
+            @(Html.Kendo().DropDownList()
+                .Name("locCmb")
+                .OptionLabel("All")
+                .DataTextField("LocationShortName")
+                .DataValueField("LocationId")
+                .Events(events =>
+                {
+                    events.Select("onSelectLocation");
+                })
+                .DataSource(source =>
+                {
+                    source.Read(read =>
+                    {
+                        read.Action("GetLocations", "StockManagement")
+                    .Data("filterCabinets");
+                    })
+                    .ServerFiltering(true);
+                })
+                .Enable(false)
+                .AutoBind(false)
+                .CascadeFrom("cabCmb")
+                )
+        </div>
+
+        <div class="col">
+            <label for="sgCmb">Position:</label>
+            @(Html.Kendo().DropDownList()
+                .Name("posCmb")
+                .OptionLabel("All")
+                .DataTextField("PositionShortName")
+                .DataValueField("PositionId")
+                .Events(events =>
+                {
+                    events.Select("onSelectPosition");
+                })
+                .DataSource(source =>
+                {
+                    source.Read(read =>
+                    {
+                        read.Action("GetPositions", "StockManagement")
+                    .Data("filterLocations");
+                    })
+                    .ServerFiltering(true);
+                })
+                .Enable(false)
+                .AutoBind(false)
+                .CascadeFrom("locCmb")
+                )
+        </div>
+
+        <div class="col float-right">
+            <a role="button"
+               href=""
+               class="k-buttonLarge btnClose view-mode k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base k-toolbar-last-visible"
+               id="closeButton" type="button" data-overflow="auto"
+               aria-disabled="false"><span class="k-button-text">Reset</span></a>
+        </div>
+    </div>
+
+    <div class="row float-right">
+        <a role="button"
+           href="#"
+           class="k-buttonLarge btnClose view-mode k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base k-toolbar-last-visible"
+           id="okButton" type="button" data-overflow="auto" onclick="onSelectDestinationPosition();return false;"
+           aria-disabled="false"><span class="k-button-text">Ok</span></a>
+
+        <a role="button"
+           href=""
+           class="k-buttonLarge btnClose view-mode k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base k-toolbar-last-visible"
+           id="closeButton" type="button" data-overflow="auto"
+           aria-disabled="false"><span class="k-button-text">Cancel</span></a>
+    </div>
+</div>
+

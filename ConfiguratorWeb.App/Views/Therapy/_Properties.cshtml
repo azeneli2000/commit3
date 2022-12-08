@@ -1,0 +1,217 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@model TherapyItemModel
+@{
+   ViewData["Title"] = "_TabProperties";
+
+   var propertyList = new List<SelectListItem>() {
+      new SelectListItem(DicSvc.XLate("No Preparation"), "0"),
+      new SelectListItem(DicSvc.XLate("Preparation"), "1"),
+      new SelectListItem(DicSvc.XLate("Preparation with double signature"),"2")};
+
+   var validationType = new List<SelectListItem>() {
+      new SelectListItem(DicSvc.XLate("No"), "0"),
+      new SelectListItem(DicSvc.XLate("Yes"), "1"),
+      new SelectListItem(DicSvc.XLate("In Pump"),"2"),
+      new SelectListItem(DicSvc.XLate("In Pump Connected"),"3"),
+
+   };
+
+
+   var signature1 = new List<SelectListItem>() {
+      new SelectListItem(DicSvc.XLate("No"), "0"),
+      new SelectListItem(DicSvc.XLate("Yes"), "1"),
+      new SelectListItem(DicSvc.XLate("Always"),"2")};
+
+   
+
+
+}
+<style>
+   .preparationTypeGrid {
+      width: 562px;
+      height: 130px;
+      overflow-y:hidden;
+   }
+   .preparationTypeGrid1 {
+      width: 562px;
+      height: 159px;
+      overflow-y: hidden;
+   }
+   #fluidBalanceType {
+      width: 380px;
+      height: 150px;
+   }
+   .propertiesContainer
+   {
+      display:flex;
+      flex-direction: column ;
+      justify-content:space-between;
+      margin:5px;
+   }
+
+   .subGridsProperties {
+      width: 380px;
+      height: 150px;
+
+   }
+   .labelPosition {
+      margin-top: 23px;
+   }
+
+
+</style>
+
+
+<div style="display:flex; flex-direction:row; justify-content:space-between;" class="propertiesContainer">
+   <div style="display:flex; flex-direction:column; justify-content:space-between;width:46%;">
+      <label class="labelPosition"> @DicSvc.XLate("Preparation Type") </label>
+      <input asp-for="Properties.PreparationType" type="hidden" />
+      @(Html.Kendo().Grid(propertyList)
+                                                                                      .Name("preparationTypeGrid")
+                                                                                      .Navigatable(true)
+                                                                                      //.BindTo(Model.Properties.PreparationType2)
+                                                                                      .Columns(columns =>
+                                                                                      {
+                                                                                         columns.Bound(e => e.Value).ClientTemplate("<input class='preparationTypeSel' onchange='Properties_ValueChangedProp(#=Value#,1)' id='#=Value#preparationTypeSel' type='radio'  />").Title(" ").Width("30px").Editable("noEditCheckbox");
+                                                                                         columns.Bound(e => e.Text).Title(DicSvc.XLate("Value")).Editable("noEditCheckbox");
+
+                                                                                      })
+                                                                                      .Editable(e => e.Mode(GridEditMode.InCell))
+                                                                                      .Selectable(s => s.Mode(GridSelectionMode.Single))
+                                                                                      .DataSource(dataSource => dataSource
+                                                                                      .Ajax()
+                                                                                      .ServerOperation(true)
+                                                                                      )
+                                                                                      .HtmlAttributes(new { @class = "preparationTypeGrid" })
+                                                                                      .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+      )
+      <label class="labelPosition"> @DicSvc.XLate("Second signature in prescription") </label>
+      <input asp-for="Properties.SecondSignatureType" type="hidden" />
+      @(Html.Kendo().Grid(signature1)
+                                                                                      .Name("signature1Grid")
+                                                                                      .Navigatable(true)
+                                                                                      //.BindTo(Model.Properties.PreparationType2)
+                                                                                      .Columns(columns =>
+                                                                                      {
+                                                                                         columns.Bound(e => e.Value).ClientTemplate("<input class='sspSel' onchange='Properties_ValueChangedProp(#=Value#,3)' id='#=Value#SignatureSel' type='radio'  />").Title(" ").Width("30px").Editable("noEditCheckbox");
+                                                                                         columns.Bound(e => e.Text).Title(DicSvc.XLate("Value")).Editable("noEditCheckbox");
+
+                                                                                      })
+                                                                                      .Editable(e => e.Mode(GridEditMode.InCell))
+                                                                                      .Selectable(s => s.Mode(GridSelectionMode.Single))
+                                                                                      .DataSource(dataSource => dataSource
+                                                                                      .Ajax()
+                                                                                      .ServerOperation(true)
+                                                                                      )
+                                                                                      .HtmlAttributes(new { @class = "preparationTypeGrid" })
+                                                                                      .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+      )
+      <label class="labelPosition">@DicSvc.XLate("Fluid Balance Type")</label>
+      <input asp-for="Properties.FluidBalanceType" type="hidden" />
+
+      @(Html.Kendo().Grid(validationType)
+                                                                                               .Name("fluidBalanceTypeGrid")
+                                                                                               .Navigatable(true)
+                                                                                               //.BindTo(Model.Properties.PreparationType2)
+                                                                                               .Columns(columns =>
+                                                                                               {
+                                                                                                  columns.Bound(e => e.Value).ClientTemplate("<input class='fbType' onchange='Properties_ValueChangedProp(#=Value#,2)' id='#=Value#fluidBlType' type='radio'  />").Title(" ").Width("30px").Editable("noEditCheckbox");
+                                                                                                  columns.Bound(e => e.Text).Title(DicSvc.XLate("Value")).Editable("noEditCheckbox");
+
+                                                                                               })
+                                                                                               .Editable(e => e.Mode(GridEditMode.InCell))
+                                                                                               .Selectable(s => s.Mode(GridSelectionMode.Single))
+                                                                                               .DataSource(dataSource => dataSource
+                                                                                               .Ajax()
+                                                                                               .ServerOperation(true)
+                                                                                               )
+                                                                                               .HtmlAttributes(new { @class = "preparationTypeGrid1" })
+                                                                                               .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+      )
+      <label asp-for="Properties.HelpKeyExec" class="labelPosition" style="position:relative; top:5%;"></label>
+      <input asp-for="Properties.HelpKeyExec" class="k-input k-textbox" style="width:84%;left:16%;"/>
+   </div>
+
+
+   <div style="display:flex; flex-direction:column; justify-content:space-between;width:46%;bottom: 10px;position:relative;">
+      <div style="position:relative;top:11px;">
+         <label class="labelPosition" style=" position: relative; bottom: 4px;"> @DicSvc.XLate("Validation type") </label>
+         <input asp-for="Properties.ValidationType" type="hidden" />
+         @(Html.Kendo().Grid(signature1)
+                                                                                      .Name("validationTypeGrid")
+                                                                                      .Navigatable(true)
+                                                                                      //.BindTo(Model.Properties.PreparationType2)
+                                                                                      .Columns(columns =>
+                                                                                      {
+                                                                                         columns.Bound(e => e.Value).ClientTemplate("<input class='valTypeSel' onchange='Properties_ValueChangedProp(#=Value#,4)' id='#=Value#ValTypeSel' type='radio'  />").Title(" ").Width("30px").Editable("noEditCheckbox");
+                                                                                         columns.Bound(e => e.Text).Title(DicSvc.XLate("Value")).Editable("noEditCheckbox");
+
+                                                                                      })
+                                                                                      .Editable(e => e.Mode(GridEditMode.InCell))
+                                                                                      .Selectable(s => s.Mode(GridSelectionMode.Single))
+                                                                                      .DataSource(dataSource => dataSource
+                                                                                      .Ajax()
+                                                                                      .ServerOperation(true)
+                                                                                      )
+                                                                                      .HtmlAttributes(new { @class = "preparationTypeGrid" })
+                                                                                      .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+      )
+      </div>
+      <div style="position:relative;top:-10px;">
+         <label class="labelPosition" style=" position: relative;"> @DicSvc.XLate("Second signature in execution") </label>
+         <input asp-for="Properties.SecondSignatureExecType" type="hidden" />
+         @(Html.Kendo().Grid(signature1)
+                                                                                      .Name("signature2Grid")
+                                                                                      .Navigatable(true)
+                                                                                      //.BindTo(Model.Properties.PreparationType2)
+                                                                                      .Columns(columns =>
+                                                                                      {
+                                                                                         columns.Bound(e => e.Value).ClientTemplate("<input class='sseSel' onchange='Properties_ValueChangedProp(#=Value#,5)' id='#=Value#SignatureSel1' type='radio'  />").Title(" ").Width("30px").Editable("noEditCheckbox");
+                                                                                         columns.Bound(e => e.Text).Title(DicSvc.XLate("Value")).Editable("noEditCheckbox");
+
+                                                                                      })
+                                                                                      .Editable(e => e.Mode(GridEditMode.InCell))
+                                                                                      .Selectable(s => s.Mode(GridSelectionMode.Single))
+                                                                                      .DataSource(dataSource => dataSource
+                                                                                      .Ajax()
+                                                                                      .ServerOperation(true)
+                                                                                      )
+                                                                                      .HtmlAttributes(new { @class = "preparationTypeGrid" })
+                                                                                      .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+      )
+      </div>
+      <div style="position:relative; top:-24px;">
+         <label class="labelPosition">@DicSvc.XLate("Prescription Notes")</label>
+         <textarea asp-for="Properties.PrescNotes" rows="2" class="k-textarea w-100" style="resize: none;bottom:4px;"></textarea>
+         <label asp-for="Properties.Barcodes" class="labelPosition" style="position: relative;bottom: 8px;"></label>
+         <textarea asp-for="Properties.Barcodes" id="Barcodes" rows="1" class="k-textarea w-100" style="resize: none;bottom:10px;"></textarea>
+      </div>
+      <div>
+         <label asp-for="Properties.HelpKeyPresc" class="labelPosition" style="position:relative; top:14px;"></label>
+         <input asp-for="Properties.HelpKeyPresc" class="k-input k-textbox" style="left: 10px;width:465px;top:11px;"/>
+
+      </div>
+   </div>
+   </div>
+
+<script>
+
+
+   var typeChecked = $("#Properties_PreparationType").val();
+   var typeChecked2 = $("#Properties_FluidBalanceType").val();
+   var typeChecked3 = $("#Properties_SecondSignatureType").val();
+   var typeChecked4 = $("#Properties_ValidationType").val();
+   var typeChecked5 = $("#Properties_SecondSignatureExecType").val();
+   Properties_ValueChangedProp(typeChecked, 1);
+   Properties_ValueChangedProp(typeChecked2, 2);
+   Properties_ValueChangedProp(typeChecked3, 3);
+   Properties_ValueChangedProp(typeChecked4, 4);
+   Properties_ValueChangedProp(typeChecked5, 5);
+
+</script>
+

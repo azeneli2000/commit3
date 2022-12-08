@@ -1,0 +1,36 @@
+﻿@model IEnumerable<ConfiguratorWeb.App.Models.LocationViewModel>
+@{
+    Layout = null;
+}
+
+<div style="text-align:center;">
+    @(
+       Html.Kendo().Grid(Model)
+         .Name("loc-grid")
+         .HtmlAttributes(new { style = "height:420px;" })
+         .Columns(columns =>
+         {
+            columns.Bound(e => e.ID).Visible(false);
+            columns.Bound(e => e.LocationName).HtmlAttributes(new { @style = "text-align:left;" });
+         })
+         .Pageable(pager => pager
+                  //.Input(true)
+                  .Numeric(true)
+                  .Info(true)
+                  .PreviousNext(true)
+                  .Refresh(false)
+                  .PageSizes(false)
+                  )
+         .Sortable()
+         .Filterable()
+         .Sortable()
+         .Scrollable()
+         .Events(ev => ev.DataBound("onDataBoundLoc") )
+         .DataSource(dataSource => dataSource
+                  .Ajax()
+                  .PageSize(20)
+                  .ServerOperation(false)
+         )
+         .NoRecords(x => x.Template("<div class='text-center'>" + DicSvc.XLate("No records found") + "</div>"))
+    )
+</div>

@@ -1,0 +1,120 @@
+﻿@inject Digistat.FrameworkStd.Interfaces.IDigistatConfiguration configSvc;
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+    @{await Html.RenderPartialAsync("_Favicons").ConfigureAwait(false);}
+    <title>@ViewData["Title"] - ConfiguratorWeb.App</title>
+
+    <link href="~/lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet" asp-append-version="true"/>
+    <link rel="stylesheet" href="~/lib/kendo-ui/styles/kendo.bootstrap-v4.min.css" asp-append-version="true"/>
+    <link href="~/css/kendo.digistat_v4.css" rel="stylesheet" asp-append-version="true" />
+
+    <link rel="stylesheet" href="~/css/materialdesignicons.min.css" asp-append-version="true"/>
+    <link rel="stylesheet" href="~/css/Digistat.FontFace.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Digistat.Kendo.Custom.FontFamily.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/kendo.digistat.custom.css" asp-append-version="true"/>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    <script src="~/lib/kendo-ui/js/kendo.all.min.js" asp-append-version="true"></script>
+    <script src="~/lib/kendo-ui/js/kendo.aspnetmvc.min.js" asp-append-version="true"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.min.js" asp-append-version="true"></script>
+    @await Component.InvokeAsync("DigistatHeaderNoCtrlbar", new Digistat.WebComponents.Models.NoControlbarHeaderViewModel
+    {
+          AddKendoUI = false
+        , AddJQuery = false
+        , AddJQueryUI = false
+        , AddDigistatJsAndCSS = false
+        , EnableIndication = false
+        , AddUMSWebSocket = false
+    }).ConfigureAwait(false)    
+
+    
+
+
+</head>
+<body>
+    <header>
+        <div class="k-header">
+            <div class="d-flex">
+                <div style="width: 50%; float: left;">
+                    <div class="navbar-appname"><span>DIGISTAT Configurator</span> </div>
+                    <a href="#" id="btnAboutDialog"><span class="navbar-about"></span></a>
+                    @if (!string.IsNullOrEmpty(configSvc.EnvironmentFromLicence))
+                    {
+                        <span style="background-color:#FF0000;color:#FFFFFF;">@configSvc.EnvironmentFromLicence</span>
+                    }
+                </div>
+                <div style="width: 50%; float: right;">
+                    <div style="display: table; float: right;">
+                        <div class="user-header">
+                            <div>
+
+                            </div>
+                            <div>
+                                <div class="spanUserName"></div>
+                            </div>
+                            <div>
+                            </div>
+                            <div><img class="page-logo" src='@Url.Content("~/images/blank.gif")'></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </header>
+
+    @{await Html.RenderPartialAsync("About").ConfigureAwait(false);}
+
+    <div class="main-panel " data-ps-id="b673bab2-870a-1202-6948-4d2def8a44a2">
+        <div class="content">
+            <div class="container-fluid">
+                @*<ul class="w-100 p-1 k-bg-primary"> &nbsp;</ul>*@
+                @RenderBody()
+                <footer></footer>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+    @RenderSection("Scripts", required: false)
+
+    <script type="text/javascript">
+        // notificationType can be: 'info', 'success', 'warning', 'danger', 'rose', 'primary'
+        function showNotification(from, align, message, notificationType) {
+
+            var notify = $.notify({
+                icon: "notifications",
+                message: message
+
+            }, {
+                type: notificationType,
+                z_index: 10005,
+                // timer: 4000,
+                delay: 500,
+                placement: {
+                    from: from,
+                    align: align
+                },
+                //showProgressbar: true
+            });
+
+            //setTimeout(function () {
+            //    notify.update('message', message);
+            //}, 100);
+
+        }
+        function openAboutDialog() {
+            var dialogAbout = $("#aboutwindow");
+            dialogAbout.data("kendoWindow").center().open();
+        }
+    </script>
+</body>
+</html>

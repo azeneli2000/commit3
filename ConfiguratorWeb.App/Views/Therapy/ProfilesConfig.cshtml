@@ -1,0 +1,207 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@using  Digistat.FrameworkStd.Enums
+@*@model TherapyConfigModel*@
+@{
+   ViewData["Title"] = "ProfilesConfig";
+   var strGridName = "ProfilesGrid";
+   var strDetailsDivId2 = "ProfilesDetail";
+   var mixtureSelectWnd = "ComponentSelectionWindow";
+   var wndReorder = "ProfileReorderingWindow";
+}
+<style>
+
+
+   .associationsGrids {
+      width: 1050px;
+      height: 150px;
+   }
+   .customSubGridsButtom {
+      margin-bottom: 10px;
+   }
+</style>
+<div id="@strDetailsDivId2"></div>
+<div id="@wndReorder"></div>
+
+<div id="therapyConfigcontainer" class="card h-100 m-1 p-2 text-left">
+
+   @(Html.Kendo().Grid<Digistat.FrameworkStd.Model.Therapy.Profiles>
+                                             ()
+                                             .Name(strGridName)
+                                             .Columns(columns =>
+                                             {
+                                                columns.Bound(e => e.IdProfile).Visible(false);
+                                                columns.Bound(e => e.Name).Title(DicSvc.XLate("Name")).Width(400);
+                                                columns.Bound(e => e.Description).Title(DicSvc.XLate("Description")).Width(500);
+                                                columns.Bound(e => e.Code).Title(DicSvc.XLate("Code")).Width(100);
+                                                columns.Bound(e => e.LocationName).Title(DicSvc.XLate("Location")).Width(500);
+                                                columns.Bound(e => e.Index).Hidden(true);
+
+                                             })
+                                             .Navigatable(true)
+                                             .UmsDefaultPager(DicSvc)
+                                             .UmsDefaultSettings(DicSvc)
+                                             .Events(ev => ev.DataBound("onDataBound"))
+                                             .DataSource(dataSource => dataSource
+                                             .Ajax()
+                                             .PageSize(25)
+                                             .Read(read => read.Action("ReadProfiles", "Therapy"))
+                                             )
+                                             .ToolBar(toolbar =>
+                                             {
+                                                toolbar.Custom().UmsGridButtonGeneric("btnNewProfile", "New Profile", "btnNewProfile_Click()");
+                                                toolbar.Custom().UmsGridButtonGeneric("btnReorderProfiles", "Reorder", "btnReorderProfiles_Click()").IconClass("mdi mdi-repeat");
+
+                                             })
+
+   )
+
+</div>
+
+<script>
+   var kndWnd;
+   var kndReorderingWnd;
+   var typeGridSelected = 0;
+   $(document).ready(function () {
+
+         if (!kndWnd) {
+            kndWnd = $('#@strDetailsDivId2').umsKendoWindow({
+               title: 'Profile Detail',
+               height: 1000,
+               width: 1000,
+               minHeight: 750,
+               maxHeight: "100%",
+               minWidth: 1300,
+               maxWidth: "100%",
+               top:3
+            });
+         }
+
+      if (!kndReorderingWnd) {
+         kndReorderingWnd = $('#@wndReorder').umsKendoWindow({
+               title: 'Reordering profiles',
+               height: 500,
+               width: 1000,
+               minHeight: 705,
+               maxHeight: 700,
+               minWidth: 1300,
+               maxWidth: "100%",
+               top:30
+            });
+         }
+   });
+
+   function onDataBound(e) {
+      var grid = this;
+      grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+         function (e) {
+            var item = grid.dataItem($(e.target).closest('tr'));
+            onGridKeyEnter(item);
+         });
+   };
+
+   function onGridKeyEnter(item) {
+      var strItem = '0';
+      if (item) {
+         strItem = item.IdProfile;
+      }
+      ShowProfileDetail(strItem);
+   };
+
+   function btnNewProfile_Click()
+      {
+
+         CreateProfile();
+      };
+
+
+   function CreateProfile()
+         {
+
+            var windowWidget = $("#@strDetailsDivId2").data("kendoWindow");
+            kendo.ui.progress(windowWidget.element, true);
+            $.ajax({
+            url: '@Url.Action("CreateProfile", "Therapy")',
+            type: 'GET',
+            data: {itemIdToDuplicate : 0 },
+            })
+               .done(function (dataHtml) {
+
+            var itemDialog = $('#@strDetailsDivId2').data('kendoWindow');
+            itemDialog.content('');
+            itemDialog.content(dataHtml);
+            if (itemDialog.element.is(":hidden")) {
+
+            itemDialog.center();
+            itemDialog.open();
+            }
+            });
+            kendo.ui.progress(windowWidget.element, false);
+
+         };
+
+   function ShowProfileDetail(actionId) {
+      var strItem = '0';
+      if (actionId) {
+         strItem = actionId;
+      }
+
+         $.ajax({
+            url: '@Url.Action("CurrentProfile", "Therapy")',
+            type: 'GET',
+            data: { selectedItem: strItem },
+
+         })
+         .done(  function (data) {
+              var wnd = kndWnd.data("kendoWindow");
+                wnd.content('');
+                wnd.content(data);
+                wnd.center().open();
+            });
+   };
+
+      function ShowStandardActionComponent() {
+      var ww = $("#@mixtureSelectWnd").data("kendoWindow");
+      kendo.ui.progress(ww.element, true);
+      if (ww.element.is(":hidden")) {
+         ww.center();
+         ww.open();
+      }
+      kendo.ui.progress(ww.element, false);
+   };
+
+   function resizeTherapyDetailWndw() {
+      $(window).resize(function () {
+         var newH = kndWnd.height();
+         $("#ProfileContainer").css("height", newH - 200);
+         $("#ProfileContainer").css("min-height", newH - 115);
+
+      }).resize();
+   }
+
+   function btnReorderProfiles_Click()
+   {
+      @*var wnd = kndReorderingWnd.data("kendoWindow");
+      kendo.ui.progress(wnd.element, true);
+      if (wnd.element.is(":hidden")) {
+         wnd.content('');
+         wnd.content(@{ await Html.RenderPartialAsync("_ProfilesReordering"); });
+         wnd.center();
+         wnd.open();
+
+      }
+      kendo.ui.progress(wnd.element, false);*@
+
+
+      $.ajax({
+            url: '@Url.Action("ProfileReordering", "Therapy")',
+            type: 'GET',
+         })
+         .done(  function (data) {
+            var wnd = kndReorderingWnd.data("kendoWindow");
+                wnd.content('');
+                wnd.content(data);
+                wnd.center().open();
+            });
+   }
+</script>
+

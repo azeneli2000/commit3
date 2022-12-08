@@ -1,0 +1,222 @@
+﻿
+
+<form id="ResourceForm" class="card-body h-90 p-0 border-0" style="display:none">
+
+    <div class="container-fluid">
+        <div class="row mt-3">
+            @*Code*@
+            <div class="col-sm-1 u-col-h-fixed">
+                <label class="label-name" for="ResourceCodeTxt">Code</label>
+            </div>
+            <div class="col-sm-3 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" id="ResourceCodeTxt" disabled>
+                </div>
+            </div>
+            @*main store*@
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+                <label class="label-name" for="MainStoreTxt">Main Store</label>
+            </div>
+            <div class="col-sm-5 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" id="MainStoreTxt" name="CabinetGroupNameTxt" data-val-required="The Location Name field is required." disabled>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            @*ShortName*@
+            <div class="col-sm-1 u-col-h-fixed">
+                <label class="label-name" for="ResourceShortNameTxt">Shortname</label>
+            </div>
+            <div class="col-sm-3 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text"  id="ResourceShortNameTxt" disabled>
+                </div>
+            </div>
+            @*Name*@
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+                <label class="label-name" for="ResourceNameTxt">Name</label>
+            </div>
+            <div class="col-sm-5 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" id="ResourceNameTxt" disabled>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            @*granurality*@
+            <div class="col-sm-1 u-col-h-fixed">
+                <label class="label-name" for="ResourceGranuralarityTxt">Granularity</label>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" id="ResourceGranuralarityTxt" disabled>
+                </div>
+            </div>
+
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                </div>
+            </div>
+
+            @*description*@
+            <div class="col-sm-1 u-col-h-fixed ml-1">
+                <label class="label-name" for="ResourceDescriptionTxt">Description</label>
+            </div>
+            <div class="col-sm-5 u-col-h-fixed">
+                <div class="input-group">
+                    <textarea class="k-input k-textbox" type="text" id="ResourceDescriptionTxt" disabled></textarea>
+                </div>
+            </div>
+        </div>
+        <br />
+
+        <div class="row mt-3">
+            @*idealQty*@
+            <div class="col-sm-1 u-col-h-fixed ">
+                <label class="label-name" for="ResourceIdealQtyTxt">Ideal Qty</label>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" id="ResourceIdealQtyTxt" disabled>
+                </div>
+            </div>
+            @*minQty*@
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+                <label class="label-name" for="ResourceMinQtyTxt">Minimum Qty</label>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" id="ResourceMinQtyTxt" disabled>
+                </div>
+            </div>
+               @*alarmQty*@
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+                <label class="label-name" for="ResourceAlarmQtyTxt">Alarm Qty</label>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" id="ResourceAlarmQtyTxt" disabled>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    function populateResourceForm() {
+        $('#ResourceCodeTxt').val(dataItem.ResourceCode);
+        $('#MainStoreTxt').val(dataItem.MainStore);
+        $('#ResourceShortNameTxt').val(dataItem.ResourceShortName);
+        $('#ResourceNameTxt').val(dataItem.ResourceName);
+        $('#ResourceGranuralarityTxt').val(dataItem.Granularity);
+        $('#ResourceDescriptionTxt').val(dataItem.ResourceDescription);
+        $('#ResourceIdealQtyTxt').val(dataItem.IdealQuantity);
+        $('#ResourceMinQtyTxt').val(dataItem.MinQuantity);
+        $('#ResourceAlarmQtyTxt').val(dataItem.AlarmQuantity);
+        dataItem.Mode = 'Update';
+        console.log(dataItem)
+    }
+    function UpdateResource() {
+        debugger
+        console.log(dataItem.Mode)
+        //change for rwource update
+        var locationModel =
+        {
+            LocationId: dataItem.LocationId,
+            CabinetId: dataItem.CabinetId,
+            LocationShortName: $('#LocationShortNameTxt').val(),
+            LocationName: $('#LocationNameTxt').val(),
+            LocationDescription: $('#LocationDescriptionTxt').val(),
+            LocationPositionNumber: $('#LocationNumPositionsTxt').val()
+        }
+        if (dataItem.Mode == 'Insert')
+            $.ajax({
+                url: '@Url.Action("InsertNewLocation", "StockManagement")',
+                type: 'POST',
+                data: {
+                    model: locationModel
+                }
+            }).done(function (data) {
+                if (data.success != undefined && data.success) {
+                    console.log('location Inserted');
+                } else {
+                    $('#errors').html('not saved. reason:' + data.errorMessage);
+                }
+            }).fail(function (response) {
+                console.log(response)
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            });
+        if (dataItem.Mode == 'Update') {
+            $.ajax({
+                url: '@Url.Action("UpdateLocation", "StockManagement")',
+                type: 'POST',
+                data: {
+                    model: locationModel
+                }
+            }).done(function (data) {
+                if (data.success != undefined && data.success) {
+                    console.log('location  Updated');
+                } else {
+                    $('#errors').html('not saved. reason:' + data.errorMessage);
+                }
+            }).fail(function (response) {
+                console.log(response)
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            });
+            return;
+        }
+    }
+    function DeleteResource(){
+        var anomalies = false;
+        $.ajax({
+            url: '@Url.Action("getResourceAnomaliesForRemove", "StockManagement")',
+            type: 'GET',
+            data: {
+                srId: resourceToBeMovedId,
+                spGuid: resourceToBeMovedSpGuid
+            }
+        }).done(function (data) {
+            debugger
+
+            if (data == "") {
+                anomalies = true;
+            }
+            else {
+                anomalies = true;
+                umsErrorDialog("Anomalies", data, 200, 200);
+            }
+
+        }).fail(function (response) {
+            console.log(response)
+            anomalies = true;
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+
+        //delete resource
+        if (!anomalies) {
+            $.ajax({
+                url: '@Url.Action("RemoveResource", "StockManagement")',
+                type: 'POST',
+                data: {
+                    spGuid: resourceToBeMovedSpGuid,
+                }
+            }).done(function (data) {
+                debugger
+                if (data.success != undefined && data.success) {
+                    console.log('resource  Deleted'); console.log(data);
+
+                } else {
+                    $('#errors').html('not deleted. reason:' + data.errorMessage);
+                }
+            }).fail(function (response) {
+                console.log(response)
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            });
+        }
+    }
+</script>
+
+

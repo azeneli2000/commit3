@@ -1,0 +1,500 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@inject IDictionaryService DicSvc
+@model ConfiguratorWeb.App.Models.OnLine.ValidationGroupViewModel
+@{
+    StringBuilder objSbDelete = new StringBuilder();
+    objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Validation Group \"{0}\" "),
+        Model.Name);
+    objSbDelete.Append("?");
+}
+
+@{
+    Layout = null;
+}
+@{
+    string strGuidFunction = Model.ID.ToString();
+    string formId = "form_validationGroup_" + Model.ID;
+}
+
+<script>
+    function onLocationDataBound(e) {
+        var msLocations = $("#LocationIds").data("kendoMultiSelect");
+        var selectedValue = [];
+        @if (Model.LocationIds != null) {
+           foreach (var d in Model.LocationIds)
+            {
+                @:selectedValue.push(@d);
+            }
+        }
+        msLocations.value(selectedValue);
+    }
+</script>
+
+
+<div>
+    <div class="card px-0 py-2" style="height:470px;" id="divItemDetail">
+        <form asp-controller="OnlineValidation" asp-action="SaveValidationGroupDetail" id="@formId"
+              data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+              data-ajax="true" data-ajax-method="POST">
+            @Html.HiddenFor(m=>m.ValidationParameterSerialized)
+            @Html.HiddenFor(m=>m.ID)
+            @Html.HiddenFor(m=>m.Index)
+            <kendo-tabstrip name="tabstrip_@Model.ID" style="height:460px;">
+                <scrollable enabled="true" />
+                <popup-animation>
+                    <open effects="fade:in" />
+                </popup-animation>
+                <items>
+                    <tabstrip-item text="@DicSvc.XLate("Details")" selected="true" id="tabstrip-@Model.ID-pagedetail">
+                        <content>
+                            <div class="row mt-2">
+                                <div class="col-md-5">
+                                    @Html.LabelFor(m => m.Name)
+                                </div>
+                                <div class="col-md-7 ">
+                                    @Html.Kendo().TextBoxFor(m => m.Name).HtmlAttributes(new { @class = "k-input w-100", @maxlength = "50" })
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-5">
+                                    @DicSvc.XLate("Visible to all locations")
+                                </div>
+                                <div class="col-md-7 ">
+                                    @Html.Kendo().CheckBoxFor(m => m.IsGlobal).HtmlAttributes(new { })
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-5" id="lblExceptionsMessage">
+                                    @DicSvc.XLate("Exceptions:")
+
+                                    <span class="label-note small" id="lblExceptionDetail"></span>
+                                </div>
+                                <div class="col-md-7 d-inline-flex">
+                                   <style> 
+                                      span.k-clear-value{
+                                         align-self: baseline;
+                                      }
+                                   </style>
+                                    @(Html.Kendo().MultiSelect()
+                                                        .Name("LocationIds")
+                                                        .HtmlAttributes(new { @style = "width:100%; height:200px;align-items: baseline;" })
+                                                        .DataTextField("LocationName")
+                                                        .DataValueField("ID")
+                                                        .Size(ComponentSize.Large	)
+                                                        .Placeholder(DicSvc.XLateHtml("Select location/s"))
+                                                        .DataSource(source =>
+                                                        {
+
+                                                            source.Custom().Type("aspnetmvc-ajax")
+                                                            .Transport(transport =>
+                                                                transport.Read(read => read.Action("ReadLocations", "SystemConfiguration"))
+                                                            )
+                                                            .Schema(schema => schema
+                                                                .Data("Data")
+                                                                .Total("Total")
+                                                                )
+                                                            .ServerFiltering(false);
+
+                                                        })
+                                                        .Events(p => p.DataBound("onLocationDataBound"))
+
+                                                        .Height(350)
+                                                        .AutoBind(true))
+
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                            </div>
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Parameters")" id="tabstrip-@Model.ID-par" >
+                        <content class="p-1 ">
+                            @{await Html.RenderPartialAsync("_TabValidationParameters", Model);}
+                        </content>
+                    </tabstrip-item>
+
+                </items>
+            </kendo-tabstrip>
+
+
+            <div asp-validation-summary="ModelOnly"></div>
+            <input asp-for="ID" type="hidden" />
+
+
+        </form>
+    </div>
+
+    <div class="card-footer h-10 p-0 m-0 border-0 bg-white">
+        @{
+            string postId = ""; //use in case of multi toolbar
+        }
+        @(Html.Kendo().ToolBar()
+                              .Name("toolbarDetailValidationGroup")
+                              .UmsDefaultErrors(DicSvc, "errors")
+                              .Items(items =>
+                              {
+                                  items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode");
+                                  items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+                              })
+                              .UmsDefaultSettings(DicSvc, postId)
+        )
+    </div>
+</div>
+<div id="vpEditWindow"></div>
+
+<script>
+    $(document).ready(function () {
+        $("#vpEditWindow").umsKendoWindow({
+            width: '80%',
+            title: '@DicSvc.XLate("Edit Validation Parameter")',
+            maxHeight: '650px',
+            height: '650px',
+            position: {
+                top: '20%',
+                left: '30%'
+            }
+        })
+
+         $('#IsGlobal').off('click').on('click',
+            function () {
+               displayVisibilityMsg(this.checked);
+            }
+         );
+         displayVisibilityMsg($('#IsGlobal').is(':checked'));
+   })
+
+   function displayVisibilityMsg(checked) {
+         if (checked) {
+               $('#lblExceptionDetail').text('@DicSvc.XLate("( Group will be Visible to all location except those selected )")');
+            } else {
+               $('#lblExceptionDetail').text('@DicSvc.XLate("( Group will be Visible only to selected locations )")');
+         }
+    }
+
+
+    var consolelog = false;
+    var actualmode = 0;
+    var divName = '#divItemDetail';
+    var dialog = $(popUpWindowName).data("kendoWindow");
+    var grid = $('#' + gridIdName).data("kendoGrid");
+
+    function changeToEditMode() {
+       actualmode = 2;
+       $(".modify-mode").show();
+       $(".view-mode").hide();
+       umsHideAllEditSaveButton();
+       toolBarShowButtonByClass("modify-mode");
+
+       $(divName + ' :input:not(.check-col)').attr('disabled', false);
+       $(divName + ' :input').each(function() {
+          var cb = $(this).data("kendoNumericTextBox");
+          if (cb) {
+             cb.enable(true);
+          }
+       });
+       if ('@Model.ID' == '0') {
+          $('#btnDelete').hide();
+       }
+       $('#LocationIds').data('kendoMultiSelect').enable(true);
+
+       $('.umsCanBeDragged').addClass('umsDraggable').removeClass('text-muted');;
+       $('#create_validationparameter_@Model.ID').show();
+       $('#lblHelpMoveRows').show();
+       initValParamGridSortable();
+
+    }
+
+    function changeToViewMode() {
+       actualmode = 1;
+       $(".view-mode").show();
+       $(".modify-mode").hide();
+       umsHideAllEditSaveButton();
+       toolBarShowButtonByClass("view-mode");
+
+       $(divName + ' :input').attr('disabled', true);
+       $(divName + ' :input').each(function() {
+          var cb = $(this).data("kendoNumericTextBox");
+          if (cb) {
+             cb.enable(false);
+          }
+       });
+       $('#LocationIds').data('kendoMultiSelect').enable(false);
+       $('.umsCanBeDragged').removeClass('umsDraggable').addClass('text-muted');
+       $('#create_validationparameter_@Model.ID').hide();
+       $('#lblHelpMoveRows').hide();
+       destroyValParamGridSortable();
+       $('#validation-group-parameters_@Model.ID .k-toolbar.k-grid-toolbar :input').attr('disabled', false);
+    }
+
+    function setWindowMode() {
+       //customize according model key
+       if ('@Model.ID' !== '0') {
+            actualmode = 1;
+
+         } else {
+            actualmode = 2;
+         }
+    }
+
+    function setMode() {
+       if (actualmode === 2)
+          changeToEditMode();
+       else
+          changeToViewMode();
+    }
+
+
+    $(document).ready(function() {
+       umsHideAllEditSaveButton();
+       setWindowMode();
+       //set up condition to know if it's a new item
+       setMode();
+       $('#btnEdit' + '@postId').off('click').on('click',
+          function() {
+             if (consolelog) console.log("btnEdit called");
+
+             changeToEditMode();
+          });
+       $('#btnCancel' + '@postId').off('click').on('click',
+          function() {
+             if (consolelog) console.log("btnCancel called");
+             if ('@Model.ID' == '0') {
+                dialog.close();
+                return;
+             }
+             displayDetailDialog(@Model.ID);
+             changeToViewMode();
+          });
+       $('#btnSave' + '@postId').off('click').on('click',
+          function() {
+             if (consolelog) console.log("btnSave called");
+             actionSave();
+          });
+       $('#btnDelete').off('click').on('click',
+          function() {
+             if (consolelog) console.log("btnDelete called");
+             umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteValidationGroup, cancelDeleteValidGroup);
+          });
+       $('#btnClose' + '@postId').off('click').on('click',
+          function() {
+             if (consolelog) console.log("btnClose called");
+             dialog.close();
+          });
+
+       $('#btnCopy').off('click').on('click',
+          function() {
+             //reset ID
+             $("#ID").val("0");
+             changeToEditMode();
+          });
+       //Add sortable functions to grid
+
+    });
+
+    function initValParamGridSortable() {
+       var grid = $('#validation-group-parameters_@Model.ID').data('kendoGrid');
+       if (!grid.table.data("kendoSortable")) {
+          grid.table.kendoSortable({
+             filter: ">tbody >tr",
+             hint: function(element) { // Customize the hint.
+                var table = $('<table style="width: 600px;" class="k-grid k-widget"></table>'),
+                   hint;
+
+                table.append(element.clone()); // Append the dragged element.
+                table.css("opacity", 0.7);
+
+                return table; // Return the hint element.
+             },
+             cursor: "move",
+             placeholder: function(element) {
+                return $('<tr colspan="4" class="placeholder"></tr>');
+             },
+             change: function(e) {
+                //debugger;
+                oldIndex = e.oldIndex,
+                newIndex = e.newIndex,
+                data = grid.dataSource.data(),
+                view = grid.dataSource.view(),
+                dataItem = grid.dataSource.getByUid(e.item.data("uid"));
+                //grid.dataSource.remove(dataItem);
+                //grid.dataSource.insert(newIndex, dataItem);
+                console.log(oldIndex,newIndex)
+                //dataItem.Index = newIndex - 1;
+                dataItem.dirty = true;
+                const gap = oldIndex - newIndex;
+                const oldId = dataItem.Index;
+
+                //find the subgroup
+                var list = null;
+
+                for (var k = 0; k < view.length; k++) {
+                   if (view[k].value == dataItem.SectionIndex &&
+                      view[k].items[0].SectionID == dataItem.SectionID
+                         ) {
+                      list = view[k].items;
+                   }
+                }
+                //debugger;
+
+                //find local Item
+                let position = -1;
+                for (var i = 0; i < list.length; i++) {
+                   if (list[i].Index == oldId) {
+                      position = i;
+                   }
+                }
+
+                // Shift the order of the records.
+                if (gap < 0) {
+                   console.log(list.map(r => { return { ParameterPrint: r.ParameterPrint, Index: r.Index } }))
+                   for (var i = 1; i <= -gap; i++) {
+                      try {
+                         //console.log(list[i])
+                         list[i + position].Index = list[i + position -1].Index  ;
+                         list[i + position].dirty = true;
+                      } catch (e) {
+
+                      }
+                   }
+                   console.log(list.map(r => { return { ParameterPrint: r.ParameterPrint, Index: r.Index } }))
+                   if ((-gap + position + 1)<list.length) {
+                      list[position].Index = list[-gap + position + 1].Index - 1;
+                   } else {
+                      list[position].Index= list[list.length-1].Index+1
+                   }
+
+                } else {
+                   console.log(list.map(r => { return { ParameterPrint: r.ParameterPrint, Index: r.Index } }))
+                   for (var i = 1; i <= gap; i++) {
+                      try {
+                         console.log(list[i])
+                         list[position - i].Index = list[position -i + 1].Index;
+                         list[position - i].dirty = true;
+                      } catch (e) {
+
+                      }
+                   }
+                   console.log(list.map(r => { return { ParameterPrint: r.ParameterPrint, Index: r.Index } }))
+                   if (gap<list.length) {
+                      list[position].Index = list[position - gap + 1].Index - 1;
+                   } else {
+                      list[position].Index = 0;
+                   }
+
+                }
+                //debugger;
+                list = list.sort((a, b) => a.Index - b.Index)
+                for (var i = 0; i < list.length; i++) {
+                   list[i].Index = i;
+                }
+                grid.dataSource.sync();
+             }
+          });
+       }
+
+
+    }
+
+    function destroyValParamGridSortable() {
+       var grid = $('#validation-group-parameters_@Model.ID').data('kendoGrid');
+        if (grid.table.data("kendoSortable")) {
+            grid.table.data("kendoSortable").destroy();
+        }
+    }
+
+
+
+   function actionSave() {
+      //debugger;
+         if (OnValidation()) {
+            //debugger;
+            //Serialize all validationparameters
+            var vpGrid = $('#validation-group-parameters_@Model.ID').data('kendoGrid');
+            //materialize indexes
+            let list = vpGrid.dataSource.data().sort((a, b) => {
+               if (a.SectionIndex === b.SectionIndex) {
+                  return a.Index - b.Index
+               }
+               return a.SectionIndex > b.SectionIndex ? 1 : -1;
+
+            })
+            for (var i = 0; i < list.length; i++) {
+               list[i].Index = i;
+            }
+            $('#ValidationParameterSerialized').val(JSON.stringify(list));
+            //uncomment for production
+            $("#@formId").submit();
+         }
+   }
+
+
+   function OnValidation() {
+         var retValue = false;
+         var validator = $("#@formId").kendoValidator().data("kendoValidator");
+         if (!validator.validate()) {
+            try {
+               var errors = validator.errors();
+               $("#errors").html(buildValidationMessage(errors));
+            } catch (e) {
+               $("#errors").html(e);
+            }
+         } else {
+            $("#errors").html("");
+            retValue = true;
+         }
+
+         return retValue;
+    }
+
+    function OnSuccess(response) {
+       if (response.success) {
+          var vpGrid = $('#validationGroupsGrid').data('kendoGrid');
+          vpGrid.dataSource.read();
+          $('#vgEditWindow').data('kendoWindow').close();
+       } else {
+          window.umsAlert("Error occured", response.errorMessage, 400, 300);
+       }
+    }
+
+    function OnFailure(response) {
+       //debugger;
+       window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+    function toolBarShowButtonByClass(clas) {
+
+       var tb = $("#toolbarDetailValidationGroup").data("kendoToolBar");
+       tb.umsShowButtonByClass(clas);
+    }
+
+    function umsHideAllEditSaveButton() {
+       var tb = $("#toolbarDetailValidationGroup").data("kendoToolBar");
+       tb.umsHideAllEditSaveButton();
+    }
+
+
+    function deleteValidationGroup() {
+       $.ajax({
+          url: '@Url.Action("DeleteValidationGroup", "OnlineValidation")',
+          type: 'POST',
+          data: { vgID: '@Model.ID' }
+
+       }).done(function(data) {
+          if (!data.success) {
+             window.umsAlert("Error occured", data.errorMessage, 400, 300);
+          }
+          var vpGrid = $('#validationGroupsGrid').data('kendoGrid');
+          vpGrid.dataSource.read();
+          $('#vgEditWindow').data('kendoWindow').close();
+       }).fail(function(response) {
+          umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+       });
+
+    }
+
+    function cancelDeleteValidGroup() {
+
+    }
+
+</script>

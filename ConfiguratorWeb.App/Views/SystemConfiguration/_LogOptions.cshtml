@@ -1,0 +1,329 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@model ConfiguratorWeb.App.Models.ReportMaster.LogOptionsViewModel
+
+@{
+   Layout = null;
+   string keyID = new Guid().ToString();
+   string keyEmptyValueID = "0";
+   string formId = "form_" + keyID;
+}
+
+   <div class="h-100 ">
+      <div class="card h-90 m-0 p-0  text-left" id="divItemDetail">
+      <form id="@formId"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+            data-ajax="true" data-ajax-method="POST" data-ajax-loading="progressl">
+
+
+         <div class="row mt-2">
+            <div class="col-4">
+               <div class="row">
+                  <div class="col-4">
+                     <label>@DicSvc.XLateHtml("Log to File")</label>
+                  </div>
+                  <div class="col-8">
+                     @Html.Kendo().CheckBox().Name("LogToFile").Label("")
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-4">
+                     <label>@DicSvc.XLateHtml("Log to DB")</label>
+                  </div>
+                  <div class="col-8">
+                     @Html.Kendo().CheckBox().Name("LogToDB").Label("")
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-4">
+                     <label>@DicSvc.XLateHtml("Telnet Port")</label>
+                  </div>
+                  <div class="col-8">
+                     @(Html.Kendo().NumericTextBox<int>().Name("TelnetPort").Min(0).Max(100).Format("#").Value(0))
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-4">
+                     <label>@DicSvc.XLateHtml("Log Level")</label>
+                  </div>
+                  <div class="col-8">
+                     @(Html.Kendo().DropDownList().Name("LogLevel")
+                        .Items(t =>
+                        {
+                           t.Add().Text("Always");
+                           t.Add().Text("Standard");
+                           t.Add().Text("Debug");
+                        })
+                     )
+                  </div>
+               </div>
+            </div>
+            <div class="col-8">
+               <div class="row">
+                  <div class="card w-100">
+                     <div class="row mb-4 ml-0 pl-0 ums-header">Email</div>
+
+                     <div class="row">
+
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("Subject")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="MailSubject" class="k-input k-textbox " />
+                        </div>
+                     </div>
+                     <div class="row">
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("From Email")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="MailFromAddress" class="k-input k-textbox " />
+                        </div>
+                     </div>
+                     <div class="row">
+
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("From Name")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="MailFromName" class="k-input k-textbox " />
+                        </div>
+                     </div>
+                     <div class="row">
+
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("Codes")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="Codes" class="k-input k-textbox " />
+                        </div>
+                     </div>
+                     <div class="row">
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("Recipients")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="emailDestinations" class="k-input k-textbox " />
+                        </div>
+                     </div>
+                     <div class="m-3 border">
+                        <div class="row mb-4 ml-0 pl-0 ums-header">Mail Server</div>
+
+                        <div class="row">
+                           <div class="col-3 pl-0">
+                              <label>@DicSvc.XLateHtml("Hostname")</label>
+                           </div>
+                           <div class="col-8 p-0">
+                              <input id="SMTPHost" class="k-input k-textbox " />
+                           </div>
+                        </div>
+                        <div class="row">
+                           <div class="col-3 pl-0">
+                              <label>@DicSvc.XLateHtml("Port")</label>
+                           </div>
+                           <div class="col-3 p-0">
+                              @(Html.Kendo().NumericTextBox<int>().Name("SMTPPort").Min(0).Max(100).Format("#").Value(0))
+                           </div>
+                        @*</div>
+                        <div class="row">*@
+                           <div class="col-3 pl-0">
+                              <label>@DicSvc.XLateHtml("Use SSL")</label>
+                           </div>
+                           <div class="col-3 p-0">
+                              @Html.Kendo().CheckBox().Name("SMTPUseSSL").Label("")
+                           </div>
+                        </div>
+                        <div class="row">
+                           <div class="col-3 pl-0">
+                              <label>@DicSvc.XLateHtml("Username")</label>
+                           </div>
+                           <div class="col-8 p-0">
+                              <input id="SMTPUsername" class="k-input k-textbox " />
+                           </div>
+                        </div>
+                        <div class="row">
+                           <div class="col-3 pl-0">
+                              <label>@DicSvc.XLateHtml("Password")</label>
+                           </div>
+                           <div class="col-8 p-0">
+                              <input id="SMTPPassword" class="k-input k-textbox " />
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+
+      </form>
+
+   </div>
+   <div class="card-footer h-10 p-0 mx-0 mt-3 border-0 bg-white">
+
+      @{
+         string postId = ""; //use in case of multi toolbar
+      }
+      @(Html.Kendo().ToolBar()
+            .Name("toolbarLogOptions")
+            .UmsDefaultErrors(DicSvc, "errors")
+            .Items(items =>
+            {
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Generate XML")).Id("btnRmcXml")   .UmsHtmlButtonSave();
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnRmcCancel")      .UmsHtmlButtonCancel();
+            })
+            .UmsDefaultSettings(DicSvc, postId)
+      )
+   </div>
+</div>
+
+<script type="text/javascript">
+   var dataSourceLO = @Html.Raw(Json.Serialize(Model));
+
+   $(document).ready(function() {
+      viewDetail();
+      $('#btnRmcCancel').off('click').on('click', function () {
+         //debugger;
+         var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+         objRepoDialog.close();
+      });
+      $('#btnRmcXml').off('click').on('click', function () {
+         //debugger;
+         //saveMenuChanges();
+         var xml = ReportJsonToXML();
+         if (!validateRmcXml(xml)) {
+            return;
+         }
+         if (editor && !$('#aceEditor').hasClass('d-none')) {
+            editor.getSession().setValue(xml);
+            var textarea = $(textareaIdValueModelGuid).hide();
+            textarea.val(editor.getSession().getValue());
+            
+         } else {
+            var textarea = $(textareaIdValueModelGuid);
+            textarea.val(xml);
+         }
+         var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+         objRepoDialog.close();
+      });
+   });
+   function toFirstUpper(target) {
+      var string = target.toString();
+      return string.charAt(0).toUpperCase() + string.substring(1);
+   }
+
+   
+   function viewDetail() {
+      //if (!element.Name) {
+      //   debugger;
+      //}
+      //debugger;
+      var item = dataSourceLO;
+      if (!item ) {
+         item = [];
+         item.LogToFile =  "False"    ;
+         item.LogToDB =  "False"       ;
+         item.TelnetPort =  "0"       ;
+         item.LogLevel =  "Standard"  ;
+         item.MailSubject =  ""       ;
+         item.MailFromAddress =  ""   ;
+         item.MailFromName =  ""      ;
+         item.CodeToLog = []          ;
+         item.CodeToLog.Code =  []    ;
+         item.EMailDestinations =  [] ;
+         item.EMailDestinations.Destination =  []    ;
+         item.MailServer = []          ;
+         item.MailServer.SMTPHost =  ""       ;
+         item.MailServer.SMTPPort =  "0"         ;
+         item.MailServer.SMTPUseSSL =  "False"   ;
+         item.MailServer.SMTPUsername =  ""      ;
+         item.MailServer.SMTPPassword =  ""      ;
+      }
+
+      //$('#menuOriginalName').val(item.Name);
+
+      document.getElementById("LogToFile").checked = (item.LogToFile && item.LogToFile == "True");
+      document.getElementById("LogToDB").checked = (item.LogToDB && item.LogToDB == "True");
+      $('#TelnetPort').getKendoNumericTextBox().value(item.TelnetPort);
+      $('#LogLevel').getKendoDropDownList().value(item.LogLevel);
+
+      $('#MailSubject').val(item.MailSubject);
+      $('#MailFromAddress').val(item.MailFromAddress);
+      $('#MailFromName').val(item.MailFromName);
+      if (item.CodeToLog && dataSourceLO.CodeToLog.Code) {
+         $('#Codes').val(dataSourceLO.CodeToLog.Code.join(";"));
+      }
+      if (item.EMailDestinations && dataSourceLO.EMailDestinations.Destination) {
+         $('#emailDestinations').val(dataSourceLO.EMailDestinations.Destination.join(";"));
+      }
+      if (item.MailServer) {
+         var ms = item.MailServer;
+         document.getElementById("SMTPUseSSL").checked = (ms.SMTPUseSSL && ms.SMTPUseSSL=="True");
+         $('#SMTPHost').val(ms.SMTPHost);
+         $('#SMTPPort').getKendoNumericTextBox().value(ms.SMTPPort);
+         $('#SMTPUsername').val(ms.SMTPUsername);
+         $('#SMTPPassword').val(ms.SMTPPassword);
+      }
+    
+   }
+   function ReportJsonToXML() {
+      //debugger;
+      var xml = '<?xml version="1.0"?>\r\n<LogOptions>';
+
+      xml += kendo.format( "\r\n\t<LogToFile>{0}</LogToFile>",document.getElementById("LogToFile").checked?"True":"False");
+      xml += kendo.format( "\r\n\t<LogToDB>{0}</LogToDB>",document.getElementById("LogToDB").checked?"True":"False");
+      xml += kendo.format( "\r\n\t<TelnetPort>{0}</TelnetPort>",$('#TelnetPort').getKendoNumericTextBox().value());
+      xml += kendo.format( "\r\n\t<LogLevel>{0}</LogLevel>",$('#LogLevel').getKendoDropDownList().value());
+      
+      xml += "\r\n\t<MailServer>";
+      xml += kendo.format( "\r\n\t\t<SMTPHost>{0}</SMTPHost>",$('#SMTPHost').val());
+      xml += kendo.format( "\r\n\t\t<SMTPPort>{0}</SMTPPort>",$('#SMTPPort').getKendoNumericTextBox().value());
+      xml += kendo.format( "\r\n\t\t<SMTPUseSSL>{0}</SMTPUseSSL>",document.getElementById("SMTPUseSSL").checked?"True":"False");
+      xml += kendo.format( "\r\n\t\t<SMTPUsername>{0}</SMTPUsername>",$("#SMTPUsername").val());
+      xml += kendo.format( "\r\n\t\t<SMTPPassword>{0}</SMTPPassword>",$("#SMTPPassword").val());
+      xml += "\r\n\t</MailServer>";
+
+      xml += kendo.format( "\r\n\t<MailSubject>{0}</MailSubject>",$('#MailSubject').val());
+      xml += kendo.format( "\r\n\t<MailFromAddress>{0}</MailFromAddress>",$('#MailFromAddress').val());
+      xml += kendo.format( "\r\n\t<MailFromName>{0}</MailFromName>",$('#MailFromName').val());
+      var codes = $('#Codes').val().split(';');
+      if ($('#Codes').val().trim().length>0 && codes && codes.length>0) {
+         xml += "\r\n\t<CodeToLog>";
+      
+         for (var i = 0; i < codes.length; i++) {
+            xml += kendo.format( "\r\n\t\t<code>{0}</code>",codes[i]);
+         }
+         xml += "\r\n\t</CodeToLog>";
+      }
+      
+      
+      
+      var destinations = $('#emailDestinations').val().split(';');
+      if ($('#emailDestinations').val().trim().length>0 && destinations && destinations.length>0) {
+         xml += "\r\n\t<EMailDestinations>";
+         for (var i = 0; i < codes.length; i++) {
+            xml += kendo.format( "\r\n\t\t<destination>{0}</destination>",destinations[i]);
+         }
+         xml += "\r\n\t</EMailDestinations>";
+      }
+      
+      
+      xml += '\r\n</LogOptions>';
+      var xml = xml.replace(/<\/?[0-9]{1,}>/g, '');
+
+      return xml;
+   }
+   function validateRmcXml(text2validate) {
+      var xml = text2validate;
+      var oParser = new DOMParser();
+      var oDOM = oParser.parseFromString(xml, "text/xml");
+      if (oDOM.getElementsByTagName('parsererror').length > 0) {
+        
+         umsAlert("Log Options XML", (new XMLSerializer()).serializeToString(oDOM));
+         return false;
+      } else {
+
+         return true;
+      }
+   }
+   </script>

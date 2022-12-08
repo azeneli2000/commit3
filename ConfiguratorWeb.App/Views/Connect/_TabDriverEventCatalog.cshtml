@@ -1,0 +1,423 @@
+﻿@model ConfiguratorWeb.App.Models.DriverViewModel
+@using System.Collections
+@using ConfiguratorWeb.App.Controllers
+@using Digistat.FrameworkStd.Interfaces;
+@using Kendo.Mvc.UI.Fluent
+@inject IDigistatEnvironmentService EnvSvc
+@{
+    Layout = null;
+    string gridEventCatalogName = "eventcatalog-grid_" + Model.Id;
+    int pageSizeEC = 100;
+}
+
+<style>
+
+   #importEventContainer {
+      border-left: solid 1px #e3e3e4;
+      border-top: solid 1px #e3e3e4;
+      border-right: solid 1px #e3e3e4;
+      padding-left: 5px;
+   }
+   
+   #importEventContainer .k-widget.k-upload.k-header ,
+   
+   #ecImport .k-upload{
+      display: inline-block;
+      border-color: transparent;
+      background-color: transparent !important;
+   }
+   #ecImport .k-upload .k-dropzone {
+
+      background-color: transparent;
+   }
+   #ecImport .k-dropzone-hint {
+      display: none;
+   }
+   input#EventsCatalog {
+      opacity: 0;
+   }
+   .k-upload .k-multiple-files-wrapper .k-file-name-size-wrapper {
+      /*margin-bottom: 1px;*/
+   }
+   ul.k-upload-files {
+      /*max-height: 250px;
+      overflow: auto;
+      height: 250px;*/
+   }
+   .k-upload .k-multiple-files-wrapper .k-file-information {
+      /*font-weight: bold;*/
+   }
+</style>
+
+@if (!EnvSvc.PreventDeviceEventRemapping)
+{
+   <script type="text/javascript">
+      var pageSizeEC = 0;
+      function onDataEventsBound(e) {
+         showHideColumns();
+
+      }
+      function onDataEventsBinding(e) {
+         recordEC = this.dataSource.pageSize() - @pageSizeEC - pageSizeEC;
+         pageSizeEC = 0;
+      }
+
+
+      $('#remap-cols').click(function (e) {
+         showHideColumns();
+      });
+
+      function showHideColumns() {
+
+         var grid = $("#@gridEventCatalogName").data("kendoGrid");
+         if ($('#remap-cols').is(':checked')) {
+
+            grid.showColumn("TextENG");
+            grid.showColumn("TextENGShort");
+            grid.showColumn("TextUser");
+            grid.showColumn("TextUserShort");
+            grid.showColumn("DriverEventLevel");
+            grid.showColumn("DriverEventClass");
+
+         } else {
+            grid.hideColumn("TextENG");
+            grid.hideColumn("TextENGShort");
+            grid.hideColumn("TextUser");
+            grid.hideColumn("TextUserShort");
+            grid.hideColumn("DriverEventLevel");
+            grid.hideColumn("DriverEventClass");
+         }
+      }
+
+    </script>
+}
+else
+{
+    <script type="text/javascript">
+        function onDataEventsBound(e) {
+        }
+        function onDataEventsBinding(e) {
+        }
+    </script>
+}
+
+<script type="text/javascript">
+
+   var recordEC = 0;
+   function getRowEcNum() {
+      return ++recordEC;
+   }
+   function getEventsCatalogGridRowIndex(data) {
+      return getGridRowIndex("#eventcatalog-grid_@Model.Id", data);
+   }
+
+   function onChangeDriverEventLevel(e) {
+      $(e.sender.element.parent().parent().parent()[0]).find("input[name$='.NewLevel']").attr("value", this.dataItem(e.item).LevelId);
+      //changeToEditMode();
+   }
+
+   function onChangeDriverEventClass(e) {
+      $(e.sender.element.parent().parent().parent()[0]).find("input[name$='.NewClass']").attr("value", this.dataItem(e.item).ClassId);
+      //changeToEditMode();
+   }
+
+   function onEditEventCell(e) {
+      if ($('#@gridEventCatalogName').hasClass('readonly-mode')) {
+         e.preventDefault();
+      }
+   }
+
+   function onImportfileSelect(e) {
+      $("#errors").html('');
+      var fileInfo = e.files[0];
+      if (fileInfo.validationErrors) {
+         var errors = fileInfo.validationErrors;
+         $("#errors").html(buildValidationMessage(errors));
+         $(".k-upload-status.k-upload-status-total")
+            .html("<span class='mdi mdi-alert-octagon-outline text-danger'>" + errors + "</span>");
+         e.preventDefault();
+         return;
+      }
+   }
+
+   function onImportFileError(e) {
+      $("#errors").html('');
+      debugger;
+      var errMsg = e.XMLHttpRequest.statusText;
+
+      var idx = e.XMLHttpRequest.responseText.indexOf('<div class="titleerror">');
+      
+      if (idx && idx >-1) {
+         var len1 = '<div class="titleerror">'.length;
+         idx += len1;
+         errMsg = e.XMLHttpRequest.responseText.substr(idx, e.XMLHttpRequest.responseText.indexOf('</div>', idx) - idx);
+      }
+  
+      $("#errors").html(buildValidationMessage([errMsg]));
+
+      $(".k-upload-status.k-upload-status-total").html("<span class='mdi mdi-alert-octagon-outline text-danger'>" + errMsg + "</span>");
+      e.preventDefault();
+   }
+
+   function onImportSuccess(e) {
+      
+      //Received invalid data
+      if (e.response.EventCatalog === undefined || e.response.EventCatalog === null)
+      {
+         var errors = ["@DicSvc.XLate("Unable to extract event catalog from selected file")"];
+         $("#errors").html(buildValidationMessage(errors));
+         $(".k-upload-status.k-upload-status-total")
+            .html("<span class='mdi mdi-alert-octagon-outline text-danger'>" + errors + "</span>");
+         return;
+      }
+
+      try {
+
+         var grid = $("#@gridEventCatalogName").data("kendoGrid");
+         var data = grid.dataSource.data();
+
+         kendo.ui.progress(grid.element, true);
+
+         var found = 0;
+         //recordEC = 0;
+         //grid.dataSource.pageSize(pageSizeEC);
+         //debugger;
+         pageSizeEC = grid.dataSource.pageSize() - @pageSizeEC;
+         $.each(e.response.EventCatalog, function(index, value) {
+            var currentReceivedEvent = value;
+
+            for (var i = 0; i < data.length; i++) {
+               var currentGridEvent = data[i];
+
+               // Received event not matching with current grid row
+               if (currentReceivedEvent.Code !== currentGridEvent.Code ||
+                  currentReceivedEvent.Level !== currentGridEvent.Level ||
+                  currentReceivedEvent.Class !== currentGridEvent.Class) {
+                  continue;
+               }
+
+               found++;
+
+               if (!isNaN(currentReceivedEvent.NewLevel)) {
+                  currentGridEvent.set('DriverEventLevel', currentReceivedEvent.DriverEventLevel);
+                  currentGridEvent.set('NewLevel', currentReceivedEvent.NewLevel);
+               }
+
+               if (!isNaN(currentReceivedEvent.NewClass)) {
+                  currentGridEvent.set('DriverEventClass', currentReceivedEvent.DriverEventClass);
+                  currentGridEvent.set('NewClass', currentReceivedEvent.NewClass);
+               }
+
+               currentGridEvent.set('TextENG', currentReceivedEvent.TextENG);
+               currentGridEvent.set('TextENGShort', currentReceivedEvent.TextENGShort);
+               currentGridEvent.set('TextUser', currentReceivedEvent.TextUser);
+               currentGridEvent.set('TextUserShort', currentReceivedEvent.TextUserShort);
+
+            }
+         });
+         grid.saveChanges();
+         if (found < e.response.EventCatalog.length) {
+            var errors = ["@DicSvc.XLate("File contains events not present in current Event Catalog")"];
+            $("#errors").html(buildValidationMessage(errors));
+         }
+         
+      } catch (ex) {
+         var errors = ["@DicSvc.XLate("Error during event catalog update: ")" + ex.message];
+         $("#errors").html(buildValidationMessage(errors));
+         $(".k-upload-status.k-upload-status-total")
+            .html("<span class='mdi mdi-alert-octagon-outline text-danger'>" + errors + "</span>");
+      }
+      
+      kendo.ui.progress(grid.element, false);
+   }
+   function EventClassFilter(element) {
+      element.kendoDropDownList({
+         dataTextField: "ClassName",
+         dataValueField: "ClassId",
+         dataSource: {
+            transport: {
+               read: "@Url.Action("GetDriverEventClassList", "Generic")"
+            }
+         },
+         optionLabel: "--Select Value--"
+      });
+   }
+   function EventLevelFilter(element) {
+      element.kendoDropDownList({
+         dataTextField: "LevelName",
+         dataValueField: "LevelId",
+         dataSource: {
+            transport: {
+               read: "@Url.Action("GetDriverEventLevelList", "Generic")"
+            }
+         },
+         optionLabel: "--Select Value--"
+      });
+   }
+   //.DataSource(source =>
+   //{
+   //   source.Read(read =>
+   //   {
+   //      read.Action("GetDriverEventClassList", "Generic");
+   //   });
+                 
+   //})
+</script>
+
+@*<div style="height:360px;" id="eventcatalog-div_@Model.Id">*@
+<div class="card p-0 m-0 border-0" id="eventcatalog-div_@Model.Id">
+   <div id="importEventContainer">
+      <div class="row px-0" style="max-height: 27px;">
+         <input id="exportCatalog" class="btnKendo btn always-enabled" onclick="onExportEC()" style="line-height: 21px;margin-top: 5px;height: 31px !important; width: 130px" 
+                value="@DicSvc.XLateHtml("Export to Excel")"/>
+            
+         <div id="ecImport" style="margin-top: -3px;">
+            @(Html.Kendo().Upload()
+                 .Name("EventsCatalog")
+                 .HtmlAttributes(new { aria_label = "control-required", style = "max-height: 42px;", accept = ".xls,.xlsx" })
+                 .Multiple(false)
+                 .ShowFileList(false)
+                 .Validation(config => config.AllowedExtensions(new[] { ".xls", ".xlsx" }))
+                 .Messages(messages => messages
+                    .Select(DicSvc.XLate("Import"))
+                    .HeaderStatusUploading(DicSvc.XLate("Reading file") + ".... ")
+                    .HeaderStatusUploaded(DicSvc.XLate("Event catalog updated"))
+                    .StatusFailed(DicSvc.XLate("Unable to upload Event catalog"))
+                    .InvalidFileExtension(DicSvc.XLate("Only xls or xlsx files are allowed")))
+                 .Async(async => async
+                    .Save("ImportEventsCatalog", "Connect")
+                    .AutoUpload(true)
+                 )
+                 .Events(ev => ev.Success("onImportSuccess").Select("onImportfileSelect").Error("onImportFileError")).Enable(false))
+         </div>
+      </div>
+   </div>
+   <input asp-for="EventCatalogSerialize" type="hidden" />
+   <input asp-for="EventCatalogChanged" type="hidden"  />
+ 
+   @(Html.Kendo().Grid(Model.EventCatalog)
+        .Name(gridEventCatalogName)
+        .UmsDefaultSettings(DicSvc)
+        .HtmlAttributes(new { style = "height:325px;", @class = "readonly-mode" })
+        .Columns(columns =>
+        {
+           columns.Template("#= getRowEcNum() #").Width(45);
+           columns.Bound(p => p.Code)
+              .ClientTemplate("#= Code #" + "<input type='hidden' name='EventCatalog[#= getEventsCatalogGridRowIndex(data)#].Code' value='#= Code #' />");
+           columns.Bound(p => p.Level)
+              .Filterable(c=>c.UI("EventLevelFilter"))
+              .ClientTemplate("#= LevelDescription #" + "<input type='hidden' name='EventCatalog[#= getEventsCatalogGridRowIndex(data)#].Level' value='#= Level #' />");
+
+           columns.Bound(p => p.Class)
+              .Filterable(c=>c.UI("EventClassFilter"))
+              .ClientTemplate("#= ClassDescription #" + "<input type='hidden' name='EventCatalog[#= getEventsCatalogGridRowIndex(data)#].Class' value='#= Class #' />");
+           
+           //columns.Bound(p => p.Level)
+           //   .Title("LevelHidden")
+           //   .ClientTemplate("<input type='hidden' name='EventCatalog[#= getEventsCatalogGridRowIndex(data)#].Level' value='#= Level #' />")
+           //   .Hidden(true);
+           //columns.Bound(p => p.Class)
+           //   .Title("ClassHidden")
+           //   .ClientTemplate("<input type='hidden' name='EventCatalog[#= getEventsCatalogGridRowIndex(data)#].Class' value='#= Class #' />")
+           //   .Hidden(true);
+           columns.Bound(p => p.LongText)
+              .ClientTemplate("#= LongText #" + "<input type='hidden' name='EventCatalog[#= getEventsCatalogGridRowIndex(data)#].LongText' value='#= LongText #' />");
+           columns.Bound(p => p.ShortText)
+              .ClientTemplate("#= ShortText #" + "<input type='hidden' name='EventCatalog[#= getEventsCatalogGridRowIndex(data)#].ShortText' value='#= ShortText #' />");
+           columns.Bound(e => e.NewLevel)
+              .ClientTemplate("<input type='hidden' name='EventCatalog[#= getEventsCatalogGridRowIndex(data)#].NewLevel' data-field-id='NewLevel' value='#= NewLevel #' />")
+              .Hidden(true);
+           columns.Bound(e => e.DriverEventLevel)
+              .Title(DicSvc.XLate("New Level"))
+              .EditorTemplateName("DriverEventLevelDropDownEditor")
+              //.ClientTemplate("#=DriverEventLevel.LevelName == -1 ? '' : DriverEventLevel.LevelName #")
+              .ClientTemplate("#=DriverEventLevel.LevelName #")
+              .Filterable(false)
+              .Sortable(false)
+              .HtmlAttributes(new { @class = "col-editable" }).Hidden(EnvSvc.PreventDeviceEventRemapping);
+           columns.Bound(e => e.NewClass)
+              .Filterable(false)
+              .Sortable(false)
+              .ClientTemplate("<input type='hidden' name='EventCatalog[#= getEventsCatalogGridRowIndex(data)#].NewClass' data-field-id='NewClass' value='#= NewClass #' />")
+              .Hidden(true);
+           columns.Bound(e => e.DriverEventClass)
+              .Title(DicSvc.XLate("New Class"))
+              .Filterable(false)
+              .Sortable(false)
+              .EditorTemplateName("DriverEventClassDropDownEditor")
+              //.ClientTemplate("#=DriverEventClass.ClassName == -1 ? '' : DriverEventClass.ClassName #")
+              .ClientTemplate("#=DriverEventClass.ClassName #")
+              .HtmlAttributes(new { @class = "col-editable" }).Hidden(EnvSvc.PreventDeviceEventRemapping);
+           columns.Bound(p => p.TextENG)
+              .ClientTemplate("#= (TextENG == null) ? ' ' : TextENG #" + "<input type='hidden' name='EventCatalog[#= getEventsCatalogGridRowIndex(data)#].TextENG' value='#= (TextENG == null) ? ' ' : TextENG #'/>")
+              .HtmlAttributes(new { @class = "col-editable" })
+              .Hidden(true);
+           columns.Bound(p => p.TextENGShort)
+              .ClientTemplate("#= (TextENGShort == null) ? ' ' : TextENGShort #" + "<input type='hidden' name='EventCatalog[#= getEventsCatalogGridRowIndex(data)#].TextENGShort' value='#= (TextENGShort == null) ? ' ' : TextENGShort #' />")
+              .HtmlAttributes(new { @class = "col-editable" })
+              .Hidden(true);
+           columns.Bound(p => p.TextUser)
+              .ClientTemplate("#= (TextUser == null) ? ' ' : TextUser #" + "<input type='hidden' name='EventCatalog[#= getEventsCatalogGridRowIndex(data)#].TextUser' value='#= (TextENGShort == null) ? ' ' : TextUser #' />")
+              .HtmlAttributes(new { @class = "col-editable" })
+              .Hidden(true);
+           columns.Bound(p => p.TextUserShort)
+              .ClientTemplate("#= (TextUserShort == null) ? ' ' : TextUserShort #" + "<input type='hidden' name='EventCatalog[#= getEventsCatalogGridRowIndex(data)#].TextUserShort' value='#= (TextUserShort == null) ? ' ' : TextUserShort #' />")
+              .HtmlAttributes(new { @class = "col-editable" })
+              .Hidden(true);
+        })
+        .Editable(editable => editable.Mode(GridEditMode.InCell))
+        .Events(ev => ev.BeforeEdit("onEditEventCell").DataBound(EnvSvc.PreventDeviceEventRemapping ? "null" : "onDataEventsBound").DataBinding("onDataEventsBinding"))
+        .Scrollable(s => s.Endless(true).Enabled(true))
+        .Selectable()
+        .Pageable(p=>p.Numeric(false).PreviousNext(false).Messages(m=>m.Display("{2} items")))
+        .DataSource(dataSource => dataSource
+           .Ajax()
+           .Model(model =>
+           {
+              model.Id(o => o.Code);
+              model.Field(o => o.Code).Editable(false);
+              model.Field(o => o.Level).Editable(false);
+              model.Field(o => o.Class).Editable(false);
+              model.Field(o => o.LongText).Editable(false);
+              model.Field(o => o.ShortText).Editable(false);
+              model.Field(o => o.NewLevel);
+              model.Field(o => o.NewClass);
+              model.Field(o => o.TextENG);
+              model.Field(o => o.TextENGShort);
+              model.Field(o => o.TextUser);
+              model.Field(o => o.TextUserShort);
+           })
+           .PageSize(pageSizeEC)
+           .ServerOperation(false)
+           .Events(events => events.Error("error_handler_drivers")))
+        .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+        )
+
+    @if (!EnvSvc.PreventDeviceEventRemapping)
+    {
+        <div class="d-inline mt-2">
+            <div class="float-left ">
+                @Html.Kendo().CheckBox().Name("remap-cols").Label(DicSvc.XLate("Show events remapping columns")).HtmlAttributes(new { @class = "always-enabled" })
+            </div>
+            <div class="float-right align-bottom">
+                <span class="text-warning  mdi mdi-alert-outline mdi-18px"></span>
+                <span class="text-warning">@DicSvc.XLateHtml("Events remapping needs to be approved by hospital!")</span>
+            </div>
+        </div>
+    }
+</div>
+<script>
+   $(document).ready(function() {
+         if ("@Model.Id"=="") {
+            $("#exportCatalog").hide();
+         }
+
+      }
+   );
+   function onExportEC() {
+
+      window.location.href = "@Url.RouteUrl(new { Controller = "Connect", Action = "ExportEventCatalog" })/?id=" + '@Model.Id';
+   }
+   
+</script>
+

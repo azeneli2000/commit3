@@ -1,0 +1,385 @@
+﻿@using ConfiguratorWeb.App.Controllers
+@{
+    string gridName = "Jobs";
+    string popUpWindowName = "JobDetail";
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+
+</script>
+@(Html.Kendo().Window().Name("Resources")
+    .Title("Resources")
+    .Visible(false)
+    .Modal(true)
+    .Draggable(true)
+    .Width(500)
+    .Height(680)
+)
+<div class="card h-100 mt-1 mx-1 px-2 border-0" id="gridContainer">
+    <div id="@popUpWindowName"></div>
+    @(Html.Kendo().TreeList<Configurator.Std.Models.StockManagement.TreeListTemplate>()
+        .Name("treelist")
+        .Selectable(true)
+        .Scrollable(true)
+        .Events(events =>
+        {
+            events.Change("onSelect");
+        })
+        .Columns(columns =>
+        {
+            columns.Add().Field(f => f.Name).Width(250).Title("Block");
+        })
+        .DataSource(dataSource => dataSource
+        .Read(read => read.Action("ReadResourceCabinets", "StockManagement"))
+        .Model(m =>
+        {
+            m.Id(f => f.Id);
+            m.ParentId(f => f.ParentId);
+            m.Expanded(true);
+            m.Field(f => f.Name);
+        })
+        ).Height(450)
+        )
+
+</div>
+<div class="card h-100 mt-1 mx-1 px-2 border-0">
+
+    @{
+        await Html.RenderPartialAsync("StockRoom");
+        await Html.RenderPartialAsync("CabinetGroup");
+        await Html.RenderPartialAsync("Cabinet");
+        await Html.RenderPartialAsync("Location");
+        await Html.RenderPartialAsync("Position");
+        await Html.RenderPartialAsync("Toolbar");
+    }
+</div>
+
+
+<script type="text/javascript">
+
+
+
+
+    var type = '';
+    var dataItem;
+    function onSelect(e) {
+
+
+        showToolbarButtons();
+
+        var selected = this.select();
+        dataItem = this.dataItem(selected)
+        dataItem.Mode = 'Update';
+        type = dataItem.Type;
+        $('#hierarchy').text(type);
+        $('#newButton').html(changeButtonName(type));
+        dataItem.Mode = "Update"
+        if (dataItem.Type == 'Root') {
+            dataItem.Mode = 'Insert';
+            console.log(dataItem);
+            $("#StockRoomUpdateButton").show();
+            $("#StockRoomCancelButton").show();
+            $("#StockRoomForm")[0].reset();
+            loadResources("for");
+        }
+        if (dataItem.Type == 'StockRoom') {
+
+            var s = $("#treelist").data("kendoTreeList").dataSource._data[0];
+            console.log(s)
+            $("#treelist").data("kendoTreeList").dataSource._data[0]._loaded = false
+            console.log($("#treelist").data("kendoTreeList").dataSource._data[0]._loaded);
+
+            hideAllForms();
+            $("#StockRoomForm").show();
+            populateStockRoomForm();
+            disableFormControls('StockRoomForm');
+        }
+        if (dataItem.Type == 'CabinetGroup') {
+            hideAllForms();
+            $("#CabinetGroupForm").show();
+            populateCabinetGroupForm();
+            disableFormControls('CabinetGroupForm');
+        }
+        console.log(dataItem);
+
+        if (dataItem.Type == 'Cabinet') {
+            hideAllForms();
+            $("#CabinetForm").show();
+            populateCabinetForm();
+            disableFormControls('CabinetForm');
+
+        }
+        if (dataItem.Type == 'Location') {
+            hideAllForms();
+            $("#LocationForm").show();
+            populateLocationForm();
+            disableFormControls('LocationForm');
+
+        }
+        if (dataItem.Type == 'Position') {
+            debugger;
+
+            if (!dataItem.hasChildren) {
+                $.ajax({
+                    url: '@Url.Action("ReadResources", "StockManagement")',
+                    type: 'GET',
+                    data: {
+                        position: dataItem.PositionId
+                    }
+                }).done(function (data) {
+                    debugger
+                    if (data.length > 0) {
+                        console.log(data);
+                        for (var i = 0; i < data.length; i++) {
+                            $("#treelist").data("kendoTreeList").dataSource.pushCreate(data[i]);
+                        }
+                    } else {
+                        $('#errors').html('not saved. reason:' + data.errorMessage);
+                    }
+                }).fail(function (response) {
+                    console.log(response)
+                    umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+                });
+                var row = $("#treelist").data("kendoTreeList").content.find("tr[data-uid=" + dataItem.uid + "]");
+                $("#treelist").data("kendoTreeList").expand(row);
+            }
+            hideAllForms();
+            $("#PositionForm").show();
+            populatePositionForm();
+            disableFormControls('PositionForm');
+            $('#newButton').hide();
+
+        }
+    }
+
+    function changeButtonName(type) {
+        switch (type) {
+            case 'Root':
+                return 'New StockRoom';
+            case 'StockRoom':
+                return 'New Cabinet Group';
+            case 'CabinetGroup':
+                return 'New Cabinet';
+            case 'Cabinet':
+                return 'New Location';
+            case 'Location':
+                return 'New Position';
+        }
+    }
+    function hideAllForms() {
+        $("#CabinetGroupForm").hide();
+        $("#CabinetForm").hide();
+        $("#LocationForm").hide();
+        $("#StockRoomForm").hide();
+        $("#PositionForm").hide();
+    }
+
+    function onListSelect(e) {
+        debugger;
+
+        var index = e.sender.select().index();
+        var item = e.sender.dataSource.view()[index];
+        console.log(item.SrId)
+        var cpId = dataItem.PositionId
+        $.ajax({
+            url: '@Url.Action("AddResource", "StockManagement")',
+            type: 'POST',
+            data: {
+                srId: item.SrId,
+                cpId: cpId
+
+            }
+        }).done(function (data) {
+            debugger
+            if (data.success != undefined && data.success) {
+                console.log('resource  Added'); console.log(data);
+
+            } else {
+                $('#errors').html('not added. reason:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            console.log(response)
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+    }
+
+    function loadResources(searchKey) {
+        debugger;
+        $.ajax({
+            url: '@Url.Action("ReadResourcesForCabinetPositions", "StockManagement")',
+            type: 'GET',
+            data: {
+                srName: searchKey
+            }
+        }).done(async function (data) {
+            //debugger
+            if (data.length > 0) {
+                console.log(data);
+                // var promiseArray = [];
+                //var xx =    $("#treelist").data("kendoTreeList").dataSource;
+                // for (var j = 0; j < 5; /*data.length;*/ j++) {
+                //     console.log(j)
+
+                //     let p = new Promise((resolve) =>{
+
+
+                //         for (var i = 0; i < data[j].ResourceTreeListTemplates.length; i++) {
+                //         var newResorce = {
+                //             ResourceId: data[j].ResourceTreeListTemplates[i].ResourceId,
+                //             ResourceCode: data[j].ResourceTreeListTemplates[i].ResourceCode,
+                //             ResourceShortName: data[j].ResourceTreeListTemplates[i].ResourceShortName,
+                //             ResourceName: data[j].ResourceTreeListTemplates[i].ResourceName,
+                //             ResourceDescription: data[j].ResourceTreeListTemplates[i].ResourceDescription,
+                //             MainStore: data[j].ResourceTreeListTemplates[i].MainStore,
+                //             IdealQuantity: data[j].ResourceTreeListTemplates[i].IdealQuantity,
+                //             AlarmQuantity: data[j].ResourceTreeListTemplates[i].AlarmQuantity,
+                //             MinQuantity: data[j].ResourceTreeListTemplates[i].MinQuantity,
+                //             Id: data[j].ResourceTreeListTemplates[i].ResourceId,
+                //             Type: "Resource",
+                //             ParentId: data[j].PositionId,
+                //             Name: data[j].ResourceTreeListTemplates[i].ResourceName
+                //         }
+                //             console.time(`process`);
+                //      xx.pushCreate(newResorce);
+                //             console.timeEnd(`process`);
+                //     }
+
+                //     }
+                //         )
+                //         promiseArray.push(p);
+                // }
+                // await Promise.all(promiseArray);
+
+                debugger;
+                var promiseArray = [];
+                var done = false;
+                var startIndex = 0;
+                var chunksize = 10;
+                var dataCount = data.length;
+                var xx = $("#treelist").data("kendoTreeList").dataSource;
+
+                while (!done) {
+                    var test = function tt(startIndex, size) {
+                        return new Promise(function (resolve) {
+                            for (var j = startIndex; j < size; j++) {
+                                var newResorce = {
+                                    ResourceId: data[j].ResourceId,
+                                    ResourceCode: data[j].ResourceCode,
+                                    ResourceShortName: data[j].ResourceShortName,
+                                    ResourceName: data[j].ResourceName,
+                                    ResourceDescription: data[j].ResourceDescription,
+                                    MainStore: data[j].MainStore,
+                                    IdealQuantity: data[j].IdealQuantity,
+                                    AlarmQuantity: data[j].AlarmQuantity,
+                                    MinQuantity: data[j].MinQuantity,
+                                    Id: data[j].ResourceId,
+                                    Type: "Resource",
+                                    ParentId: data[j].PositionId,
+                                    Name: data[j].ResourceName
+                                }
+                                console.time(`process`);
+                                xx.pushCreate(newResorce);
+                                console.timeEnd(`process`);
+                                resolve(tt(startIndex, chunksize));
+                            }
+                        });
+                    }
+                    promiseArray.push(test(startIndex, chunksize));
+                    //await Promise.all(promiseArray);
+
+                    startIndex = startIndex + chunksize;
+                    if (startIndex > dataCount) {
+                        done = true;
+                    }
+
+                    console.log('chunk')
+                }
+                await Promise.all(promiseArray);
+                console.log('done')
+
+                //console.log(data);
+                //var promiseArray = [];
+                //var xx = $("#treelist").data("kendoTreeList").dataSource;
+                //for (var j = 0; j < 5; /*data.length;*/ j++) {
+                //    console.log(j)
+
+                //    let p = new Promise((resolve) => {
+
+
+                //        for (var i = 0; i < data.length; i++) {
+                //            var newResorce = {
+                //                ResourceId: data[j].ResourceId,
+                //                ResourceCode: data[j].ResourceCode,
+                //                ResourceShortName: data[j].ResourceShortName,
+                //                ResourceName: data[j].ResourceName,
+                //                ResourceDescription: data[j].ResourceDescription,
+                //                MainStore: data[j].MainStore,
+                //                IdealQuantity: data[j].IdealQuantity,
+                //                AlarmQuantity: data[j].AlarmQuantity,
+                //                MinQuantity: data[j].MinQuantity,
+                //                Id: data[j].ResourceId,
+                //                Type: "Resource",
+                //                ParentId: data[j].PositionId,
+                //                Name: data[j].ResourceName
+                //            }
+                //            console.time(`process`);
+                //            xx.pushCreate(newResorce);
+                //            console.timeEnd(`process`);
+                //        }
+
+                //    }
+                //    )
+                //    promiseArray.push(p);
+                //}
+                //await Promise.all(promiseArray);
+
+
+
+
+
+
+
+                //console.time(`process`);
+                //       console.log(data);
+                //var promiseArray = [];
+                //for (var j = 0; j < 5; /*data.length;*/ j++) {
+                //    console.log(j)
+
+
+
+
+                //        for (var i = 0; i < data[j].ResourceTreeListTemplates.length; i++) {
+                //        var newResorce = {
+                //            ResourceId: data[j].ResourceTreeListTemplates[i].ResourceId,
+                //            ResourceCode: data[j].ResourceTreeListTemplates[i].ResourceCode,
+                //            ResourceShortName: data[j].ResourceTreeListTemplates[i].ResourceShortName,
+                //            ResourceName: data[j].ResourceTreeListTemplates[i].ResourceName,
+                //            ResourceDescription: data[j].ResourceTreeListTemplates[i].ResourceDescription,
+                //            MainStore: data[j].ResourceTreeListTemplates[i].MainStore,
+                //            IdealQuantity: data[j].ResourceTreeListTemplates[i].IdealQuantity,
+                //            AlarmQuantity: data[j].ResourceTreeListTemplates[i].AlarmQuantity,
+                //            MinQuantity: data[j].ResourceTreeListTemplates[i].MinQuantity,
+                //            Id: data[j].ResourceTreeListTemplates[i].ResourceId,
+                //            Type: "Resource",
+                //            ParentId: data[j].PositionId,
+                //            Name: data[j].ResourceTreeListTemplates[i].ResourceName
+                //        }
+                //        $("#treelist").data("kendoTreeList").dataSource.pushCreate(newResorce);
+                //    }
+
+
+
+                //}
+                //console.timeEnd(`process`);
+
+            } else {
+                $('#errors').html('not saved. reason:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            console.log(response)
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+    }
+
+</script>

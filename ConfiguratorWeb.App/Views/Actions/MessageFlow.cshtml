@@ -1,0 +1,338 @@
+﻿@{
+   ViewBag.Title = "title";
+   Layout = "_Layout";
+}
+
+<style>
+   #log li {
+      overflow-x: auto;
+   }
+   ul {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+   }
+   .ums-value {
+      /*max-width: 300px;*/
+      white-space: pre-wrap;
+      min-width: 50px;
+      
+      max-height: 150px;
+      overflow: auto;
+      margin: auto;
+   }
+   .blink_me {
+      animation: blinker 1s linear infinite;
+   }
+   .blinking {
+      animation: opacity .5s ease-in-out infinite alternate;
+      opacity: 1;
+   }
+
+   @@keyframes opacity {
+      0% {
+         opacity: 1;
+      }
+
+      50% {
+         opacity: 0.5;
+      }
+
+      100% {
+         opacity: 0;
+      }
+   }
+</style>
+<div class="card h-100 m-1 p-2 border-0" id="gridContainer">
+   <div class="d-flex justify-content-start mb-2" style="align-items: baseline">
+      <div class="d-inline-flex align-baseline ml-2 input-group" style="width: 30rem">
+
+         <div class="input-group-prepend">
+            <span class="input-group-text">include only</span>
+         </div>
+         <input type="text" class="form-control" value="" id="includeFilter" />
+         <div class="input-group-append">
+            <button class="btn btn-outline-secondary" type="button" id="btnClearInclude" title="clear"><i class="mdi mdi-close"></i></button>
+         </div>
+      </div>
+      <div class="d-inline-flex align-baseline ml-2 input-group" style="width: 30rem">
+         <div class="input-group-prepend">
+            <span class="input-group-text">exclude message</span>
+         </div>
+         <input type="text" class="form-control" value="" id="excludeFilter" />
+         <div class="input-group-append">
+            <button class="btn btn-outline-secondary" type="button" id="btnClearExclude" title="clear"><i class="mdi mdi-close"></i></button>
+         </div>
+      </div>
+      <div class="d-inline-flex align-baseline ml-2 input-group" style="width: 30rem">
+         <div class="input-group-prepend">
+            <span class="input-group-text">Take</span>
+         </div>
+         <input type="number" class="form-control" value="60" id="maxSeconds" min="1" max="99999" style="max-width: 10ch;" />
+         <div class="input-group-append">
+            <span class="input-group-text">sec</span>
+            <button class="btn btn-outline-danger" type="button" id="btnStart" title="start record"><i class="mdi mdi-record"></i></button>
+            <span class="btn btn-danger " style="display: none" type="button" id="btnCounter" title="start record"><span id="btnCounterTxt" >60</span></span>
+            <button class="btn btn-outline-secondary disabled border-left-0" type="button" id="btnPause" title="pause record"><i class="mdi mdi-pause"></i></button>
+            <button class="btn btn-outline-secondary disabled" type="button" id="btnStop" title="stop record"><i class="mdi mdi-stop"></i></button>
+         </div>
+      </div>
+     
+      <div class="flex-fill"></div>
+      
+      <div class="ml-2 btn btn-outline-dark " onclick="clearLog();" title="Empty grid">Reset</div>
+      <div class="ml-2 btn btn-outline-success" onclick="exportXls();">Excel</div>
+   </div>
+   <div id="grid"></div>
+   @*<ul class="card list-group" id="log" style="min-height: 400px; max-height: 800px; overflow-y: auto; padding: 7px 19px; display: flex;"></ul>*@
+</div>
+
+<script type="text/javascript">
+   gridSizeOffset = 80;
+   var idInterval;
+   var secondRemaining=0;
+   var statusRecording = 0;//0-stop ; 1-recording; 2-pause
+
+   function gestTimer(p) {
+      
+      secondRemaining --;
+      $('#btnCounterTxt').text(secondRemaining);
+      if (secondRemaining <= 0) {
+         $('#btnStop').click();
+         return;
+      }
+      
+
+   }
+   function clearLog() {
+      //products = [];
+      products.length=0;
+      dataSource.read();
+   }
+
+   var products = [];
+   var dataSource = new kendo.data.DataSource({
+      data: products,
+      schema: {
+         model: {
+            fields: {
+               sourceApp: { type: "string" },
+               sourceHost: { type: "string" },
+               timeString: { type: "string" },
+               patientID: { type: "number" }
+               //UnitsInStock: { type: "number" },
+               //Discontinued: { type: "boolean" }
+            }
+         }
+      },
+      sort: { field: "timeString", dir: "desc" },
+      pageSize: 20
+   });
+   function exportXls(e) {
+      var grid = $("#grid").data("kendoGrid");
+      grid.saveAsExcel();
+   }
+   $(document).ready(function() {
+      
+      $("#grid").kendoGrid({
+         dataSource: dataSource,
+         autoBind: false,
+         height: 150,
+         scrollable: true,
+         sortable: false,
+         filterable: false,
+         excel: {
+            allPages: true
+         },
+         excelExport: exportGridWithTemplatesContent,
+         pageable: {
+            //input: true,
+            //numeric: false,
+            refresh: true
+         },
+         columns: [
+            { field: "timeString", title: "time", width: "95px" },
+            { field: "message", title: "message", width: "130px" },
+            { field: "patientID", title: "patient", width: "80px" },
+            { field: "sourceApp" , title: "Src. App", width: "95px"},
+            { field: "sourceHost", title: "Src. Host", width: "130px"},
+            { field: "destinationApp" , title: "Dest. App", width: "120px"},
+            { field: "destinationHost", title: "Dest. Dest", width: "125px"},
+            { field: "options" ,template:'#=fromOptions(data)#'}
+         ]
+      });
+      $(window).trigger('resize');
+      $('#btnStart').off('click').on('click',function(e) {
+         if (typeof (idInterval) != "undefined") {
+            clearInterval(idInterval);
+         }
+         secondRemaining = parseInt($('#maxSeconds').val());
+         if (isNaN(secondRemaining) || secondRemaining<=0) {
+            return;
+         }
+
+         $('#btnCounterTxt').text(secondRemaining);
+         idInterval = setInterval(function(e) {
+            gestTimer();
+         }, 1000);
+         statusRecording = 1;
+         $('#includeFilter').attr('readonly', true);
+         $('#excludeFilter').attr('readonly', true);
+         $('#maxSeconds').attr('readonly', true);
+         $('#btnClearInclude').prop('disabled', true);
+         $('#btnClearExclude').prop('disabled', true);
+         $('#btnClearExclude').prop('disabled', true);
+         $('#btnStart').hide();
+         $('#btnCounter').show();
+         $('#btnPause').toggleClass('disabled');
+         $('#btnStop').toggleClass('disabled');
+
+      });
+      $('#btnPause').off('click').on('click',function(e) {
+         if ($(this).hasClass('disabled')) {
+            return;
+         }
+
+         //debugger;
+         statusRecording = statusRecording === 1?2:1;
+         if (statusRecording === 1) {
+            idInterval = setInterval(function(e) {
+               gestTimer();
+            }, 1000);
+         } else {
+            if (idInterval !== 0) {
+               clearTimeout(idInterval);
+            }
+         }
+         $('#btnPause').children('.mdi').toggleClass('blinking');
+         $('#btnCounterTxt').toggleClass('blinking');
+         
+         //$('#btnStop').toggleClass('disabled');
+      });
+      $('#btnStop').off('click').on('click',function(e) {
+         if ($(this).hasClass('disabled')) {
+            return;
+         }
+         statusRecording = 0;
+         $('#btnStart').show();
+         $('#btnCounter').hide();
+         $('#btnPause').toggleClass('disabled');
+
+         $('#btnPause').children('.mdi').removeClass('blinking');
+         $('#btnCounterTxt').removeClass('blinking');
+
+         $('#btnStop').toggleClass('disabled');
+
+         $('#includeFilter').attr('readonly', false);
+         $('#excludeFilter').attr('readonly', false);
+         $('#maxSeconds').attr('readonly', false);
+         $('#btnClearInclude').prop('disabled', false);
+         $('#btnClearExclude').prop('disabled', false);
+         $('#btnClearExclude').prop('disabled', false);
+      });
+      $('#btnClearInclude').off('click').on('click',function(e) {
+         $('#includeFilter').val('');
+      });      
+      $('#btnClearExclude').off('click').on('click',function(e) {
+         $('#excludeFilter').val('');
+      });
+      
+   });
+   function fromOptions(data) {
+      var htmlMessage = '<div class="overflow-auto">';
+      data.options.forEach(function (it) {
+         if (it.value.length > 0) {
+            htmlMessage += String.format(tmpl, it.key, it.value);
+         }
+
+      });
+      htmlMessage += "</div>";
+      return htmlMessage;
+   }
+   var tmpl = "<div style='flex-flow:column;margin:0px;'><div style='display:inline-flex;margin-left:3px;'><div class='badge badge-secondary' style='max-height: 16px;'>{0}</div>:<xmp class='ums-value'>{1}</xmp></div></div>";
+
+   function AfterProcessUMSMessagePage(msg) {
+      if (statusRecording !== 1) {
+         return;
+      }
+      if ($('#includeFilter').val().length > 0 && msg.message.toUpperCase().indexOf($('#includeFilter').val()) < 0) {
+         return;
+      }
+      if ($('#excludeFilter').val().length > 0 && msg.message.toUpperCase().indexOf($('#excludeFilter').val()) >= 0) {
+         return;
+      }
+      msg.timeString = kendo.toString(new Date(), 'HH:mm:ss.fff');
+
+      products.push(msg);
+      //$("#grid").getKendoGrid().dataSource.fetch();
+      //$("#grid").getKendoGrid().refresh();
+      dataSource.read();
+
+      //console.log('done');
+      //var htmlMessage = "<div style='display:flex '>" + String.format(tmpl,"message", msg.message);
+      //htmlMessage += String.format(tmpl, "patient",msg.patientID);
+      //msg.options.forEach(function(it) {
+      //   if (it.value.length>0) {
+      //      htmlMessage += String.format(tmpl, it.key, it.value);
+      //   }
+         
+      //}) ;
+      //htmlMessage += "</div>";
+      
+      //$('#log').html("<li class='list-group-item '><div style='display:flex;flow:wrap '><div><b>" + kendo.toString(new Date(), 'HH:mm:ss.fff') + "</b></div>" + htmlMessage +"</div></li>"+ $('#log').html() );
+      
+   }
+
+   function UMSGetMsgOption(message, optionName) {
+      if (message.options != null) {
+         for (var index = 0; index < message.options.length; index++) {
+            if (message.options[index].key == optionName) {
+               return message.options[index].value;
+            }
+         }
+      }
+      return null;
+   }
+
+   function exportGridWithTemplatesContent(e){
+      var data = e.data;
+      var gridColumns = e.sender.columns;
+      var sheet = e.workbook.sheets[0];
+      var visibleGridColumns = [];
+      var columnTemplates = [];
+      var dataItem;
+      // Create element to generate templates in.
+      var elem = document.createElement('div');
+
+      // Get a list of visible columns
+      for (var i = 0; i < gridColumns.length; i++) {
+         if (!gridColumns[i].hidden) {
+            visibleGridColumns.push(gridColumns[i]);
+         }
+      }
+
+      // Create a collection of the column templates, together with the current column index
+      for (var i = 0; i < visibleGridColumns.length; i++) {
+         if (visibleGridColumns[i].template) {
+            columnTemplates.push({ cellIndex: i, template: kendo.template(visibleGridColumns[i].template) });
+         }
+      }
+
+      // Traverse all exported rows.
+      for (var i = 1; i < sheet.rows.length; i++) {
+         var row = sheet.rows[i];
+         // Traverse the column templates and apply them for each row at the stored column position.
+
+         // Get the data item corresponding to the current row.
+         var dataItem = data[i - 1];
+         for (var j = 0; j < columnTemplates.length; j++) {
+            var columnTemplate = columnTemplates[j];
+            // Generate the template content for the current cell.
+            elem.innerHTML = columnTemplate.template(dataItem);
+            if (row.cells[columnTemplate.cellIndex] != undefined)
+            // Output the text content of the templated cell into the exported cell.
+               row.cells[columnTemplate.cellIndex].value = elem.textContent || elem.innerText || "";
+         }
+      }
+   }
+</script>

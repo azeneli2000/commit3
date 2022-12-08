@@ -1,0 +1,220 @@
+﻿@{
+    string gridName = "validationGroupsGrid";
+    string popUpWindowName = "vgEditWindow";
+    string editItemTitle = "Edit Validation Group";
+    string newItemTitle = "Add new Validation Group";
+    
+}
+
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+</script>
+<script id="validationGroupMoveTemplate" type="text/x-kendo-template">
+    <button type="button" class="btn w-100" onclick='validationGroupMoveDialog(#=ID#);'><i class="mdi mdi-swap-vertical-bold"></i>@DicSvc.XLate("Move")</button>
+</script>
+<script>
+    var validationGroupMoveTemplate = kendo.template($('#validationGroupMoveTemplate').html());
+</script>
+<div id="moveValGroupDialog" style="display: none">
+    <input type="hidden" id="hidCurrValidationGroupSelected" />
+    <div class="row">
+        <button class="btn w-100 k-buttonLarge k-button k-button-solid-base" type="button" onclick="moveValGroupHandler(0)" style="place-content: space-between;"><i class="mdi mdi-arrow-up mdi-24px float-left"></i>@DicSvc.XLate("Move Up")</button>
+    </div>
+    <div class="row">
+        <button class="btn w-100 k-buttonLarge k-button k-button-solid-base" type="button" onclick="moveValGroupHandler(1)" style="place-content: space-between;"><i class="mdi mdi-arrow-down mdi-24px float-left"></i>@DicSvc.XLate("Move Down")</button>
+    </div>
+</div>
+<div id="@popUpWindowName"></div>
+
+<div class="h-100 text-center">
+    <div class="card h-100 m-1 p-2 text-left">
+
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.OnLine.ValidationGroupViewModel>()
+               .UmsDefaultToolbar("create_validationGroup", DicSvc.XLate("ADD NEW VALIDATION GROUP"), "displayDetailDialog();", DicSvc)
+               .Name(gridName)
+               .Navigatable(true)
+               .Columns(columns =>
+               {
+                   columns.Bound(e => e.ID).Visible(true).Title("ID").Width(80);
+                   columns.Bound(e => e.Name);
+                   columns.Bound(e => e.Index).Width(130);
+                   columns.Bound(e => e.IsGlobal).ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #=IsGlobal ? checked='checked' :'' # /><label class='k-checkbox-label'></label>")
+                                                  .HtmlAttributes(new { style = "text-align:center;" }).Title(DicSvc.XLate("Global")).Width(130);
+                   columns.Bound(e => e.LastUpdate).Title(DicSvc.XLate("Last Update")).Format("{0: dd/MM/yyyy HH:mm}").Width(180);
+
+
+                   columns.Bound(e => e.ID).Sortable(false).Filterable(false).ClientTemplate("#=validationGroupMoveTemplate(data)#").Title("&nbsp;").Width(100);
+               })
+               .UmsDefaultPager(DicSvc)
+               .UmsDefaultSettings(DicSvc)
+               .Events(ev => ev.DataBound("onDataBound"))
+               .DataSource(dataSource => dataSource
+               .Ajax()
+               .Model(model =>
+               {
+                   model.Id(o => o.ID);
+                   model.Field(o => o.Name).Editable(false);
+                   model.Field(o => o.Index).Editable(false);
+                   model.Field(o => o.IsGlobal).Editable(false);
+                   model.Field(o => o.IsDeleted).Editable(false);
+               }).PageSize(50)
+               .Read(read => read.Action("ReadValidationGroups", "OnlineValidation"))
+               )
+
+        )
+
+    </div>
+    <div id="divValidationGroupWindow"></div>
+</div>
+<script id="delete-confirmation" type="text/x-kendo-template">
+    @{ await Html.RenderPartialAsync("_DeleteDialogConfirmWindow"); }
+</script>
+
+<script id="detail" type="text/kendo-tmpl">
+    <div class="onlineValidationGroup-detail" data-uidparent="#=sd_ID#" style="width: 99%;display: inline-block;padding: 15px 0;"></div>
+</script>
+<script>
+   //debugger;
+
+   function setRowDoubleClick(grid) {
+      grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+         function (e) {
+            if (!$("#moveValGroupDialog").is(':visible')) {
+               var item = grid.dataItem($(e.target).closest('tr'));
+               onGridKeyEnter(item);
+            }
+
+         });
+   }
+   function onDataBound(e) {
+      var grid = this;
+      selectOnGrid();
+      setRowDoubleClick(grid);
+   }
+
+   var kndWnd;
+   var kndWndPosition;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                maxHeight: 590,
+                maxWidth: 1100,
+                height: 590,
+                title: '@DicSvc.XLate(editItemTitle)',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+
+        }
+    });
+
+     $(document).ready(function() {
+        if (!kndWndPosition) {
+            kndWndPosition = $("#moveValGroupDialog").kendoWindow({
+                width: "300px",
+                height: "190px",
+                modal: false,
+                visible:false,
+                title: '@DicSvc.XLate("Move selected Validation Group")',
+                close: function (e) {
+                    $('#hidCurrValidationGroupSelected').val('');
+                    $('#' + gridIdName).data("kendoGrid").setOptions({ selectable: true });
+                    $('#' + gridIdName).data("kendoGrid").clearSelection();
+                }
+            });
+
+        }
+    });
+
+   function onGridKeyEnter(item) {
+      displayDetailDialog(item.ID);
+   };
+    function displayDetailDialog(Id) {
+       kendo.ui.progress($('#@gridName'), true);
+        $.ajax({
+            url: '@Url.Action("GetValidationGroup", "OnlineValidation")',
+            type: 'GET',
+            data: { id: Id }
+        }).done(function (data) {
+            kndWnd.data("kendoWindow")
+                .content(data)
+                .center().open();
+        }).always(function() {
+           kendo.ui.progress($('#@gridName'), false);
+        });
+    }
+
+
+    function moveValidationGroup(vgID,direction) {
+        $.ajax({
+            url: '@Url.Action("MoveValidationGroup", "OnlineValidation")?valGroupID=' + vgID + '&direction=' + direction,
+            contentType: 'application/json; charset=utf-8',
+            type: 'GET'
+        }).done(function(data) {
+            var grid = $("#" + gridIdName).data("kendoGrid");
+            grid.setOptions({ selectable: false });
+            grid.dataSource.read();
+            grid.refresh();
+        });
+    }
+
+   function moveValGroupHandler(direction) {
+
+
+
+      var vgID = $('#hidCurrValidationGroupSelected').val();
+      moveValidationGroup(vgID, direction);
+   }
+
+   function validationGroupMoveDialog(vgID) {
+
+      var $hidTmp = $('#hidCurrValidationGroupSelected');
+      if ($hidTmp.val() == '') {
+         $('#hidCurrValidationGroupSelected').val(vgID);
+         selectOnGrid(vgID);
+
+         kndWndPosition.data("kendoWindow")
+            .center().open();
+      }
+      else {
+
+         clarLocSelection();
+      }
+   }
+
+   function selectOnGrid(id) {
+      var vgID = id;
+      if (!vgID || vgID == '') {
+         vgID = $('#hidCurrValidationGroupSelected').val();
+      }
+      if (vgID && vgID != '') {
+         var grid = $("#" + gridIdName).data("kendoGrid");
+         grid.items().each(function (idx) {
+            var data = grid.dataItem(this);
+            if (data.ID == vgID) {
+               //grid.select(grid.tbody.find("tr[data-uid='" + data.uid + "']"));
+               grid.tbody.find("tr[data-uid='" + data.uid + "']").addClass("k-state-selected");
+               return;
+            }
+         });
+         toggleItemDblSelection(false);
+      }
+      else {
+         toggleItemDblSelection(true);
+      }
+   }
+
+
+   function toggleItemDblSelection(tgl) {
+
+      var grid = $("#" + gridIdName).data("kendoGrid");
+      if (tgl) {
+         setRowDoubleClick(grid);
+      }
+      else {
+         grid.element.off('dblclick', 'tbody tr[data-uid]');
+      }
+   }
+</script>

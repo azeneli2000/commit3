@@ -1,0 +1,98 @@
+﻿@model ConfiguratorWeb.App.Models.DeviceDriverViewModel
+
+
+
+@{
+    Layout = null;
+}
+
+<script type="text/javascript">
+   
+   function getBedAssociationsGridRowIndex(data) {
+      return getGridRowIndex("#bedassociation-grid_@Model.Id", data);
+   }
+
+
+   function onCheckboxValuesChange(el) {
+      var state = $(el).is(':checked');
+      var elChkProperty = $(el).attr('relatedHidden');
+      $("[name='" + elChkProperty + "']").val(state);
+      checkWarning();
+   }
+
+   
+</script>
+@{
+    string gridEditName = "bedassociation-grid_" + Model.Id;
+}
+<script>
+   function onEditBedCell(e) {
+      //debugger;
+      if ($('#@gridEditName').hasClass('readonly-mode')) {
+         e.preventDefault();
+      }
+   }
+   function onBedCellChanged(cell) {
+      checkWarning();
+      //debugger;
+      //var $cell = $(cell);
+      //if($('#@(gridEditName)_active_cell').closest(':input').id == "Enabled")
+      //if ($cell.id == "Enabled") {
+      //onCheckboxValuesChange(el);
+      //}
+   }
+</script>
+<div style="height:360px;padding-top: 10px;">
+
+    <input asp-for="BedLinkAssociationSerialize" style="display: none" />
+    <input asp-for="BedAssociationChanged" style="display: none" />
+    @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.BedAssociationViewModel>(Model.BedAssociation)
+         .Name(gridEditName)
+         .UmsDefaultSettings(DicSvc)
+         .HtmlAttributes(new { style = "height:350px;" })
+         .Columns(columns =>
+         {
+            columns.Bound(e => e.BedId).Hidden();
+
+            columns.Bound(e => e.LocationId).Hidden();
+            columns.Bound(e => e.Bedcode).Hidden();
+            columns.Bound(e => e.Location);
+            columns.Bound(e => e.BedName);
+            columns.Bound(e => e.DriverSideBedName)
+               .HtmlAttributes(new { @class = "col-editable" });
+            columns.Bound(e => e.Watchdog)
+               .ClientTemplate("<input type='checkbox'  #= Watchdog ? checked='checked':'' # class='check-col  k-checkbox ' /><label class='k-checkbox-label' for='Watchdog'></label>")
+               .HtmlAttributes(new { @style = "text-align:center;", @class = "col-editable" });
+            columns.Bound(e => e.Enabled)
+               .ClientTemplate("<input type='checkbox' #= Enabled ? checked='checked':'' # class='check-col  k-checkbox ' /><label class='k-checkbox-label' for='Enabled'></label>")
+               .HtmlAttributes(new { @style = "text-align:center;", @class = "col-editable" });
+         })
+         .Editable(editable => editable.Mode(GridEditMode.InCell))
+         .Events(ev => ev.BeforeEdit("onEditBedCell").CellClose("onBedCellChanged"))
+         .Sortable(s =>s.ShowIndexes(true).SortMode(GridSortMode.MultipleColumn	))
+         .DataSource(dataSource => dataSource
+            .Ajax()
+            .Model(model =>
+            {
+               model.Id(o => o.BedId);
+               model.Field(o => o.LocationId).Editable(false);
+               model.Field(o => o.Bedcode).Editable(false);
+               model.Field(o => o.BedId).Editable(false);
+               model.Field(o => o.Location).Editable(false);
+               model.Field(o => o.BedName).Editable(false);
+               model.Field(o => o.DriverSideBedName);
+               model.Field(o => o.Watchdog);
+               model.Field(o => o.Enabled);
+            })
+            .ServerOperation(false)
+                         
+         ))
+</div>
+
+<script>
+   $(document).ready(function() {
+      if(typeof (checkWarning)!= 'undefined')
+         checkWarning();
+
+   })
+</script>

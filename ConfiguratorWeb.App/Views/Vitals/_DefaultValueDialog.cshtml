@@ -1,0 +1,264 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@using Digistat.FrameworkStd.Enums.Vitals;
+@using Digistat.FrameworkStd.DictionaryTerms;
+
+@inject IDictionaryService DicSvc
+
+@model ParamType
+
+@{
+    Layout = null;
+    var objStdItem = ViewBag.DatasetItem as SDItemViewModel ?? new SDItemViewModel();
+
+    var bolNoType = Model == ParamType.Image || Model == ParamType.Audio || Model == ParamType.OcrImage;
+    var bolCanBeScore = !bolNoType && (Model == ParamType.Numeric || Model == ParamType.NumericList);
+    var bolCanBeDas = !bolNoType && (Model == ParamType.Numeric || Model == ParamType.NumericList || Model == ParamType.String || Model == ParamType.StringWithPresets);
+    var bolCanBeStatic = !bolNoType && (Model != ParamType.Date && Model != ParamType.DateTime);
+    var bolCanBeSql = !bolNoType;
+
+    var objDefaultValueTypes = Enum.GetValues(typeof(DatasetItemDefaultValueType)).OfType<DatasetItemDefaultValueType>()
+        .Where(x => bolCanBeStatic || x != DatasetItemDefaultValueType.Static)
+        .Where(x => bolCanBeDas || x != DatasetItemDefaultValueType.DAS)
+        .Where(x => bolCanBeScore || x != DatasetItemDefaultValueType.Score)
+        .Where(x => bolCanBeSql || x != DatasetItemDefaultValueType.Sql)
+        .Select(x => new SelectListItem(x.ToString(), x.ToString()));
+}
+<div class="d-flex flex-column h-100">
+    <div class="flex-grow-1">
+        @if (!bolNoType)
+        {
+            <div class="row">
+                <div class="col-md-4 u-col-h-fixed">
+                    <label for="DefaultValueType_">@Html.DisplayNameFor(x => objStdItem.DefaultValueType)</label>
+                </div>
+                <div class="col-md-8 u-col-h-fixed">
+                    @(Html.Kendo().DropDownList()
+                        .Name("DefaultValueType_")
+                        .HtmlAttributes(new { @style = "width:96%;" })
+                        .DataTextField("Text")
+                        .DataValueField("Value")
+                        .BindTo(objDefaultValueTypes)
+                        .Events(e => e.Change("onItemDefaultValueTypeChange")))
+                </div>
+            </div>
+
+            <div data-type="default-value-@DatasetItemDefaultValueType.None">
+                <div class="row">
+                    <div class="col-md-4 u-col-h-fixed">
+                        <label>@DicSvc.XLate("Value")</label>
+                    </div>
+                    <div class="col-md-8 p-0 d-flex align-items-center">
+                        <input type="hidden" name="DefaultValue_" value="" />
+                        <span>-</span>
+                    </div>
+                </div>
+            </div>
+
+            @if (bolCanBeStatic)
+            {
+                <div data-type="default-value-@DatasetItemDefaultValueType.Static" style="display:none">
+                    <div class="row">
+                        <div class="col-md-4 u-col-h-fixed">
+                            <label>@DicSvc.XLate("Value")</label>
+                        </div>
+
+                        @switch (Model)
+                        {
+                            case ParamType.String:
+                                <div class="col-md-8 p-0">
+                                    @Html.Kendo().TextBox().Name("DefaultValue_Static").HtmlAttributes(new { @class = "k-input", autocomplete = "off" })
+                                </div>
+                                break;
+                            case ParamType.Boolean:
+                                <div class="col-md-8 p-0">
+                                    @(Html.Kendo().DropDownList()
+                                .Name("DefaultValue_Static")
+                                .HtmlAttributes(new { @style = "width:96%;" })
+                                .DataTextField("Text")
+                                .DataValueField("Value")
+                                .BindTo(new[] { new SelectListItem(DicSvc.XLate(GeneralDictionaryTerms.YES), "true"), new SelectListItem(GeneralDictionaryTerms.NO, "false") }))
+                                </div>
+                                break;
+                            case ParamType.List:
+                                var objListItems = (ViewBag.StandardDatasetSubItems as IEnumerable<SDSubItemViewModel> ?? Enumerable.Empty<SDSubItemViewModel>())
+                                    .OrderBy(x => x.SubItemIndex)
+                                    .Where(x => x.SubItemValue?.Length > 0)
+                                    .Select(x => new SelectListItem(x.Label, x.Code));
+                                <div class="col-md-8 p-0">
+                                    @(Html.Kendo().DropDownList()
+                                        .Name("DefaultValue_Static")
+                                        .HtmlAttributes(new { @style = "width:96%;" })
+                                        .DataTextField("Text")
+                                        .DataValueField("Value")
+                                        .BindTo(objListItems))
+                                </div>
+                                break;
+                            case ParamType.Audio:
+                            case ParamType.OcrImage:
+                            case ParamType.Image:
+                            case ParamType.DateTime:
+                            case ParamType.Date:
+                                <div class="col-md-8 p-0">-</div>
+                                break;
+
+                            case ParamType.Numeric:
+                            case ParamType.NumericList:
+                                <div class="col-md-8 p-0">
+                                    @Html.Kendo().TextBox().Name("DefaultValue_Static").HtmlAttributes(new { @class = "k-input", type = "number", autocomplete = "off" })
+                                </div>
+                                break;
+                            case ParamType.StringWithPresets:
+                                var objStringWithPresetsItems = (ViewBag.StandardDatasetSubItems as IEnumerable<SDSubItemViewModel>) ?? Enumerable.Empty<SDSubItemViewModel>();
+                                <div class="col-md-8 p-0">
+                                    @Html.Kendo().TextBox().Name("DefaultValue_Static").HtmlAttributes(new { @class = "k-input", list = "DefaultValue_StaticDatalist", autocomplete = "off" })
+                                    <datalist id="DefaultValue_StaticDatalist">
+                                        @foreach (var objSubItem in objStringWithPresetsItems)
+                                        {
+                                            <option>@objSubItem.Label</option>
+                                        }
+                                    </datalist>
+                                </div>
+                                break;
+                        }
+                    </div>
+                </div>
+            }
+
+            if (bolCanBeDas)
+            {
+                <div data-type="default-value-@DatasetItemDefaultValueType.DAS" style="display:none">
+                    <div class="row mb-2">
+                        <div class="col-md-4 u-col-h-fixed">
+                            <label>@Html.DisplayNameFor(x => objStdItem.StdParameterID)</label>
+                        </div>
+                        <div class="col-md-8 p-0">
+                            <div class="input-group w-96">
+                                @Html.Kendo().TextBox().Name("StdParameterID_").HtmlAttributes(new { @class = "k-input", type = "number" })
+                                <span class="input-group-append">
+                                    <button id="btnDSItemGetParameters" class="btn border bg-white" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("GetParameter")"><span class="mdi mdi-database"></span></button>
+                                    <button id="btnParameterID" onclick="removeParameterID();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Remove Parameter ID")">
+                                        <span class="mdi mdi-window-close "></span>
+                                    </button>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 u-col-h-fixed">
+                            <label>@Html.DisplayNameFor(x => objStdItem.StdUnitOfMeasureID)</label>
+                        </div>
+                        <div class="col-md-8 p-0">
+                            <div class="input-group w-96">
+                                @Html.Kendo().TextBox().Name("StdUnitOfMeasureID_").HtmlAttributes(new { @class = "k-input", type = "number" })
+                                <span class="input-group-append">
+                                    <button id="btnDSItemGetUnitOfMeasure" class="btn border bg-white" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Get Unit of measure")"><span class="mdi mdi-database"></span></button>
+                                    <button id="btnUnitOfMeasureID" onclick="removeUnitOfMeasureID();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Remove Unit Of Measure ID")">
+                                        <span class="mdi mdi-window-close "></span>
+                                    </button>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (bolCanBeScore)
+            {
+                <div data-type="default-value-@DatasetItemDefaultValueType.Score" style="display:none">
+                    <div class="row">
+                        <div class="col-md-4 u-col-h-fixed">
+                            <label>@Html.DisplayNameFor(x => objStdItem.ScoreID)</label>
+                        </div>
+                        <div class="col-md-8 p-0">
+                            <div class="input-group w-96">
+                                <input name="ScoreID_" type="hidden" />
+                                @Html.Kendo().TextBox().Name("ScoreName_").HtmlAttributes(new { @readonly = "readonly", @class = "k-input" })
+                                <span class="input-group-append">
+                                    <button id="btnScoreID" class="btn border bg-white" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Select Score")"><span class="mdi mdi-pencil"></span></button>
+                                    <button id="btnRemoveScore" onclick="removeScore();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Remove Score")">
+                                        <span class="mdi mdi-window-close "></span>
+                                    </button>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (bolCanBeSql)
+            {
+                var strSqlInfo = string.Empty;
+                switch (Model)
+                {
+                    case ParamType.String:
+                    case ParamType.StringWithPresets:
+                        // All value are accepted.
+                        break;
+                    case ParamType.Boolean:
+                        strSqlInfo = DicSvc.XLate("To set \"true\", the query SQL has to return the value 1 or \"true\".");
+                        break;
+                    case ParamType.List:
+                        strSqlInfo = DicSvc.XLate("The query SQL has to return the code of a sub item.");
+                        break;
+                    case ParamType.Audio:
+                    case ParamType.OcrImage:
+                    case ParamType.Image:
+                        // Not implemented.
+                        break;
+                    case ParamType.DateTime:
+                        strSqlInfo = DicSvc.XLate("The query SQL has to return a UTC date time with the format 'yyyy-MM-ddTHH:mm:ss.fffZ'.");
+                        break;
+                    case ParamType.Date:
+                        strSqlInfo = DicSvc.XLate("The query SQL has to return a date time with the format 'yyyy-MM-dd'.");
+                        break;
+                    case ParamType.Numeric:
+                    case ParamType.NumericList:
+                        strSqlInfo = DicSvc.XLate("The query SQL has to return a number.");
+                        break;
+                }
+                <div data-type="default-value-@DatasetItemDefaultValueType.Sql" style="display:none">
+                    <div class="row">
+                        <div class="col-md-4 u-col-h-fixed">
+                            <label>@DicSvc.XLate("SQL")</label>
+                        </div>
+                        <div class="col-md-8 p-0">
+                            <div class="w-96">
+                                <textarea name="DefaultValue_Sql" rows="5" class="w-100 k-input k-textarea"></textarea>
+                                @if (strSqlInfo?.Length > 0)
+                                {
+                                    <i class="">@strSqlInfo</i>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="row">
+                <div class="col-md-4 u-col-h-fixed">
+                    <label for="DefaultValueType_">@Html.DisplayNameFor(x => objStdItem.DefaultValueType)</label>
+                </div>
+                <div class="col-md-8 d-flex align-items-center">
+                    <input type="hidden" name="DefaultValueType_" value="@DatasetItemDefaultValueType.None" />
+                    <span>@DatasetItemDefaultValueType.None</span>
+                </div>
+            </div>
+
+            <div class="row" data-type="default-value-@DatasetItemDefaultValueType.None">
+                <div class="col-md-4 u-col-h-fixed">
+                    <label>@DicSvc.XLate("Value")</label>
+                </div>
+                <div class="col-md-8 p-0 d-flex align-items-center">
+                    <input type="hidden" name="DefaultValue_" value="" />
+                    <span>-</span>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="text-center">
+        <button type="button" data-type="ok" class="k-buttonLarge k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base mr-1">@DicSvc.XLate(GeneralDictionaryTerms.OK)</button>
+        <button type="button" data-type="cancel" class="k-buttonLarge k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base ml-1">@DicSvc.XLate(GeneralDictionaryTerms.Cancel)</button>
+    </div>
+</div>

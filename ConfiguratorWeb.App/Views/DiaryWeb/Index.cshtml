@@ -1,0 +1,556 @@
+﻿@using ConfiguratorWeb.App.Models.DiaryWeb;
+@*
+   For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+
+<style>
+
+
+   .color_cyrcle {
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 100%;
+   }
+
+   html {
+      overflow-y: hidden;
+      font-size: 13px;
+      min-width: 796px;
+   }
+
+   .colorWrapperCatTxt {
+      position: relative;
+      right: 208px;
+      font-weight: bold;
+      top: 5px;
+      width: 300px;
+      height: 21px;
+   }
+
+   .colorWrapperTagTxt {
+      position: relative;
+      right: 9px;
+      font-weight: bold;
+      top: 4px;
+      width: 78px;
+      height: 21px;
+   }
+
+   .empty-grid {
+      position: relative;
+      font-size: medium;
+   }
+
+
+</style>
+
+<div id="DiaryCategoryDetailDialog"></div>
+<div id="DiaryCategoryDetailDialogR"></div>
+<div id="DiaryTagDetailDialogR"></div>
+<div id="DiaryTagDetailDialog"></div>
+
+<div id="outerWrapper" class="card m-1 p-2 text-left" style=" flex-direction: row;">
+
+
+   @(Html.Kendo().Grid<Category>
+   ()
+   .Name("DiaryWebCategories").HtmlAttributes((new { style = "margin:3px;width:65%;" }))
+   .Columns(columns =>
+   {
+      columns.Bound(e => e.ID).Visible(false);
+      columns.Bound(e => e.Text).Title(DicSvc.XLate("Name")).Width("35%");
+      columns.Bound(e => e.Color).Title(DicSvc.XLate("Color")).HtmlAttributes((new { style = "text-align:center;font-weight:bold;font-size:12px;"})).ClientTemplate("<div style='background: #: Color # ; color: #= pickTextColorBasedOnBgColorAdvanced(Color)# ;' />#: Color #</div>").Width("20%").Filterable(false);
+      columns.Bound(e => e.LocationName).Title(DicSvc.XLate("Location")).Width("20%");
+      columns.Bound(e => e.Index).Visible(false);
+      //columns.Bound(e => e.IsSystem).Width("15%").ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #=IsSystem ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" });
+      columns.Bound(e => e.IsSystem).Width("15%").ClientTemplateId("is_system_category");
+      columns.Bound(e => e.IsActive).Width("15%").ClientTemplate("<input class='check-col  k-checkbox k-checkbox-md k-rounded-md' disabled='disabled' type='checkbox' #=IsActive ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" });
+
+   })
+
+     .Sortable()
+      .Filterable()
+      .Scrollable()
+      .Navigatable(true)
+      //.Resizable(resize => resize.Columns(true))
+      .Events(ev => ev.DataBound("OnDataBoundCategoryGrid"))
+      .DataSource(dataSource => dataSource
+
+      .Ajax()
+      .Filter(f => f.Add(a => a.IsActive).IsEqualTo(true))
+      .Model(model =>
+      {
+         model.Id(o => o.ID);
+         model.Field(o => o.Text).Editable(false);
+         model.Field(o => o.Color).Editable(false);
+         model.Field(o => o.LocationID).Editable(false);
+         model.Field(o => o.IsActive).Editable(false);
+         model.Field(o => o.IsSystem).Editable(false);
+         model.Field(o => o.Index);
+
+      })
+
+      //.Events(events => events.Error("onGridError"))
+      .Read(read => read.Action("GetCategories", "DiaryWeb"))
+      ).NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+   .UmsDefaultToolbar("ADD NEW ITEM", DicSvc.XLate("ADD NEW ITEM"), "OpenCategoryDetail(0);", DicSvc)
+       .ToolBar(toolbar =>
+       {
+          toolbar.Custom().UmsGridButtonGeneric("btnReorderProfiles", DicSvc.XLate("Reorder"), "btnReorderCategories_Click()").IconClass("mdi mdi-repeat");
+
+       })
+
+   )
+   @(Html.Kendo().Grid<Tag>
+          ()
+          .Name("DiaryWebTags").HtmlAttributes((new { style = "margin:3px; width:35%;" }))
+          .Columns(columns =>
+          {
+             columns.Bound(e => e.IDtag).Visible(false);
+             columns.Bound(e => e.IndexTag).Visible(false);
+             columns.Bound(e => e.TextTag).Title(DicSvc.XLate("Name")).Width("45%");
+             columns.Bound(e => e.ColorTag).Title(DicSvc.XLate("Color")).HtmlAttributes((new { style = "text-align:center;font-weight:bold;font-size:12px;margin: 0 0 0 0; padding: 0 0 0 0 " })).ClientTemplate("<div style='background: #: ColorTag # ; color: #= pickTextColorBasedOnBgColorAdvanced(ColorTag)# ;' />#: ColorTag #</div>").Width("30%").Filterable(false);
+             columns.Bound(e => e.IsSystemTag).Width("20%").ClientTemplateId("is_system_tag").Visible(true);
+             columns.Bound(e => e.IsActiveTag).Title(DicSvc.XLate("Is Active")).ClientTemplate("<input class='check-col  k-checkbox k-checkbox-md k-rounded-md' disabled='disabled' type='checkbox' #=IsActiveTag ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" }).Width("25%");
+
+          })
+          .UmsDefaultToolbar("ADD NEW ITEM", DicSvc.XLate("ADD NEW ITEM"), "OpenDiaryTagDetail(0);", DicSvc)
+             .ToolBar(toolbar =>
+             {
+                toolbar.Custom().UmsGridButtonGeneric("btnReorderTags", DicSvc.XLate("Reorder"), "btnReorderTags_Click()").IconClass("mdi mdi-repeat");
+
+             })
+          //.UmsDefaultPager(DicSvc)
+          .Events(ev => ev.DataBound("OnDataBoundTagGrid"))
+          //.UmsDefaultSettings(DicSvc)
+          .Sortable().Filterable()
+         //.Scrollable()
+         .Scrollable()
+          //.Resizable(resize => resize.Columns(true))
+          .DataSource(dataSource => dataSource
+          .Ajax()
+         .Filter(f => f.Add(a => a.IsActiveTag).IsEqualTo(true))
+
+          .Model(model =>
+          {
+             model.Id(o => o.IDtag);
+             model.Field(o => o.TextTag).Editable(false);
+             model.Field(o => o.ColorTag).Editable(false);
+             model.Field(o => o.IndexTag);
+             model.Field(o => o.IsActiveTag);
+
+          })
+          //.Events(events => events.Error("onGridError"))
+          .Read(read => read.Action("GetTags", "DiaryWeb"))
+          ).NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+          )
+
+</div>
+
+
+
+<script id="is_system_category" type="text/x-kendo-template">
+    #if(IsSystem == true){#
+   <div align=center>
+<span class="k-icon k-i-gear"></span>
+ </div>
+
+    #}else{#
+    <div align=center>
+        <span class="mdi mdo-close p-0 m-0 mdi-14px text-warning" title="@DicSvc.XLate("")"></span>
+    </div>
+    #}#
+
+</script>
+<script id="is_system_tag" type="text/x-kendo-template">
+    #if(IsSystemTag == true){#
+   <div align=center>
+<span class="k-icon k-i-gear"></span>
+ </div>
+
+    #}else{#
+    <div align=center>
+        <span class="mdi mdo-close p-0 m-0 mdi-14px text-warning" title="@DicSvc.XLate("")"></span>
+    </div>
+    #}#
+
+</script>
+<script>
+
+
+   var kndWndDiaryCategory;
+         var kndWndDiaryTag;
+   var kndWndDiaryCategoryR;
+   var kndWndDiaryTagR;
+      $(document).ready(function () {
+            resizeGridMasterDiary(26);
+            resizeGridToFitHeightDiary(26, "DiaryWebTags");
+            resizeGridToFitHeightDiary(26, "DiaryWebCategories");
+
+            var cardHeight = $('body').height() - 150;
+
+         //$('#outerWrapper').css("height", cardHeight);
+
+         $(".k-grid-toolbar", "#DiaryWebTags").prepend("<h5 style='text-align:center;'>Tags</h5>");
+         $(".k-grid-toolbar", "#DiaryWebCategories").prepend("<h5 style='text-align:center;'>Categories</h5>");
+
+            if (!kndWndDiaryCategory) {
+               kndWndDiaryCategory = $('#DiaryCategoryDetailDialog').usmKendoWindow({
+                  title: 'Diary Category Editor',
+                     height: 600,
+                     width: 1350,
+                     minWidth: 1000,
+                     maxHeight: 600,
+               });
+            }
+            if (!kndWndDiaryTag) {
+               kndWndDiaryTag = $('#DiaryTagDetailDialog').usmKendoWindow({
+                  title: 'Diary Tag Editor',
+                  height: 350,
+                  width: 700,
+                  minWidth: 700,
+                  maxHeight: 350
+               });
+            }
+         if (!kndWndDiaryCategoryR) {
+            kndWndDiaryCategoryR = $('#DiaryCategoryDetailDialogR').usmKendoWindow({
+               title: 'Diary Category Reorder',
+               height: 600,
+               width: 1000,
+               minWidth: 1000,
+               maxHeight: 700
+            });
+       
+
+         }
+         if (!kndWndDiaryTagR) {
+            kndWndDiaryTagR = $('#DiaryTagDetailDialogR').usmKendoWindow({
+               title: 'Diary Tag Reorder',
+               height: 600,
+               width: 1000,
+               minWidth: 1000,
+               maxHeight: 700
+            });
+         }
+         var reordPinClose = $('#DiaryCategoryDetailDialogR').data("kendoWindow");
+           reordPinClose.bind("close", window_closeReo);
+
+         });
+
+   function window_closeReo(e) {
+      $("html").css("overflow-y", "hidden");
+
+      var grid = $("#DiaryWebCategories").data("kendoGrid");
+      grid.dataSource.read();
+
+
+   };
+         function OnDataBoundCategoryGrid(e) {
+            var grid = this;
+
+            grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+               function (e) {
+               var item = grid.dataItem($(e.target).closest('tr'));
+
+
+               var strItem = '0';
+               if (item) {
+                  strItem = item.ID;
+               }
+               OpenCategoryDetail(strItem);
+            });
+      };
+
+      function OnDataBoundTagGrid(e) {
+         var grid = this;
+
+         grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+            var item = grid.dataItem($(e.target).closest('tr'));
+
+            var strItem = '0';
+            if (item) {
+               strItem = item.IDtag;
+            }
+            OpenDiaryTagDetail(strItem);
+         });
+      };
+
+
+      function OpenCategoryDetail(item) {
+         $.ajax({
+            url: '@Url.Action("GetCategory", "DiaryWeb")',
+            type: 'GET',
+               data: { id: item },
+
+         })
+            .done(function (dataHtml) {
+              /* $("html").css("overflow-y", "auto");*/
+            var itemDialog = kndWndDiaryCategory.data("kendoWindow");
+            itemDialog.content('');
+            itemDialog.content(dataHtml);
+            if (itemDialog.element.is(":hidden")) {
+               itemDialog.open();
+               itemDialog.center();
+            }
+         });
+      }
+
+      function OpenDiaryTagDetail(item) {
+
+
+      $.ajax({
+
+            url: '@Url.Action("GetTag", "DiaryWeb")',
+            type: 'GET',
+               data: { id: item },
+
+         })
+         .done(function (dataHtml) {
+            var itemDialog = kndWndDiaryTag.data("kendoWindow");
+            itemDialog.content('');
+            itemDialog.content(dataHtml);
+            if (itemDialog.element.is(":hidden")) {
+               itemDialog.open();
+               itemDialog.center();
+            }
+         });
+      }
+
+
+
+      function resizeGridMasterDiary(offSet) {
+
+
+         var gridElements = $(".card").find(".k-grid");
+
+         if (gridElements) {
+            for (var j = 0; j < gridElements.length; j++) {
+
+               var id = gridElements[j].id
+               $(window).resize(function () {
+                  var cardHeight = $('body').height() - 150;
+                  resizeGridToFitHeightDiary(offSet, id);
+
+               });
+
+         }
+
+      }
+   }
+
+   function resizeGridToFitHeightDiary(offSet, id) {
+
+
+      var pg = $('#' + id).data("kendoGrid");
+      var shgt = window.innerHeight;
+      if (typeof (offSet) == "undefined") {
+         offSet = 26;
+      }
+      var topBottomMarginHeight = $('.k-header')["0"].clientHeight +
+            $('.ums-menu')["0"].clientHeight +
+            $('.breadcrumbs')["0"].clientHeight;
+      var windowHeight = shgt - topBottomMarginHeight - offSet;
+
+      pg.element.height(windowHeight);
+      pg.resize();
+
+   }
+
+
+
+   function orderCategoryGridsIndex(tableName) {
+
+      var visibleGrid = $('#' + tableName).data("kendoGrid");
+      for (var i = 0; i < visibleGrid.dataSource._data.length; i++) {
+         visibleGrid.dataSource._data[i].Index = i;
+      }
+
+   }
+
+
+   function checkAssociationIndex(tableName, type) {
+
+
+      var visibleGrid = $('#' + tableName).data("kendoGrid");
+
+      if (visibleGrid.dataSource._data.length > 1) {
+         if (type == 1) {
+
+               $("#moveSubjectUp").attr('disabled', false);
+               $("#moveSubjectDown").attr('disabled', false);
+         }
+         else if (type == 2){
+            $("#movePhDown").attr('disabled', false);
+            $("#movePhUp").attr('disabled', false);
+
+         }
+         else if (type == 3) {
+            $("#moveCategoryDown").attr('disabled', false);
+            $("#moveCategoryUp").attr('disabled', false);
+
+         }
+         else if (type == 4) {
+            $("#moveCategoryDownT").attr('disabled', false);
+            $("#moveCategoryUpT").attr('disabled', false);
+
+         }
+        else if (type == 5) {
+            $("#moveSubjectDownPH").attr('disabled', false);
+            $("#moveSubjectUpPH").attr('disabled', false);
+
+         }
+      }
+      else {
+         if (type == 1) {
+
+               $("#moveSubjectUp").attr('disabled', true);
+               $("#moveSubjectDown").attr('disabled', true);
+         }
+         else if (type == 2){
+            $("#movePhDown").attr('disabled', true);
+            $("#movePhUp").attr('disabled', true);
+
+         }
+         else if (type == 3) {
+            $("#moveCategoryDown").attr('disabled', true);
+            $("#moveCategoryUp").attr('disabled', true);
+
+         }
+         else if (type == 4) {
+            $("#moveCategoryDownT").attr('disabled', true);
+            $("#moveCategoryUpT").attr('disabled', true);
+
+         }
+          else if (type == 5) {
+            $("#moveSubjectDownPH").attr('disabled', false);
+            $("#moveSubjectUpPH").attr('disabled', false);
+
+         }
+      }
+      var selected = visibleGrid.select();
+      var maxIndex = visibleGrid.dataSource._data.length - 1;
+
+      if (selected.length > 0) {
+            $.each(selected, function (idx, elem) {
+            var dataItem = visibleGrid.dataItem($(this));
+
+            var index = visibleGrid.dataSource.indexOf(dataItem);
+            if (index == 0) {
+               if (type == 1) {
+                     $("#moveSubjectUp").attr('disabled', true);
+               }
+               else if (type == 2){
+                  $("#movePhUp").attr('disabled', true);
+
+               }
+               else if (type == 3) {
+                  $("#moveCategoryUp").attr('disabled', true);
+
+               }
+               else if (type == 4) {
+                  $("#moveCategoryUpT").attr('disabled', true);
+
+               }
+               else if (type == 5) {
+                  $("#moveSubjectUpPH").attr('disabled', true);
+
+               }
+            }
+            if (index == maxIndex) {
+               if (type == 1) {
+                     $("#moveSubjectDown").attr('disabled', true);
+               }
+               else if (type == 2){
+                  $("#movePhDown").attr('disabled', true);
+
+               }
+               else if (type == 3) {
+                  $("#moveCategoryDown").attr('disabled', true);
+
+               }
+               else if (type == 4) {
+                  $("#moveCategoryDownT").attr('disabled', true);
+
+               }
+               else if (type == 5) {
+                   $("#moveSubjectDownPH").attr('disabled', true);
+
+               }
+            }
+         });
+      }
+   }
+
+   function pickTextColorBasedOnBgColorAdvanced(bgColor, lightColor, darkColor) {
+
+
+      if (!lightColor) lightColor = "#fffffff2";
+      if (!darkColor) darkColor = "#000000f2";
+
+      let color = (bgColor.charAt(0) === '#') ? bgColor.substring(1, 7) : bgColor;
+      let r = parseInt(color.substring(0, 2), 16); // hexToR
+      let g = parseInt(color.substring(2, 4), 16); // hexToG
+      let b = parseInt(color.substring(4, 6), 16); // hexToB
+      let uicolors = [r / 255, g / 255, b / 255];
+      let c = uicolors.map((col) => {
+         if (col <= 0.03928) {
+            return col / 12.92;
+         }
+         return Math.pow((col + 0.055) / 1.055, 2.4);
+      });
+      let L = (0.2126 * c[0]) + (0.7152 * c[1]) + (0.0722 * c[2]);
+      return (L > 0.179) ? darkColor : lightColor;
+   }
+
+   function UpdateColorWrapper(color,type) {
+
+      if (type == 1) {
+            $(".colorWrapperCatTxt").text(color);
+            $(".colorWrapperCatTxt").css("color", pickTextColorBasedOnBgColorAdvanced(color));
+      }
+      if (type == 2) {
+            $(".colorWrapperTagTxt").text(color);
+            $(".colorWrapperTagTxt").css("color", pickTextColorBasedOnBgColorAdvanced(color));
+      }
+   }
+
+
+
+    function btnReorderCategories_Click()
+   {
+
+
+      $.ajax({
+            url: '@Url.Action("CategoryReordering", "DiaryWeb")',
+            type: 'GET',
+         })
+         .done(  function (data) {
+            var wnd = kndWndDiaryCategoryR.data("kendoWindow");
+                wnd.content('');
+                wnd.content(data);
+                wnd.center().open();
+            });
+   }
+
+
+    function btnReorderTags_Click()
+   {
+
+
+      $.ajax({
+            url: '@Url.Action("TagReordering", "DiaryWeb")',
+            type: 'GET',
+         })
+         .done(  function (data) {
+            var wndT = kndWndDiaryTagR.data("kendoWindow");
+            wndT.content('');
+            wndT.content(data);
+            wndT.center().open();
+            });
+   }
+</script>

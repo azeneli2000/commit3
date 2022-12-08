@@ -1,0 +1,126 @@
+﻿@model ConfiguratorWeb.App.Models.DigistatRepositoryViewModel
+@using System.Text;
+@using Digistat.FrameworkStd.Enums
+@{
+    string[] actions = new string[] { "Close" };
+    Layout = null;
+
+    string strDialogID = "divDigistatRepositoryUploadDialog";
+
+
+}
+
+
+<script type="text/javascript">
+    //datetime, time, integer, float
+    function onFileUploadSuccess(e) {
+        debugger;
+        if (e.response) {
+            if (e.response.success) {
+                $('#digistatRepositoryGrid').data('kendoGrid').dataSource.read();
+                $('#divDigistatRepoUploadDialog').data('kendoWindow').close();
+            }
+            else {
+
+                window.umsAlert("Error", e.response.errorMessage, 400, 300);
+                $(".k-upload-files").remove();
+                $(".k-upload-status").remove();
+                $(".k-upload.k-header").addClass("k-upload-empty");
+                $(".k-upload-button").removeClass("k-state-focused");
+            }
+        } else {
+            //an error occurred!
+        }
+            
+    }
+
+
+    function onFileUploadError(e) {
+        window.umsAlert("Error occured", 'An internal error occurred', 400, 300);
+    }
+
+    function OnFileUploadSelected(e) {
+        debugger;
+    }
+
+    function OnFileUploadUpload(e) {
+        e.data = {
+            repostorearchive: $("#chkrepostorearchive").is(':checked'),
+            repoarchivename: $("#txtrepoarchivename").val()
+        };
+    }
+
+
+    $(document).ready(function () {
+        $('#btnRepositoryUploadCancel').click(function () {
+            $('#divDigistatRepoUploadDialog').data('kendoWindow').close();
+        })
+        
+    });
+
+</script>
+
+<div class="card h-90 pt-1 pb-2" id="@strDialogID">
+    
+    <form asp-controller="DigistatRepository" asp-action="AddFile" id="frmDigistatRepositoryUpload"
+          data-ajax-failure="OnFailure" data-ajax-success="OnSuccess" kendo-auto-scroll="true"
+          data-ajax="true" data-ajax-method="POST">
+
+        <div class="row">
+            <div class="col-md-3">
+                @DicSvc.XLate("Store as archive")
+            </div>
+            <div class="col-md-9">
+                @Html.Kendo().CheckBox().Name("repostorearchive").Label(DicSvc.XLate("Store as archive")).HtmlAttributes(new { @class = "always-enabled", id = "chkrepostorearchive" })
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-3">
+                @DicSvc.XLate("Archive name")
+            </div>
+            <div class="col-md-9">
+                @Html.Kendo().TextBox().Name("repoarchivename").HtmlAttributes(new { style = "width:100%;", id = "txtrepoarchivename" })
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-3">
+                @DicSvc.XLate("Select one ore more file")
+            </div>
+            <div class="col-md-9">
+                @(Html.Kendo().Upload()
+                                    .Name("UploadFile")
+                                    .HtmlAttributes(new { aria_label = "control-required", style = "max-height: 42px;" })
+                                    .Multiple(true)
+
+                                    .Messages(messages => messages
+                                                .Select(DicSvc.XLate("Select and upload files"))
+                                                .HeaderStatusUploading(DicSvc.XLate("Uploading File"))
+                                                .HeaderStatusUploaded(DicSvc.XLate("New file uploaded"))
+
+                                    )
+
+                                    .Async(async => async
+                                        .Save("UploadFile", "DigistatRepository")
+                                        
+                                        .Batch(true)
+
+                                    )
+                                    .Events(ev => ev.Success("onFileUploadSuccess").Error("onFileUploadError").Select("OnFileUploadSelected").Upload("OnFileUploadUpload"))
+                )
+            </div>
+        </div>
+    </form>
+
+</div>
+<div class="card-footer h-10 p-0 m-0 mt-1 border-0">
+    @(Html.Kendo().ToolBar()
+        .Name("toolbarDigistatUploadRepo")
+        .UmsDefaultErrors(DicSvc)
+        .Items(
+            items =>
+            {
+                items.Add().Type(CommandType.Button).Text(DicSvc.XLate("CANCEL")).Id("btnRepositoryUploadCancel").UmsHtmlButtonGeneric("");
+            }
+        )
+    )
+</div>

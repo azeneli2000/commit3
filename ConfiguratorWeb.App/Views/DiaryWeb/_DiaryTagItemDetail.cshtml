@@ -1,0 +1,313 @@
+﻿@using ConfiguratorWeb.App.Models.DiaryWeb
+@model Tag
+@{
+   string dialogId = "TagD";
+}
+<style>
+   #tagWrapperColor .k-colorpicker .k-selected-color {
+      width: 152px;
+      color: black;
+      text-align: center;
+      font-weight: bold;
+   }
+  .k-input-md.k-icon-picker .k-input-inner, .k-picker-md.k-icon-picker .k-input-inner {
+    width: 29.5em;
+    height: 1.5em;
+    padding: 0.375rem;
+    box-sizing: content-box;
+  }
+</style>
+<script>
+
+   function UpdateTagColor(e) {
+      $("#ColorTag").val(e.value);
+      $(".colorWrapperTagTxt").val(e.value);
+      
+      UpdateColorWrapper(e.value,2);
+
+   }
+</script>
+
+<div class="card h-80 pt-1 pb-2" style="height: 200px;">
+   <div id="TagDetailContainer" class="card-body h-90 p-0 border-0">
+      <form id="TagDetailForm" asp-controller="DiaryWeb" asp-action="SaveDiaryTag" data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress"
+            data-ajax-failure="OnTagDetailFormFailure" data-ajax-success="OnTagDetailFormSuccess">
+         <input  asp-for="IDtag" type="hidden" />
+         <input  asp-for="ColorTag" type="hidden"/>
+         <input  asp-for="IndexTag" type="hidden"/>
+         <div class="row mt-3">
+            <div class="col-sm-3 u-col-h-fixed">
+               <label asp-for="TextTag" class="label-name">@DicSvc.XLate("Text")</label>
+            </div>
+            <div class="col-3 u-col-h-fixed">
+               <input asp-for="TextTag" class="k-input k-textbox" style="width: 424px;" required />
+            </div>
+         </div>
+         <div class="row mt-3">
+            <div class="col-sm-3 u-col-h-fixed">
+               <label asp-for="ColorTag" class="label-name">Color</label>
+            </div>
+            <div id="tagWrapperColor" class="col-1 u-col-h-fixed">
+               @(Html.Kendo().ColorPicker()
+                  .Name("pickerTag")
+                  .Value(Model.ColorTag)
+                  .Buttons(false)
+                  //.Events(events => events.Change("UpdateTagColor"))
+                  .Events(events => events.Select("UpdateTagColor"))
+                  .HtmlAttributes((new { style = "position: relative;left:auto; color:white" }))
+                  )
+            </div>
+            <div class="colorWrapperTagTxt" style="z-index: 5;position: relative;left: 119px;"> </div>
+            </div>
+            <div class="row" style="    position: relative;top: 11px; right: 1px;">
+               <div style="display: flex; flex-direction: row; justify-content: space-between;">
+                  <label style="padding-right: 11px; font-size: 14px;">@DicSvc.XLate("IsActive")</label>
+                  <div style="position: relative; left: 101px;">
+                     @Html.Kendo().CheckBoxFor(m => m.IsActiveTag).Label("")
+                  </div>
+                </div>
+                </div>
+
+                <div style="display: flex; flex-direction: row; width: 19%; position: relative; top: 25px;right:-7px; ">
+                     <label style="padding-right: 11px; font-size: 14px; margin-top: -3px ">@DicSvc.XLate("IsSystem") </label>
+                     <div style="position: relative; left: 94px;">
+                     @Html.Kendo().CheckBoxFor(m => m.IsSystemTag).Label("")
+
+                  </div>
+                  </div>
+          
+      </form>
+   </div>
+</div>
+<div class="card-footer p-0 m-0 border bg-white" style="position: relative;top: 0px;">
+
+   @{
+      string postId = dialogId; //use in case of multi toolbar
+   }
+   @(Html.Kendo().ToolBar()
+                              .Name("toolbarDiaryTagDetail")
+                              .UmsDefaultErrors(DicSvc, "errors")
+                              .Items(items =>
+                              {
+                                 if (Model.IDtag > 0)
+                                 {
+
+                                    items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete" + postId).UmsHtmlButtonGeneric("modify-mode");
+                                 }
+                                 //items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode");
+                              })
+                              .UmsDefaultSettings(DicSvc, postId).HtmlAttributes(new { @style = "height:52px;" })
+      )
+</div>
+
+<script type="text/javascript">
+
+
+
+
+
+   var tagDialogActualMode = 0;
+
+   function OnTagDetailFormSuccess(response) {
+      if (response.success) {
+         var dialog = $('#DiaryTagDetailDialog').data('kendoWindow');
+         var grid = $("#DiaryWebTags").data("kendoGrid");
+         grid.dataSource.read();
+         dialog.content('');
+         dialog.close();
+      }
+      else {
+         umsErrorDialog('@DicSvc.XLate("Error occurred")', response.errorMessage, 200, 200);
+      }
+   }
+
+   function OnTagDetailFormFailure(response) {
+      window.umsAlert('@DicSvc.XLate("Error occurred")', response.errorMessage, 400, 300);
+   }
+
+
+
+   function TagDialogChangeToEditMode() {
+      tagDialogActualMode = 2;
+      $(".modify-mode").show();
+      $(".view-mode").hide();
+      umsHideAllEditSaveButton();
+      toolBarShowButtonByClass("modify-mode");
+
+      $('#TagDetailForm :input').attr('disabled', false);
+      $('#TagDetailForm :input').each(function () {
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+               cb.enable(true);
+         }
+      });
+      $("#ColorTag").css("background-color", $("#ColorTag").val());
+      if ($("#IDtag").val() == "0") {
+         
+         var randomColor = (Math.random() * 0xFFFFFF << 0).toString(16).padStart(6, '0');
+         $("#btnDelete").hide();
+         var colorPickerTAG = $("#pickerTag").data("kendoColorPicker");
+         colorPickerTAG.value("#" + randomColor);
+         $(".colorWrapperTagTxt").text("#" + randomColor);
+         $(".colorWrapperTagTxt").css("color", pickTextColorBasedOnBgColorAdvanced("#" + randomColor));
+         $("#ColorTag").val("#" + randomColor);
+      }
+    }
+
+   function TagDialogChangeToViewMode() {
+      //$("#btnSave").attr('disabled', true);
+      tagDialogActualMode = 1;
+      $("#errors").html("");
+      $(".view-mode").show();
+      $(".modify-mode").hide();
+      umsHideAllEditSaveButton();
+      toolBarShowButtonByClass("view-mode");
+      $('#TagDetailForm :input').attr('disabled', true);
+      $('#TagDetailForm :input').each(function () {
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+               cb.enable(false);
+         }
+      });
+   }
+
+   function setMode() {
+      if (tagDialogActualMode === 2)
+         TagDialogChangeToEditMode();
+      else
+         TagDialogChangeToViewMode();
+   }
+
+   function toolBarShowButtonByClass(wclass) {
+      var tb = $("#toolbarDiaryTagDetail").data("kendoToolBar");
+      tb.umsShowButtonByClass(wclass);
+   }
+   function umsHideAllEditSaveButton() {
+      var tb = $("#toolbarDiaryTagDetail").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+
+   function SaveDiaryTag() {
+      if (OnValidation()) {
+
+
+         var finalIndex;
+         if ($("#IDtag").val() == "0") {
+            var indexCat = [];
+            var cat = $('#DiaryWebTags').getKendoGrid().dataSource.data();
+            for (let i = 0; i < cat.length; i++) {
+               indexCat.push(cat[i].IndexTag);
+            }
+            finalIndex = Math.max(...indexCat) + 1;
+            
+            finalIndex = parseInt(finalIndex, 10);
+            $("#IndexTag").val(finalIndex);
+         }
+         else {
+            finalIndex = parseInt($("#IndexTag").val().toString(), 10);
+         }
+         $("#TagDetailForm").submit();
+      }
+   }
+
+   function OnValidation() {
+
+      $("#errors").html("");
+      $("#errors").css("margin", "auto");
+      var retValue = false;
+      var validator = $("#TagDetailForm").kendoValidator().data("kendoValidator");
+      if (!validator.validate()) {
+         try {
+            var errors = validator.errors();
+
+            $("#errors").html(buildValidationMessage(errors));
+         }
+         catch (e) {
+            $("#errors").html(e);
+         }
+      }
+      else {
+         $("#errors").html("");
+         retValue = true;
+      }
+
+      return retValue;
+   }
+
+   function DeleteDiaryTag() {
+      if (@Model.IDtag != 0) {
+         $.ajax({
+            url: '@Url.Action("DeleteDiaryTag", "DiaryWeb")',
+            type: 'POST',
+            data: { Id: '@Model.IDtag' }
+
+         }).done(function (data) {
+            if (data.success != undefined && data.success) {
+               var dialog = $('#DiaryTagDetailDialog').data('kendoWindow');
+               var grid = $("#DiaryWebTags").data("kendoGrid");
+               grid.dataSource.read();
+               dialog.close();
+            }
+            else {
+               $('#errors').html('not saved. reason:' + data.errorMessage);
+            }
+         }).fail(function (response) { umsErrorDialog('@DicSvc.XLate("Error occurred")', response.errorMessage, 200, 200); });
+      }
+      else
+      {
+         var dialog = $('#DiaryTagDetailDialog').data('kendoWindow');
+         dialog.close();
+      }
+   }
+
+
+   function CancelDeleteDiaryTag() {
+      /* do nothing */
+   }
+
+
+   $(document).ready(function () {
+      var dialog = $('#DiaryTagDetailDialog').data("kendoWindow");
+/*      dialog.bind("close", window_closeTag);*/
+      dialog.bind("activate", setMode);
+      /*   dialog.bind("resize", setMode);*/
+      
+      UpdateColorWrapper('@Model.ColorTag',2);
+      if (@Model.IDtag > 0) {
+         TagDialogChangeToViewMode();
+      }
+      else
+      {
+         TagDialogChangeToEditMode();
+      }
+
+      var dialogId = "@dialogId";
+
+      $('#btnEdit'+dialogId).off('click').on('click', function () {
+
+         TagDialogChangeToEditMode();
+
+      });
+
+      $('#btnCancel'+dialogId).off('click').on('click', function () {
+         if ($("#IDtag").val() == "0") {
+            dialog.close();
+            return;
+         }
+         OpenDiaryTagDetail('@Model.IDtag');
+      });
+
+      $('#btnSave' + dialogId).off('click').on('click', function () {
+         SaveDiaryTag();
+      });
+      $('#btnDelete' + dialogId).off('click').on('click', function () {
+         umsConfirm('@DicSvc.XLate("Confirm delete")', '@DicSvc.XLate("Do you really want to delete this Tag?")', DeleteDiaryTag, CancelDeleteDiaryTag);
+      });
+      $('#btnClose' + dialogId).off('click').on('click', function () {
+         $("html").css("overflow-y", "hidden");
+         dialog.close();
+      });
+
+
+   });
+</script>

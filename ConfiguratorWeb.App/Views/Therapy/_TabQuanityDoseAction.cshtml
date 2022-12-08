@@ -1,0 +1,775 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@using  Digistat.FrameworkStd.Enums
+@model TherapyItemModel
+@{
+   ViewData["Title"] = "_TabQuanityDoseAction";
+
+   int intMin = 0;
+   int intDefault = 0;
+}
+
+<style>
+   .schemaDesc {
+      width: 300px;
+      margin-left: 36px;
+      position: relative;
+      top: 7px;
+      /* font-size: medium; */
+      font-weight: bold;
+   }
+   #coverRoutes {
+      position: absolute;
+      top: 28px;
+      width: 363px;
+      height: 148px;
+      display: none;
+      z-index: 2;
+      cursor: not-allowed;
+   }
+   #coverDiluents {
+      position: absolute;
+      top: 210px;
+      width: 363px;
+      height: 148px;
+      display: none;
+      z-index: 2;
+      cursor: not-allowed;
+   }
+
+   #coverDiluentsOperation
+    {
+    position: absolute;
+    top: 210px;
+    width: 42px;
+    height: 151px;
+    z-index: 2;
+    cursor: not-allowed;
+    left: 380px;
+    display:none;
+   }
+
+#coverRoutesOperation
+    {
+   position: absolute;
+    top: 27px;
+    width: 42px;
+    height: 151px;
+    z-index: 2;
+    cursor: not-allowed;
+    left: 380px;
+    display:none;
+   }
+</style>
+
+<script>
+
+   var qda_input_values = [];
+
+   function PrepareKendoField( field_id , current_dd_selection) {
+      let ctrl = $("#"+field_id);
+      if (ctrl != null && ctrl.data("kendoNumericTextBox") != null) {
+         if (actualmode == 2) {
+            ctrl.data("kendoNumericTextBox").enable(current_dd_selection.Enabled);
+            $("#" + field_id.substr(1)).attr('disabled', !current_dd_selection.Enabled);
+
+            if (ctrl.attr("disabled") != null) {
+               ctrl.data("kendoNumericTextBox").value("");
+            }
+            else {
+               if (qda_input_values[field_id] != null) {
+                  ctrl.data("kendoNumericTextBox").value(qda_input_values[field_id]);
+               }
+            }
+            
+            $("#" + field_id.substr(1) + "Unit").attr('disabled',!current_dd_selection.Enabled);
+         }
+         $("#" + field_id.substr(1) + "Unit").val(current_dd_selection.Unit);
+      }
+   };
+
+   function onSchemaDDLSelect(e) {
+
+      //store current values for each enabled input
+      //these values will be used to reassign it when a schema is selected
+      //and the same input is enabled
+      $('.manual-grid :input').each(function () {
+         
+         var cb = $(this).data("kendoNumericTextBox");
+         
+         if (cb != null && cb.element.length > 0)
+         {
+            if (cb.element[0].disabled == false) {
+               qda_input_values[cb.element[0].id] = cb.element[0].value;
+            }
+
+         }
+      });
+
+
+      if (!QuantityDoseSchemaFirstLoad ) {
+         $(".manual-grid :input").val("");
+      }
+      var current = e.sender.dataItem(e.item);
+
+      if (current != null && current.SchemaField != null) {
+         $("#QuantityDose_Mask").val(current.Mask);
+         $("#QuantityDose_AllowedMasks").val(current.AllowedMask);
+         $("#QuantityDose_Factor").attr("readonly", true);
+         $("#QuantityDose_Factor").val(current.Factor);
+         $("#schemaDescription").text(current.Description);
+         if ($("#nQuantityDose_ProductConcentration").data("kendoNumericTextBox") != null) {
+            $("#nQuantityDose_ProductConcentration").data("kendoNumericTextBox").enable(false);
+         }
+         for (var i = 0; i < current.SchemaField.length; i++) {
+            //$("#QuantityDose_ProductConcentration").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+
+            if (current.SchemaField[i].Name == "Volume") {
+               PrepareKendoField("nQuantityDose_Volume", current.SchemaField[i]);
+                  //$("#QuantityDose_VolumeSoftMin").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_VolumeHardMin").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_VolumeSoftMax").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_VolumeHardMax").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+            }
+            else if (current.SchemaField[i].Name == "Amount") {
+               PrepareKendoField("nQuantityDose_Amount", current.SchemaField[i]);
+                  //$("#QuantityDose_AmountSoftMin").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_AmountHardMin").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_AmountSoftMax").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_AmountHardMax").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+            }
+            else if (current.SchemaField[i].Name == "Speed") {
+               PrepareKendoField("nQuantityDose_Speed", current.SchemaField[i]);
+                  //$("#QuantityDose_SpeedSoftMin").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_SpeedHardMin").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_SpeedSoftMax").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_SpeedHardMax").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+            }
+            else if (current.SchemaField[i].Name == "DrugSpeed") {
+               PrepareKendoField("nQuantityDose_DrugSpeed", current.SchemaField[i]);
+                  //$("#QuantityDose_DrugSpeedSoftMin").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_DrugSpeedHardMin").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_DrugSpeedSoftMax").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_DrugSpeedHardMax").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+            }
+            else if (current.SchemaField[i].Name == "Concentration") {
+               PrepareKendoField("nQuantityDose_Concentration", current.SchemaField[i]);
+                  //$("#QuantityDose_ConcentrationSoftMin").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_ConcentrationHardMin").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_ConcentrationSoftMax").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_ConcentrationHardMax").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+            }
+            else if (current.SchemaField[i].Name == "Duration") {
+                  PrepareKendoField("nQuantityDose_Duration", current.SchemaField[i]);
+
+                  //$("#QuantityDose_DurationSoftMin").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_DurationHardMin").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_DurationSoftMax").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+                  //$("#QuantityDose_DurationHardMax").data("kendoNumericTextBox").enable(current.SchemaField[i].Enabled);
+            }
+            else if (current.SchemaField[i].Name == "ProductConcentration") {
+               
+               PrepareKendoField("nQuantityDose_ProductConcentration", current.SchemaField[i]);
+               //$("#QuantityDose_ProductConcentrationUnit").attr("disabled", "disabled");
+            }
+         }
+      }
+      else {
+         $(".manual-grid :input").attr('disabled', true);
+         $(".manual-grid :input").prop('readonly', true);
+         $("#QuantityDose_ProductConcentrationUnit").val("");
+         $("#QuantityDose_DurationUnit").val("");
+         $("#QuantityDose_ConcentrationUnit").val("");
+         $("#QuantityDose_DrugSpeedUnit").val("");
+         $("#QuantityDose_SpeedUnit").val("");
+         $("#QuantityDose_AmountUnit").val("");
+         $("#QuantityDose_VolumeUnit").val("");
+      }
+
+   }
+
+   function onSchemaDDLBound(e) {
+
+      var dropdownlist = e.sender;
+      dropdownlist.select(function (dataItem) {
+         return dataItem.Name === "@Model.QuantityDose.SchemaName";
+      });
+      QuantityDoseSchemaFirstLoad  = true;
+      dropdownlist.trigger("select");
+      QuantityDoseSchemaFirstLoad  = false;
+
+   }
+
+
+
+   function UpdateQuantityDoseVolume()
+   {
+        $("#QuantityDose_Volume").val(this.value());
+   }
+   function UpdateQuantityDoseAmount()
+   {
+        $("#QuantityDose_Amount").val(this.value());
+   }
+   function UpdateQuantityDoseSpeed()
+   {
+        $("#QuantityDose_Speed").val(this.value());
+   }
+   function UpdateQuantityDoseDrugSpeed()
+   {
+        $("#QuantityDose_DrugSpeed").val(this.value());
+   }
+   function UpdateQuantityDoseConcentration()
+   {
+        $("#QuantityDose_Concentration").val(this.value());
+   }
+   function UpdateQuantityDoseDuration()
+   {
+        $("#QuantityDose_Duration").val(this.value());
+   }
+   function UpdateQuantityDoseProdConcentration()
+   {
+        $("#QuantityDose_ProductConcentration").val(this.value());
+   }
+
+</script>
+
+
+<div class="mainQuantityContainer">
+   @if (Model != null)
+   {
+      @if (Model.ItemType.Equals(TherapyItemType.Mixture))
+      {
+         <div class="containerSingleGridQuantity">
+            <div style="display:flex;flex-direction:row;">
+               @{await Html.RenderPartialAsync("_QuantityDoseMixturGrid", Model);}
+            </div>
+            <div style="display:flex; flex-direction:column;">
+               <button id="addMixtureGridRow"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button"><span class="k-icon k-i-plus"></span></button>
+               <button id="removeMixtureGridRow"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button" style="display:none;"><span class="k-icon k-i-minus"></span></button>
+               <div class="arrowMixture" disabled="disabled">
+                  <div style="display:flex; flex-direction:column;">
+                     <button id="moveMAsscoiationUp"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" style="margin-bottom: 1px;" type="button"><span class="k-icon k-i-arrow-60-up"></span></button>
+                     <button id="moveMAsscoiationDown"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" type="button"><span class="k-icon k-i-arrow-60-down"></span></button>
+                  </div>
+               </div>
+            </div>
+         </div>
+      }
+
+      @if (Model.ItemType.Equals(TherapyItemType.Action) || Model.ItemType.Equals(TherapyItemType.Mixture))
+      {
+         <div class="form-group row" style="order:0; margin-top: 10px">
+            <label class="topInputs" style="padding-right:13px;">@DicSvc.XLate("Schema")*</label>
+            @*<input asp-for="QuantityDose.SchemaName" type="text" style="width:300px; display:inline-block; max-width:300px;" />*@
+            @(Html.Kendo().DropDownList()
+                                                                                  .Name("QuantityDose.SchemaName")
+                                                                                  .HtmlAttributes(new { style = "height:30px; width: 30%" })
+                                                                                  .OptionLabel(@DicSvc.XLate("  "))
+                                                                                  .DataTextField("Name")
+                                                                                  .DataValueField("Name")
+                                                                                  .AutoBind(true)
+                                                                                  .Height(310)
+
+                                                .DataSource(source =>
+                                                {
+
+                                                   source.Custom()
+                                                      .Transport(transport =>
+                                                      {
+                                                         transport.Read("LoadSchemaSystemOption", "Therapy", new { ActionType = Model.ItemType });
+                                                      })
+                                                      .Schema(schema =>
+                                                      {
+                                                         schema.Data("data.Schema");
+                                                      });
+                                                })
+                                                .Events(e => e.Select("onSchemaDDLSelect").DataBound("onSchemaDDLBound")
+                                                )
+
+                  //.FooterTemplate("Total number of <strong>#: instance.dataSource.total() #</strong> categories found")
+                  )
+
+            <div id="schemaDescription" style="width:300px;" class="schemaDesc"></div>
+         </div>
+
+
+      }
+   }
+         @if (Model != null)
+         {
+            <div style="display:flex; flex-direction:row; justify-content:space-between;">
+               <div class="manual-grid">
+                  <div class="row">
+                     <label for="unitQuntity" class="vertical-label" style="position: relative;top: 31px;">@DicSvc.XLate("Volume")</label>
+
+                     <span>
+                        <label for="QuantityDose.VolumeUnit" style="display:block"> @DicSvc.XLate("Unit")</label>
+                        <input asp-for="QuantityDose.VolumeUnit" type="text" readonly class="k-textbox unitValueText" />
+                     </span>
+                     <span>
+                        <label for="QuantityDose.Volume" style="display:block">@DicSvc.XLate("Default Val")</label>
+
+                        @(Html.HiddenFor(m => m.QuantityDose.Volume))
+
+                        @(Html.Kendo().NumericTextBox().Name("nQuantityDose_Volume").Events( e=> e.Change("UpdateQuantityDoseVolume"))
+                                                                   .Step(0.1F)
+                                                                   .Spinners(false)
+                                                                  .Format("#.#########")
+                                                                  .RestrictDecimals(true)
+                                                                  .Decimals(9)
+                                                                  .HtmlAttributes(new { @class = "numericStyle" })
+
+                  )
+                     </span>
+                     @*<span>
+                           <label for="QuantityDose.VolumeSoftMin" style="display:block">@DicSvc.XLate("Soft Min")</label>
+
+                           @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.VolumeSoftMin)
+                                                                            .Step(0.1F)
+                                                                                             .Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                                                                            .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" })
+                           )
+                        </span>*@
+                     @*<span>
+                           <label for="QuantityDose.VolumeHardMinn" style="display:block">@DicSvc.XLate("Hard Min")</label>
+
+                           @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.VolumeHardMin)
+                                                                            .Step(0.1F)
+                                                                            .Spinners(false)
+
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                           )
+                        </span>*@
+                     @*<span>
+                           <label for="QuantityDose.VolumeSoftMax" style="display:block">@DicSvc.XLate("Soft Max")</label>
+
+                           @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.VolumeSoftMax)
+                                                                            .Step(0.1F)
+                                                                            .Spinners(false)
+
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                           )
+                        </span>*@
+                     @*<span>
+                           <label for="QuantityDose.VolumeHardMax" style="display:block"> @DicSvc.XLate("Hard Max")</label>
+
+                           @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.VolumeHardMax)
+                                                                            .Step(0.1F)
+
+
+                                                                            .Spinners(false)
+
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                           )
+
+                        </span>*@
+                  </div>
+                  @if (Model != null)
+                  {
+                     @if (Model.ItemType.Equals(TherapyItemType.Action))
+                     {
+                        <div class="row" style="order:1;">
+                           <label for="QuantityDose.AmountUnit" class="vertical-label">@DicSvc.XLate("Amount/Dose")</label>
+                           <input asp-for="QuantityDose.AmountUnit" type="text" readonly class="k-textbox unitValueText" />
+                           @(Html.HiddenFor(m=>m.QuantityDose.Amount))
+                           @(Html.Kendo().NumericTextBox().Name("nQuantityDose_Amount").Events( e=> e.Change("UpdateQuantityDoseAmount"))
+                                                                         .Step(0.1F)
+
+
+                                                                         .Spinners(false)
+
+                                                                  .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                     )
+                           @*
+                              @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.AmountSoftMin)
+                                                                                  .Step(0.1F)
+
+
+                                                                                  .Spinners(false)
+
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                              )
+
+                              @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.AmountHardMin)
+                                                                                  .Step(0.1F)
+
+
+                                                                                  .Spinners(false)
+
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                              )
+
+                              @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.AmountSoftMax)
+                                                                                  .Step(0.1F)
+
+
+                                                                                  .Spinners(false)
+
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                              )
+
+                              @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.AmountHardMax)
+                                                                                  .Step(0.1F)
+
+
+                                                                                  .Spinners(false)
+
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                              )*@
+
+                        </div>
+                     }
+                  }
+                  <div class="row" style="order:2;">
+                     <label for="QuantityDose.SpeedUnit" class="vertical-label">@DicSvc.XLate("Solution Speed") </label>
+               <input asp-for="QuantityDose.SpeedUnit" type="text" readonly  class="k-textbox unitValueText" />
+
+                    @(Html.HiddenFor(m=>m.QuantityDose.Speed))
+                    @(Html.Kendo().NumericTextBox().Name("nQuantityDose_Speed").Events( e=> e.Change("UpdateQuantityDoseSpeed"))
+                                                                      .Step(0.1F)
+                                                                      .Spinners(false)
+
+                                                                  .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+               )
+                     @*
+                        @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.SpeedSoftMin)
+                                                                               .Step(0.1F)
+
+
+                                                                               .Spinners(false)
+
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                        )
+
+                        @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.SpeedHardMin)
+                                                                               .Step(0.1F)
+
+
+                                                                               .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                        )
+
+                        @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.SpeedSoftMax)
+                                                                               .Step(0.1F)
+
+
+                                                                               .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                        )
+
+                        @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.SpeedHardMax)
+                                                                               .Step(0.1F)
+
+
+                                                                               .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                        )*@
+
+                  </div>
+                  @if (Model != null)
+                  {
+                     @if (Model.ItemType.Equals(TherapyItemType.Action))
+                     {
+                        <div class="row" style="order:3;">
+                           <label for="QuantityDose.DrugSpeedUnit" class="vertical-label">@DicSvc.XLate("Drug Speed") </label>
+                           <input asp-for="QuantityDose.DrugSpeedUnit" type="text" readonly class="k-textbox unitValueText" />
+                           @(Html.HiddenFor(m=>m.QuantityDose.DrugSpeed))
+                            @(Html.Kendo().NumericTextBox().Name("nQuantityDose_DrugSpeed").Events( e=> e.Change("UpdateQuantityDoseDrugSpeed"))
+                                                                         .Step(0.1F)
+
+
+                                                                         .Spinners(false)
+                                                                  .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                     )
+                           @*
+                              @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.DrugSpeedSoftMin)
+                                                                                  .Step(0.1F)
+
+
+                                                                                  .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                              )
+
+                              @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.DrugSpeedHardMin)
+                                                                                  .Step(0.1F)
+
+
+                                                                                  .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                              )
+
+                              @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.DrugSpeedSoftMax)
+                                                                                  .Step(0.1F)
+
+
+                                                                                  .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                              )
+
+                              @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.DrugSpeedHardMax)
+                                                                                  .Step(0.1F)
+
+
+                                                                                  .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                              )*@
+
+                        </div>
+                     }
+                  }
+                  @if (Model != null)
+                  {
+                     @if (Model.ItemType.Equals(TherapyItemType.Action))
+                     {
+                        <div class="row" style="order:4;">
+
+                           <label for="QuantityDose.ConcentrationUnit" class="vertical-label">@DicSvc.XLate("Concentration")</label>
+                     <input asp-for="QuantityDose.ConcentrationUnit" type="text" readonly  class="k-textbox unitValueText" />
+                            @(Html.HiddenFor(m=>m.QuantityDose.Concentration))
+                            @(Html.Kendo().NumericTextBox().Name("nQuantityDose_Concentration").Events( e=> e.Change("UpdateQuantityDoseConcentration"))
+                                                                         .Step(0.1F)
+
+
+                                                                         .Spinners(false)
+                                                                  .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                     )
+                           @*
+                              @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.ConcentrationSoftMin)
+                                                                                  .Step(0.1F)
+
+
+                                                                                  .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                              )
+
+                              @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.ConcentrationHardMin)
+                                                                                  .Step(0.1F)
+
+
+                                                                                  .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                              )
+
+                              @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.ConcentrationSoftMax)
+                                                                                  .Step(0.1F)
+
+
+                                                                                  .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                              )
+
+                              @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.ConcentrationHardMax)
+                                                                                  .Step(0.1F)
+
+
+                                                                                  .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                              )*@
+
+                        </div>
+                     }
+                  }
+                  <div class="row" style="order:5;">
+
+                     <label for="QuantityDose.DurationUnit" class="vertical-label">@DicSvc.XLate("Duration")</label>
+                     <input type="text" asp-for="QuantityDose.DurationUnit" readonly class="k-textbox unitValueText" />
+                     @(Html.HiddenFor(m=>m.QuantityDose.Duration))
+                            @(Html.Kendo().NumericTextBox().Name("nQuantityDose_Duration").Events( e=> e.Change("UpdateQuantityDoseDuration"))
+                                                                   .Step(1)
+                                                                   .Spinners(false)
+                                                                  .HtmlAttributes(new { @class = "numericStyle"})
+                                                                  .Format("{0:#.##}")
+                                                                  .RestrictDecimals(true)
+                                                                  .Decimals(0)
+               )
+                     @*
+                        @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.DurationSoftMin)
+                                                                                  .Step(0.1F)
+
+
+                                                                                  .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                        )
+
+                        @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.DurationHardMin)
+                                                                            .Step(0.1F)
+
+
+                                                                            .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                        )
+
+                        @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.DurationSoftMax)
+                                                                            .Step(0.1F)
+
+
+                                                                            .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+                        )
+
+                        @(Html.Kendo().NumericTextBoxFor(m => m.QuantityDose.DurationHardMax)
+                                                                         .Step(0.1F)
+
+
+                                                                         .Spinners(false)
+                                                                           .HtmlAttributes(new { @class = "numericStyle" }).Format("#.#########").RestrictDecimals(true).Decimals(9)
+
+
+                        )*@
+
+                  </div>
+                  @if (Model != null)
+                  {
+                    @if (Model.ItemType.Equals(TherapyItemType.Action))
+                    {
+                        <div class="row" style="order:6;">
+                            <label class="vertical-label">@DicSvc.XLate("Product concent.")</label>
+                            <input type="text" asp-for="QuantityDose.ProductConcentrationUnit" readonly class="k-textbox unitValueText" />
+                            @(Html.HiddenFor(m=>m.QuantityDose.ProductConcentration))
+                            @(Html.Kendo().NumericTextBox().Name("nQuantityDose_ProductConcentration").Events( e=> e.Change("UpdateQuantityDoseProdConcentration"))
+                                                                         .Step(0.1F)
+                                                                         .HtmlAttributes(new { @class = "numericStyle" })
+                                                                         .Format("#.#########")
+                                                                         .RestrictDecimals(true)
+                                                                         .Decimals(9)
+                                                                         .Spinners(false)
+                     )
+
+
+                            <label style="position: relative; left: 11px;">@DicSvc.XLate("Unit conversion factor")</label>
+
+                            <input asp-for="QuantityDose.Factor" type="text" readonly class="k-textbox unitValueText" style="position: relative;left: 18px;width: 277px;text-align: center;" />
+
+                        </div>
+                    }
+                    else if (Model.ItemType.Equals(TherapyItemType.Mixture))
+                    {
+                        <input asp-for="QuantityDose.Factor" type="hidden" />
+                    }
+                }
+               </div>
+
+
+
+
+
+         <div class="containerGridsQuantity">
+            <div id="coverRoutes"></div>
+            <div id="coverRoutesOperation"></div>
+            <label>@DicSvc.XLate("Allowed routes")</label>
+            <div style="display:flex;flex-direction:row;margin-bottom:5px;">
+               <div id="allowedRoutes">
+                  @{await Html.RenderPartialAsync("_AllowedRoutes", Model);}
+               </div>
+               <div style="display:flex; flex-direction:column;">
+                  <div>
+                     <button id="addRoutes" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button"><span class="k-icon  k-i-plus"></span></button>
+                  </div>
+                  <div style="width:25px;">
+                     <button id="removeRoutes" style="display:none;" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button"><span class="k-icon k-i-minus"></span></button>
+                  </div>
+
+               </div>
+            </div>
+
+            <label>@DicSvc.XLate("Allowed diluents")</label>
+            <div id="coverDiluents"></div>
+            <div id="coverDiluentsOperation"></div>
+                  <div style="display:flex;flex-direction:row;">
+                     <div id="allowedDiluents">
+                        @{await Html.RenderPartialAsync("_AllowedDiluents", Model);}
+                     </div>
+                     <div style="display:flex; flex-direction:column;">
+                        <div>
+                      
+                           <button id="addDiluents" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button"><span class="k-icon  k-i-plus"></span></button>
+
+                        </div>
+                        <div>
+                           <button id="removeDiluents" style="display:none;" class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button"><span class="k-icon k-i-minus"></span></button>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         }
+
+      </div>
+
+<script>
+  
+   $("#moveMAsscoiationDown").off("click").on("click", function (event) { gridOrderingArrowButtonDownAssociation($(this), 'MixtureComponents', 'moveMAsscoiationUp'); });
+   $("#moveMAsscoiationUp").off("click").on("click", function (event) { gridOrderingArrowButtonUpAssociation($(this), 'MixtureComponents', 'moveMAsscoiationDown'); });
+
+   
+   $(document).ready(function () {
+       qda_input_values = [];
+       $("#nQuantityDose_Duration").attr('maxlength','6');
+
+       if ($("#nQuantityDose_ProductConcentration").data("kendoNumericTextBox") != null) {
+            $("#nQuantityDose_ProductConcentration").data("kendoNumericTextBox").value($("#QuantityDose_ProductConcentration").val());
+         }
+
+         if ($("#nQuantityDose_Amount").data("kendoNumericTextBox") != null) {
+            $("#nQuantityDose_Amount").data("kendoNumericTextBox").value($("#QuantityDose_Amount").val());
+         }
+         if ($("#nQuantityDose_Volume").data("kendoNumericTextBox") != null) {
+            $("#nQuantityDose_Volume").data("kendoNumericTextBox").value($("#QuantityDose_Volume").val());
+         }
+         if ($("#nQuantityDose_Speed").data("kendoNumericTextBox") != null) {
+            $("#nQuantityDose_Speed").data("kendoNumericTextBox").value($("#QuantityDose_Speed").val());
+         }
+         if ($("#nQuantityDose_DrugSpeed").data("kendoNumericTextBox") != null) {
+            $("#nQuantityDose_DrugSpeed").data("kendoNumericTextBox").value($("#QuantityDose_DrugSpeed").val());
+         }
+         if ($("#nQuantityDose_Concentration").data("kendoNumericTextBox") != null) {
+            $("#nQuantityDose_Concentration").data("kendoNumericTextBox").value($("#QuantityDose_Concentration").val());
+         }
+         if ($("#nQuantityDose_Duration").data("kendoNumericTextBox") != null) {
+            $("#nQuantityDose_Duration").data("kendoNumericTextBox").value($("#QuantityDose_Duration").val());
+         }
+
+      if ($("#typeTherapy").val() == "@TherapyItemType.Mixture.ToString()") {
+         if ($('#QuantityDose_VolumeUnit').val() == '') {
+            $('#QuantityDose_VolumeUnit').val("mL");
+         }
+
+         if ($('#QuantityDose_SpeedUnit').val() == '') {
+            $('#QuantityDose_SpeedUnit').val("ml/h");
+         }
+         if ($('#QuantityDose_DurationUnit').val() == '') {
+            $('#QuantityDose_DurationUnit').val("h");
+         }
+      }
+   });
+
+</script>
+
+

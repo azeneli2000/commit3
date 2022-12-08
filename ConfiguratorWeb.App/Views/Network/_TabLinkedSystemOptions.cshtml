@@ -1,0 +1,122 @@
+﻿@model ConfiguratorWeb.App.Models.NetworkViewModel
+@{
+    Layout = null;
+}
+
+<script>
+    function error_handler_lso(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+</script>
+
+
+<div style="height:400px" >
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.SystemOptionViewModel>()
+                                    .Name("linked-system-options-grid")
+                                    .HtmlAttributes(new { style = "height:100%;", @class = "readonly-mode mt-2" })
+                                    .Columns(columns =>
+                                    {
+                                        columns.Bound(e => e.GUID).Visible(false);
+                                        columns.Bound(e => e.Application);
+                                        columns.Bound(e => e.Name);
+                                        columns.Bound(e => e.HospitalUnit);
+                                        columns.Bound(e => e.HostName);
+                                        columns.Bound(e => e.UserName);
+                                        columns.Bound(e => e.Value);
+                                    })
+                                                         // .Events(ev=>ev.DataBound("onDataBoundLso"))
+
+                             .UmsDefaultPager(DicSvc)
+                              .Sortable().Filterable()
+                               .Scrollable()
+                                .DataSource(dataSource => dataSource
+                                       .Ajax()
+                                       .Model(model =>
+                                       {
+                                           model.Id(o => o.GUID);
+                                           model.Field(o => o.Name).Editable(false);
+                                           model.Field(o => o.Application).Editable(false);
+                                           model.Field(o => o.HospitalUnit).Editable(false);
+                                           model.Field(o => o.HostName).Editable(false);
+                                           model.Field(o => o.UserName).Editable(false);
+                                           model.Field(o => o.Value).Editable(false);
+                                       }).PageSize(15)
+                                                 .Events(events => events.Error("error_handler_lso"))
+                                                    .Read(read => read.Action("ReadLinkedSystemOptions", "Network", new { hostname = Model.HostName })))
+                                                     .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+
+        )
+</div>
+
+<script>
+    //function refreshGridScrolling() {
+    //    var grid = $("#system-options-grid").data("kendoGrid")
+    //    //reset the cached rowHeight:
+    //    grid._rowHeight = undefined;
+    //    //refresh the virtualScrollable option
+    //    grid.virtualScrollable.refresh();
+    //}
+    
+    function ChangeMergedCells(arrCells, cellText, addBorderToCell) {
+        var cellsCount = arrCells.length;
+        if (cellsCount > 1) {
+            var index = parseInt(cellsCount / 2);
+            var cell = null;
+            if (cellsCount % 2 == 0) { // even number
+                cell = arrCells[index - 1];
+                arrCells[index - 1].css('vertical-align', 'bottom');
+            }
+            else { // odd number
+                cell = arrCells[index];
+            }
+            cell.text(cellText);
+            if (addBorderToCell) {
+                arrCells[cellsCount - 1].css('border-bottom', 'solid 1px #ddd');
+
+            }
+
+            arrCells = []; // clear array for next item
+        }
+        if (cellsCount == 1) {
+            cell = arrCells[0];
+            cell.text(cellText);
+            arrCells[0].css('border-bottom', 'solid 1px #ddd');
+            arrCells = [];
+        }
+        return arrCells;
+    }
+
+    //functions for detail
+    function OnSuccess(response) {
+        //debugger;
+        if (response.success) {
+
+            var grid = $("#system-options-grid").data("kendoGrid");
+            grid.dataSource.read();
+
+            window.umsAlert("Success", "System opption successfully saved.");
+
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+
+    function OnFailure(response) {
+        //debugger;
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+
+</script>

@@ -1,0 +1,191 @@
+﻿@model ConfiguratorWeb.App.Models.DigistatRepositoryViewModel
+@using System.Text;
+@using Digistat.FrameworkStd.Enums
+@{
+    string[] actions = new string[] { "Close" };
+    Layout = null;
+
+    string strDialogID = "divDigistatRepositoryManager";
+
+
+}
+
+
+<script type="text/javascript">
+
+    //datetime, time, integer, float
+    function onChangeValue_@(strDialogID)() {
+    if ($(".view-mode").is(":visible")) {
+    $(".btnEdit").trigger("click");
+    }
+    }
+
+    var _curRepoToDelete = null;
+
+    function confirmDeleteDigiRepo(e) {
+        var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+        _curRepoToDelete = dataItem.ID;
+        umsConfirm('@DicSvc.XLate("Confirm Delete", Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+            '@DicSvc.XLate("Do you really want to delete \"{0}\" from Repository?",Digistat.FrameworkStd.Enums.StringParseMethod.Js)'.replace('{0}',dataItem.FileName),
+            deleteDigRepo, cancelDeleteDriver);
+
+        e.preventDefault();
+        
+    }
+
+    function cancelDeleteDriver() {
+
+    }
+
+    function deleteDigRepo(e) {
+         $.ajax({
+             url: '@Url.Action("DeleteDigistatRepository", "DigistatRepository")?repoID=' + _curRepoToDelete,
+                type: 'GET',
+                async: false
+                }).done(function (dataHtml) {
+                    $('#digistatRepositoryGrid').data('kendoGrid').dataSource.read();
+            });
+        _curRepoToDelete = null;
+    }
+
+    function downloadDigistatRepository(e) {
+        e.preventDefault();
+        var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+        var repoID = dataItem.ID;
+        window.location.href = '@Url.Action("DownloadDigistatRepository", "DigistatRepository")?repoID=' + repoID ;
+    }
+
+
+    $(document).ready(function () {
+
+        $('#divDigistatRepoUploadDialog').usmKendoWindow({
+            close: function (e) {
+            },
+            title: '@DicSvc.XLate("Upload File",StringParseMethod.Js)',
+            height: 500,
+            width: '40%'
+        });
+
+        $('#btnAddRepository').off('click').on('click', function () {
+            var objRepoUploadDialog = $('#divDigistatRepoUploadDialog').data('kendoWindow');
+                $.ajax({
+                url: '@Url.Action("UploadDialog", "DigistatRepository")',
+                type: 'GET',
+                async: false
+                }).done(function (dataHtml) {
+                    objRepoUploadDialog.content(dataHtml);
+                    objRepoUploadDialog.open();
+                    objRepoUploadDialog.center();
+                });
+            return false;
+        });
+
+        $('#btnSelectRepository').off('click').on('click', function () {
+           var grid = $('#digistatRepositoryGrid').getKendoGrid();
+           if (grid) {
+              var item = grid.dataItem(grid.select());
+              if (item != undefined && item != null) {
+                 selectDigistatRepository(item);
+                 return;
+              }
+           }
+           window.umsAlert("@DicSvc.XLate("ALERT")", "@DicSvc.XLate("No item selected")");
+        });
+
+        $('#btnNone').off('click').on('click',function () {
+            selectDigistatRepository(null);
+            $('#divDigistatRepoDialog').data('kendoWindow').close();
+        });
+
+
+        $('#btnCancelRepository').off('click').on('click',function () {
+            $('#divDigistatRepoDialog').data('kendoWindow').close();
+        });
+
+    });
+
+    function onDataBound(e) {
+        var grid = this;
+        grid.items().each(function () {
+            var data = grid.dataItem(this);
+            if (data.ID == '@(ViewBag.CurrentRepoID)') {
+                grid.select(this);
+            }
+        });
+
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                onGridRepositoryKeyEnter(item);
+
+            });
+    }
+
+
+    function onGridRepositoryKeyEnter(item) {
+        selectDigistatRepository(item);
+    };
+
+    function selectDigistatRepository(item) {
+        if (item != null) {
+            $('#Value').val(item.ID);
+            $('#btnBinaryButton').html(item.FileName);
+        }
+        else {
+            $('#Value').val('');
+            $('#btnBinaryButton').html('@DicSvc.XLate("Choose a file ...")');
+        }
+        $('#divDigistatRepoDialog').data('kendoWindow').close();
+    }
+
+ 
+
+
+</script>
+<div id="divDigistatRepoUploadDialog"></div>
+<div class="card h-90 pt-1 pb-2 border-0" id="@strDialogID">
+    @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.DigistatRepositoryViewModel>
+    ()
+    .Name("digistatRepositoryGrid")
+    .UmsDefaultSettings(DicSvc)
+    .Columns(columns =>
+    {
+        columns.Bound(e => e.ID).Visible(false);
+        columns.Bound(e => e.FileName);
+        columns.Bound(e => e.Size);
+        columns.Bound(e => e.Type);
+        columns.Command(command =>
+        {
+            command.Custom("Delete").Text(" ").IconClass("k-grid-command mdi mdi-delete").Click("confirmDeleteDigiRepo").HtmlAttributes(new { style = "width:30px;", id = "btnDeleteDigistatRepository" });
+           command.Custom("Download").Text(" ").IconClass("k-grid-command mdi mdi-download").Click("downloadDigistatRepository").HtmlAttributes(new { style = "width:30px;", id = "btnDownloadDigistatRepository" });
+
+        }).Width(100);
+    })
+    .UmsDefaultPager(DicSvc)
+    .Events(ev => ev.DataBound("onDataBound"))
+    .DataSource(dataSource => dataSource
+    .Ajax()
+    .Model(model =>
+    {        
+    }).PageSize(50)
+    //.Events(events => events.Error("onGridError"))
+    .Read(read => read.Action("ReadDigistatRepository", "DigistatRepository")
+    )
+    )
+    )
+</div>
+<div class="card-footer h-10 p-0 m-0 mt-1 border-0">
+    @(Html.Kendo().ToolBar()
+        .Name("toolbarDigistatRepo")
+        .UmsDefaultErrors(DicSvc)
+        .Items(
+            items =>
+            {
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("SELECT")).Id("btnSelectRepository").UmsHtmlButtonGeneric("");
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("NONE")).Id("btnNone").UmsHtmlButtonGeneric("");
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("ADD")).Id("btnAddRepository").UmsHtmlButtonGeneric("");
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("CANCEL")).Id("btnCancelRepository").UmsHtmlButtonGeneric("");
+            }
+        )
+    )
+</div>

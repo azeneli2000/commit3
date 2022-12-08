@@ -1,0 +1,299 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@model TherapyItemModel
+@{
+   ViewData["Title"] = "_TabItemsDetail";
+   var gridName = "itemsGrid";
+}
+<style>
+   .rowItemsClass {
+      width: 359px;
+      display: flex;
+      margin-top: 13px;
+   }
+</style>
+@*<div class="rowItemsClass">
+   <label for="Classification.LocationRef" style="font-weight:bold;margin-top: auto;">@DicSvc.XLate("Location") </label>
+   <div class="input-group">
+      <input type="text" asp-for="Classification.LocationName" class=" label-name form-control control-required" readonly="readonly" style="margin-left:16px;" />
+      <span class="input-group-append">
+         <button id="btnLocation1" onclick="openLocationsGrid1();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Set Location">
+            <span class="mdi mdi-pencil"></span>
+         </button>
+         <button id="btnClearLocation1" onclick="clearLocationField1();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Clear Location">
+            <span class="mdi mdi-close"></span>
+         </button>
+      </span>
+      @Html.HiddenFor(m => m.Classification.LocationRef)
+   </div>
+</div>*@
+<div style="display:flex;flex-direction:row;margin-bottom:15px;margin-top:15px;position:relative;left:133px;width:1068px;">
+   <div>
+
+
+      @(Html.Kendo().Grid(Model.ComponentsFormVal)
+                                                                            .Name("itemsGrid")
+                                                                            .Navigatable(true)
+                                                                            .Columns(columns =>
+                                                                            {
+
+                                                                               columns.Bound(e => e.Name);
+                                                                               columns.Bound(e => e.Description);
+                                                                               columns.Bound(e => e.LocationRef).Hidden(true);
+                                                                               columns.Bound(e => e.LocationName);
+
+
+
+                                                                            })
+                                                                               //.Editable(e => e.Mode(GridEditMode.InCell))
+                                                                               .Selectable(s => s.Mode(GridSelectionMode.Single))
+                                                                               .Scrollable()
+                                                                               .DataSource(dataSource => dataSource
+                                                                                              .Ajax()
+                                                                                              .ServerOperation(true)
+                                                                                              .Model(model =>
+                                                                                              {
+                                                                                                 model.Field(o => o.IdChild);
+                                                                                                 model.Field(e => e.Name);
+                                                                                                 model.Field(e => e.Description);
+                                                                                                 model.Field(o => o.IdFather);
+                                                                                                 model.Field(o => o.Index);
+                                                                                                 model.Field(o => o.LocationRef);
+                                                                                                 model.Field(o => o.LocationName);
+
+                                                                                              })
+                                                                                )
+                                                                                .HtmlAttributes(new { style = "width:1000px;height:390px;margin-left:-62px;" })
+                                                                                 .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+      )
+   </div>
+   <div style="display:flex; flex-direction:column;">
+      <div>
+         <button id="addProtocolItems"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button"><span class="k-icon  k-i-plus"></span></button>
+      </div>
+      <div style="width:25px;">
+         <button id="removeProtocolItems" style="display:none;"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button"><span class="k-icon k-i-minus"></span></button>
+      </div>
+      <div class="arrowProtocol" disabled="disabled">
+         <div style="display:flex; flex-direction:column;">
+            <button id="moveMAsscoiationUpP"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" style="margin-bottom: 1px;" type="button"><span class="k-icon k-i-arrow-60-up"></span></button>
+            <button id="moveMAsscoiationDownP"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom"" type="button"><span class="k-icon k-i-arrow-60-down"></span></button>
+         </div>
+      </div>
+   </div>
+</div>
+<div id="ComponentSelectionWindow" style="height:400px; display:flex;flex-direction:row;">
+   @{ await Html.RenderPartialAsync("_MixtureComponentSelection"); }
+</div>
+<kendo-window name="popupLocations"
+              draggable="false"
+              scrollable="false"
+              visible="false"
+              width="600"
+              modal="true"
+              title="LOCATIONS"
+              height="500"
+              resizable="true">
+   <popup-animation enabled="false" />
+</kendo-window>
+<script>
+   @*var temp_loc = '@Model.Classification.LocationRef';
+   var keyVal2, KeyId2;
+   var associatedItemArray = [];
+
+   function GetAssociatedId() {
+
+      var components;
+
+      components = $('#itemsGrid').getKendoGrid().dataSource.data();
+
+      if (components != null) {
+      for (var i = 0; i < components.length; i++) {
+      associatedItemArray.push(components[i].IdChild)
+
+      }
+}
+
+   }
+   $(document).ready(function () {
+      GetAssociatedId();
+
+   });
+      function openLocationsGrid1() {
+        $.ajax({
+            url: '@Url.Action("GetLocations", "SystemConfiguration")',
+            type: 'GET',
+            data: { id: '@Model.Classification.LocationRef' }
+        }).done(function (data) {
+
+              var dialogAbout = $("#popupLocations");
+              dialogAbout.data("kendoWindow").content(data);
+              dialogAbout.data("kendoWindow").center().open();
+
+
+
+        });
+   }
+
+   function clearLocationField1() {
+                    var keyVal =null;
+         var keyId = '';
+         KeyVal2 = keyVal;
+         KeyId2 = keyId;
+         $.ajax({
+         url: '@Url.Action("CheckAsscoiatedLocations", "Therapy")',
+         type: 'POST',
+            data: {  tempLoc: keyId, associatedItems :associatedItemArray }
+         }).done(function (data) {
+            if (data.data == false) {
+
+               umsConfirm('@DicSvc.XLate("Different Locations")', '@DicSvc.XLate("Do you want to remove the Item Associations with different locations ?")', RemoveAsscoiationsP, CancelRemoveP);
+         }
+         else {
+            temp_loc = keyId.toString();
+            $("#Classification_LocationName").val(null);
+            $("#Classification_LocationRef").val('');
+            var gridObject = $("#MixtureComponentsSelection").data("kendoGrid");
+            gridObject.dataSource.transport.options.read.url = "/Therapy/ReadFilteredStandardActions?LocationID=" + temp_loc;
+            gridObject.dataSource.read();
+         }
+         });
+   }*@
+   var componentskndWnd = $('#ComponentSelectionWindow').usmKendoWindow({
+
+            title: $("#typeTherapy").val() +' Component Selection',
+            height: 500,
+            width: 700,
+            modal: true,
+            visible: false,
+            close: function (e) {
+               $("#errorInsertAction").css("display", "none");
+
+            }
+            });
+
+
+   $('#addProtocolItems').off('click').on('click', function (e) {
+            e.preventDefault();
+            ShowStandardActionMixtureComponent();
+            return false;
+   });
+
+   $('#removeProtocolItems').off('click').on('click', function (e) {
+
+
+         e.preventDefault();
+
+
+         var grid = $("#@gridName").data("kendoGrid");
+         var rows = grid.select();
+         var datasource = $("#@gridName").data("kendoGrid").dataSource;
+      associatedItemArray.pop(rows);
+
+         //var row = datasource.get(item);
+         grid.removeRow(rows);
+
+         datasource.remove(rows);
+      $("#removeProtocolItems").css("display", "none");
+
+   });
+   @*function onDataBoundLoc(e) {
+      var that = this;
+      var grid = $("#loc-grid").data("kendoGrid");
+      if ($('#Classification_LocationRef').val() != '') {
+         grid.items().each(function () {
+            var data = grid.dataItem(this);
+            if (data.ID == $('#Classification_LocationRef').val()) {
+               grid.select(this);
+
+            }
+         });
+      }
+      $(that.tbody).off("click", "tr").on("click", "tr", function (e) {
+
+         //save grid and current search form state and current url
+         //var dataSource = grid.dataSource;
+
+         var keyVal = grid.dataItem($(e.currentTarget).closest("tr"))['LocationName'];
+         var keyId = grid.dataItem($(e.currentTarget).closest("tr"))['ID'];
+         KeyVal2 = keyVal;
+         KeyId2 = keyId;
+         $.ajax({
+         url: '@Url.Action("CheckAsscoiatedLocations", "Therapy")',
+         type: 'POST',
+            data:  {  tempLoc: keyId, associatedItems :associatedItemArray }
+         }).done(function (data) {
+
+         if (data.data == false) {
+            umsConfirm('@DicSvc.XLate("Different Locations")', '@DicSvc.XLate("Do you want to remove the Item Associations with different locations ?")', RemoveAsscoiationsP, CancelRemoveP);
+         }
+         else {
+            temp_loc = keyId.toString();
+            $("#Classification_LocationName").val(keyVal);
+            $("#Classification_LocationRef").val(keyId);
+
+                   var gridObject = $("#MixtureComponentsSelection").data("kendoGrid");
+                   gridObject.dataSource.transport.options.read.url = "/Therapy/ReadFilteredStandardActions?LocationID=" + temp_loc;
+                   gridObject.dataSource.read();
+         }
+
+         });
+
+         $('#popupLocations').data("kendoWindow").close();
+      });
+   }*@
+
+   $("#itemsGrid").on("click", "tr.k-state-selected", function () {
+      if (enableGrids) {
+         $("#removeProtocolItems").css("display", "inherit");
+         $(".arrowProtocol").attr('disabled', false);
+         $(".arrowProtocol").css("display", "flex");
+         $(".arrowProtocol").css("direction", "column");
+      }
+      checkAssociationIndex("itemsGrid", 2);
+
+   });
+
+   $("#moveMAsscoiationDownP").off("click").on("click", function (event) { gridOrderingArrowButtonDownAssociation($(this), 'itemsGrid', 'moveMAsscoiationUpP'); });
+   $("#moveMAsscoiationUpP").off("click").on("click", function (event) { gridOrderingArrowButtonUpAssociation($(this), 'itemsGrid', 'moveMAsscoiationDownP'); });
+
+   //   function RemoveAsscoiationsP()
+   //   {
+
+   //      var components = $('#itemsGrid').getKendoGrid().dataSource.data();
+   //      var temArray = [];
+
+   //      temp_loc = KeyId2.toString();
+
+   //      if (components != null) {
+   //         for (var i = 0; i < components.length; i++) {
+   //            if (components[i].LocationRef!= null) {
+   //            if (components[i].LocationRef.toString() != temp_loc) {
+   //                  temArray.push(components[i]);
+   //                  associatedItemArray.pop(components[i].IdChild);
+
+   //               }
+
+   //            }
+
+   //         }
+   //         components = temArray;
+   //         for (var y = 0; y < components.length; y++) {
+   //            $('#itemsGrid').getKendoGrid().dataSource.remove(components[y]);
+   //         }
+
+
+   //            $("#Classification_LocationName").val(KeyVal2);
+   //            $("#Classification_LocationRef").val(KeyId2);
+
+   //                var gridObject = $("#MixtureComponentsSelection").data("kendoGrid");
+   //                gridObject.dataSource.transport.options.read.url = "/Therapy/ReadFilteredStandardActions?LocationID=" + temp_loc;
+   //                gridObject.dataSource.read();
+
+
+   //         }
+   //   }
+   //function CancelRemoveP() {
+
+   //}
+</script>

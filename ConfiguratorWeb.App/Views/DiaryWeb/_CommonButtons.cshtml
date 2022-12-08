@@ -1,0 +1,263 @@
+﻿<div style="display:flex; flex-direction:column;position: relative;top:32px;">
+        <div>
+        <button id="addSubjectsPHBtn"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base" type="button"><span class="k-icon  k-i-plus"></span></button>
+
+        </div>
+        <div style="width: 25px; position: relative; top: 5px;">
+        <button id="removeSubjectsPHBtn" style="display:none;"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base"type="button"><span class="k-icon k-i-minus"></span></button>
+        </div>
+        <div class="arrowSubjectPH" style="position:absolute;bottom:0;display:flex;flex-direction:column-reverse;" disabled="disabled">
+        <div style="display:flex; flex-direction:column;">
+            <button id="moveSubjectUpPH"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base" style="margin-bottom: 1px;" type="button"><span class="k-icon k-i-arrow-60-up"></span></button>
+            <button id="moveSubjectDownPH"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base" type="button"><span class="k-icon k-i-arrow-60-down"></span></button>
+        </div>
+        <button id="editPhSBtn" style="display:none;bottom:2px;"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base"type="button"><span class="k-icon k-i-pencil"></span></button>
+
+        </div>
+</div>
+
+<div id="UpdateSubjectPH">
+   <div class="editor-label">
+      <div class="row">
+         <label for="NameUpdate">@DicSvc.XLate("Subject Phrase")</label>
+      </div>
+   </div>
+   <div class="editor-field">
+      <span class="k-widget k-textarea">
+         <textarea id="SubPHtxt" style="width: 400px; resize: none;" required="" data-required-msg="Please enter a text."
+                   data-max-msg="Enter value between 1 and 200" data-role="textarea" aria-disabled="false" maxlength="200"
+                   rows="3" placeholder="Enter your text here." class="k-textbox" autocomplete="off" aria-describedby="-error"
+                   aria-invalid="true"></textarea>
+
+      </span>
+   </div>
+   <div class="row">
+      <div class="window-footer col-12" style="position: relative;top: 25px;margin-left: -27px;">
+         <button type="button" id="btnNewGridItemUpdateSPH" style="margin:5px;" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary">@DicSvc.XLate("Save")</button>
+         <button type="button" id="brnCancelGridItemSPH" style="margin:5px;" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base">@DicSvc.XLate("Cancel")</button>
+
+      </div>
+      <div class="col-5 " id="waysError2SPH"  style="display: none; color: red; position: relative;top: -12px;left: 200px;">@DicSvc.XLate("This input already exists")</div>
+      <div class="col-4 " id="waysError1SPH"  style="display: none; color: red; position: relative;top: -6px;left: 200px;">@DicSvc.XLate("Input is required")</div>
+
+   </div>
+</div>
+
+
+<div id="EditSubjectPH">
+   <div class="editor-label">
+      <div class="row">
+         <label for="NameUpdate">@DicSvc.XLate("Subject Phrase")</label>
+      </div>
+   </div>
+   <div class="editor-field">
+      <span class="k-widget k-textarea">
+         <textarea id="SubPHtxtEdit" style="width: 400px; resize: none;" required="" data-required-msg="Please enter a text."
+                   data-max-msg="Enter value between 1 and 200" data-role="textarea" aria-disabled="false" maxlength="200"
+                   rows="3" placeholder="Enter your text here." class="k-textbox" autocomplete="off" aria-describedby="-error"
+                   aria-invalid="true"></textarea>
+
+      </span>
+   </div>
+   <div class="row">
+      <div class="window-footer col-12" style="position: relative;top: 25px;margin-left: -27px;">
+         <button type="button" id="btnNewGridItemUpdateSPHE" style="margin:5px;" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-primary">@DicSvc.XLate("Edit")</button>
+         <button type="button" id="brnCancelGridItemSPHE" style="margin:5px;" class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base">@DicSvc.XLate("Cancel")</button>
+
+      </div>
+      <div class="col-5 " id="waysError2SPHE"  style="display: none; color: red; position: relative;top: -10px;left: 200px;">@DicSvc.XLate("This input already exists")</div>
+      <div class="col-4 " id="waysError1SPHE"  style="display: none; color: red; position: relative;top: -1px;left: 200px;">@DicSvc.XLate("Input is required")</div>
+
+   </div>
+</div>
+<script>
+var customAddSubjectUpdate = $('#UpdateSubjectPH').umsKendoWindow({
+      title: "@DicSvc.XLate("Add Subject Phrase")",
+      height: 250,
+      width: 457,
+      modal: true,
+   });
+var customEditSubjectUpdate = $('#EditSubjectPH').umsKendoWindow({
+      title: "@DicSvc.XLate("Edit Subject Phrase")",
+      height: 250,
+      width: 457,
+      modal: true,
+   });
+
+
+
+$('#addSubjectsPHBtn').off('click').on('click', function (e) {
+
+    var ptw = $("#EditSubjectPH").data("kendoWindow");
+    $("#waysError2SPH").css("display", "none");
+    $("#waysError1SPH").css("display", "none");
+    var ptw = $("#UpdateSubjectPH").data("kendoWindow");
+    kendo.ui.progress(ptw.element, true);
+    if (ptw.element.is(":hidden")) {
+    ptw.open();
+
+    ptw.center();
+
+    }
+    kendo.ui.progress(ptw.element, false);
+});
+
+
+$('#removeSubjectsPHBtn').off('click').on('click', function (e) {
+      var grid = $("#subjectGridph").data("kendoGrid");
+      var dataItem = grid.select();
+      var datasource = $("#subjectGridph").data("kendoGrid").dataSource;
+
+      grid.removeRow(dataItem);
+
+      datasource.remove(dataItem);
+      $("#removeSubjectsPHBtn").css("display", "none");
+      orderCategoryGridsIndex("subjectGridph");
+      $("#moveSubjectUpPH").attr('disabled', true);
+      $("#moveSubjectDownPH").attr('disabled', true);
+});
+
+
+
+function resetOrderButtonsPH() {
+    var grid = $("#subjectGridph").data("kendoGrid");
+    grid.clearSelection();
+    $("#moveSubjectUpPH").attr('disabled', true);
+    $("#moveSubjectDownPH").attr('disabled', true);
+    $("#removeSubjectsPHBtn").css("display", "none");
+    $("#editPhSBtn").css("display", "none");
+       $("#waysError2SPHE").css("display", "none");
+    $("#waysError1SPHE").css("display", "none");
+        $("#waysError2SPH").css("display", "none");
+    $("#waysError1SPH").css("display", "none");
+    $("#SubPHtxtEdit").val("");
+}
+
+function window_closeUPH(e) {
+
+    $("#waysError2SPH").css("display", "none");
+    $("#waysError1SPH").css("display", "none");
+    $("#removeSubjectsPHBtn").css("display", "none");
+    $("#editPhSBtn").css("display", "none");
+    $("#SubPHtxt").val("");
+    resetOrderButtonsPH();
+};
+
+
+
+function window_closePH(e) {
+
+    $("#waysError2SPHE").css("display", "none");
+    $("#waysError1SPHE").css("display", "none");
+    $("#removeSubjectsPHBtn").css("display", "none");
+    $("#editPhSBtn").css("display", "none");
+    $("#SubPHtxtE").val("");
+    resetOrderButtonsPH();
+};
+
+$('#btnNewGridItemDUpdate').off('click').on('click', function (e) {
+    
+
+    Subjects_Grid_UpdatePH(isSeelectedPhSub.ID,$("#SubPHtxtE").val());
+
+});
+$('#brnCancelGridItemSPH').off('click').on('click', function (e) {
+
+    var dialog = $("#UpdateSubjectPH").data("kendoWindow");
+
+    $("#waysError2SPHE").css("display", "none");
+    $("#waysError1SPHE").css("display", "none");
+    $("#SubPHtxtE").val("");
+    $("#removeSubjectsPHBtn").css("display", "none");
+
+    resetOrderButtonsPH();
+
+    dialog.close();
+
+});
+$('#brnCancelGridItemSPHE').off('click').on('click', function (e) {
+
+    var dialog = $("#EditSubjectPH").data("kendoWindow");
+
+    $("#waysError2SPHE").css("display", "none");
+    $("#waysError1SPHE").css("display", "none");
+    $("#SubPHtxtE").val("");
+    $("#removeSubjectsPHBtn").css("display", "none");
+
+    resetOrderButtonsPH();
+
+    dialog.close();
+
+});
+
+
+   $("#moveSubjectDownPH").on("click", function (idx, elem) {
+
+      $("#moveSubjectUpPH").attr('disabled', false);
+   var visibleGrid = $("#subjectGridph").data("kendoGrid");
+   if (visibleGrid.dataSource._data.length > 1) {
+   var selected = visibleGrid.select();
+   if (selected.length > 0) {
+
+   $.each(selected, function (idx, elem) {
+   var dataItem = visibleGrid.dataItem($(this));
+   
+   var index = visibleGrid.dataSource.indexOf(dataItem);
+   var maxIndex = visibleGrid.dataSource._data.length - 1;
+   if (index < maxIndex) {
+   var newIndex = index + 1;
+
+   visibleGrid.dataSource.remove(dataItem);
+   visibleGrid.dataSource.insert(newIndex, dataItem);
+   visibleGrid.select("tr:eq(" + (newIndex) + ")");
+      orderCategoryGridsIndex("subjectGridph");
+   }
+   if (index == maxIndex - 1) {
+      $("#moveSubjectDownPH").attr('disabled', true);
+      visibleGrid.select("tr:eq(" + (newIndex) + ")");
+
+   }
+   isSeelectedPhSub =  visibleGrid.dataItem(grid.select());
+   });
+   }
+   }
+ 
+
+   });
+
+   $("#moveSubjectUpPH").on("click", function (idx, elem) {
+   
+
+   $("#moveSubjectUpPH").attr('disabled', false);
+   $("#moveSubjectDownPH").attr('disabled', false);
+
+   var visibleGrid = $("#subjectGridph").data("kendoGrid");
+   var selected = visibleGrid.select();
+   if (visibleGrid.dataSource._data.length > 1) {
+   if (selected.length > 0) {
+
+   $.each(selected, function (idx, elem) {
+   var dataItem = visibleGrid.dataItem($(this));
+   var index = visibleGrid.dataSource.indexOf(dataItem);
+   if (index > 0) {
+   var newIndex = index - 1;
+   visibleGrid.dataSource.remove(dataItem);
+   visibleGrid.dataSource.insert(newIndex, dataItem);
+   visibleGrid.select("tr:eq(" + (newIndex) + ")");
+      orderCategoryGridsIndex("subjectGridph");
+
+   }
+   if (index == 1) {
+      $("#moveSubjectUpPH").attr('disabled', true);
+      visibleGrid.select("tr:eq(" + (newIndex) + ")");
+
+   }
+     isSeelectedPhSub =  visibleGrid.dataItem(grid.select());
+   });
+ 
+   }
+   }
+
+   });
+
+</script>

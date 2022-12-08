@@ -1,0 +1,128 @@
+﻿@using ConfiguratorWeb.App.Models.SystemMonitoring;
+
+<style>
+
+   #HWInfo .card {
+      height: 474px;
+      margin: 0px !important;
+      border-radius: 0px !important;
+   }
+
+   #HWInfo .card-body {
+      height: 100%;
+   }
+
+   #HWInfo .card-head {
+      background-color: lightgray;
+   }
+
+   .row {
+      margin-left: 2px !important;
+   }
+
+   .card-bodyMonitoringDesktop {
+      height: 100%;
+      overflow: auto;
+   }
+</style>
+
+@{ var listViewName = "HWInfo";}
+<script type="text/javascript">
+   var hwinfoTableCounter = 0;
+   var hwinfoListViewName = "@listViewName";
+</script>
+<div class="border-0 h-100 text-left w-100">
+
+   @(
+                                              Html.Kendo().ListView<MonitoringInfo>()
+                                              .Name(listViewName)
+                                              .TagName("div").HtmlAttributes(new { @class = "w-100 h-100" })
+                                              .ClientTemplateId("hwinfoTemplateMonitoring")
+                                              .DataSource(dataSource => dataSource
+                                                 .Ajax()
+                                                 .Model(model =>
+                                                 {
+                                                    model.Id(o => o.Data.Name);
+                                                    model.Field(o => o.StatusValue);
+                                                    model.Field(o => o.Data.Anomalies);
+                                                    model.Field(o => o.Data.Components);
+                                                    model.Field(o => o.Data.CurrentUser);
+                                                    model.Field(o => o.Data.Module);
+                                                    model.Field(o => o.Data.ReceivingTimeUTC);
+                                                    model.Field(o => o.Data.SubModules);
+                                                    model.Field(o => o.Data.Type);
+                                                 })
+                                                 .Read(read => read.Action("GetHostnameHWInfo", "SystemMonitoring", new { hostname = ViewData["Hostname"] }))
+
+                                           )
+                                           .Events(ev => ev.DataBound("onDataBoundDynamicGrid"))
+   )
+
+</div>
+
+<script type="text/x-kendo-tmpl" id="hwinfoTemplateMonitoring">
+   <div>
+      <div class="card">
+         <div class="card-head p-2"><h5 class="card-title w-100" style="text-align:center"> #:Data.Name#</h5></div>
+         <div class="card-bodyMonitoringDesktop">
+            #
+            if(data.Data.Components.length > 0)
+            {
+            for(var k = 0; k < data.Data.Components.length; k++)
+            {
+
+            if(data.Data.Components[k].Indicators.length >0 || data.Data.Components[k].Tables.length >0)
+            {
+            #
+            <div style="font-weight:bold; padding-bottom: 5px; padding-top: 14px;">#:data.Data.Components[k].Name#</div>
+            <hr style="width:100%;text-align:left;margin-left:0;color:black;padding-bottom:7px;">
+            #
+            }
+
+            if(data.Data.Components[k].Indicators.length > 0)
+            {
+            for(var i = 0; i < data.Data.Components[k].Indicators.length; i++)
+            {
+
+            var indicatorVal = data.Data.Components[k].Indicators[i].Value;
+            if(data.Data.Components[k].Indicators[i].Type == "DATE" && indicatorVal != null  && indicatorVal != "" )
+            {
+            indicatorVal = kendo.toString(new Date(data.Data.Components[k].Indicators[i].Value),"G");
+            }
+            else if(data.Data.Components[k].Indicators[i].Type == "NUMBER"  && indicatorVal != null  && indicatorVal != "")
+            {
+            idicatorVal = parseFloat(indicatorVal).toLocaleString();
+            }
+            #
+            <div class="row" style="align-items: baseline;">
+               <div class="col-2 ml-0 px-0 ">#:data.Data.Components[k].Indicators[i].Name#</div>
+               <div class="col-10">#:indicatorVal#</div>
+            </div>
+            #
+            }
+            }
+
+            if(data.Data.Components[k].Tables.length >0)
+            {
+            for(var w =0; w < data.Data.Components[k].Tables.length; w++)
+            {
+            hwinfoTableCounter += 1;
+            var compName = data.Data.Name.replaceAll(' ', '');
+            var tableName = data.Data.Components[k].Tables[w].Name.replaceAll(' ', '');
+            var idTable = hwinfoListViewName + '_' + compName +'_'+ tableName + hwinfoTableCounter.toString();
+            var idTable_handle = idTable +"_handle"
+            #
+
+            <div id="#:idTable#">
+               <div id="#:idTable_handle#"></div>
+            </div>
+            #
+            }
+            }
+            }
+            }
+            #
+         </div>
+      </div>
+   </div>
+</script>

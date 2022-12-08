@@ -1,0 +1,432 @@
+﻿@using System.Text;
+@using Digistat.FrameworkStd.Enums
+@model UserReportViewModel
+@{
+   ViewData["Title"] = "_UserIssuesDetail";
+   var strDialogID = "userIssuesForm";
+
+   var textOption = OptionType.Text;
+   StringBuilder objSbDelete = new StringBuilder();
+   objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete UserIssues Item \"{0}\" "),
+      Model.Id);
+   objSbDelete.Append("?");
+}
+
+@{
+   Layout = null;
+   var strDetailsDivIdf = "UserIssuesDetail";
+   string keyID = Model.Id.ToString();
+   string keyEmptyValueID = "0";
+   string formId = "form_" + keyID;
+
+   string gridIdName = "userissues-grid";
+}
+
+<style>
+   .rowUI {
+      margin-bottom: 23px;
+   }
+</style>
+<div class="card h-90" style="height:100%!important;padding-bottom:0.5%;" >
+   <div class="card-body" id="userIssuesDetailcontainer" style="margin: 3px!important;">
+      <form asp-controller="SystemMonitoring" id="@formId" asp-action="EditDetail"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+            data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+         @if (Model.Snapshot > 0)
+         { 
+            <div id="window" style="display:none;">
+               <div style="text-align: center;">
+                     <img style="width: 100%;border: solid 1px;"alt="Snapshot User Issues" id="snapshotimg" />
+               </div>
+            </div>
+
+         }
+         <input asp-for="Snapshot" id="snapUI" type="hidden" />
+         <input asp-for="Id" id="IdUi" type="hidden" />
+         <div class="container-fluid">
+            <div class="row rowUI">
+               <div class="col-sm-1 u-col-h-fixed">
+                  <label class="label-name">@DicSvc.XLate("DateTime")</label>
+               </div>
+               <div class="col-5">
+                  <div class="input-group">
+                     <input asp-for="IssuedOnUTC" type="text" class="k-input k-textbox" />
+                  </div>
+               </div>
+               <div class="col-sm-1 u-col-h-fixed">
+                  <label class="label-name">@DicSvc.XLate("Hospital Unit")</label>
+               </div>
+               <div class="col-5">
+                  <div class="input-group">
+                     <input asp-for="HU" type="text" class="k-input k-textbox" required />
+                  </div>
+               </div>
+            </div>
+            <div class="row rowUI">
+               <div class="col-sm-1 u-col-h-fixed">
+                  <label asp-for="LocationName" class="label-name">@DicSvc.XLate("Location")</label>
+               </div>
+               <div class="col-5">
+                  <div class="input-group">
+                     <input asp-for="LocationName" type="text" class="k-input k-textbox" />
+                  </div>
+               </div>
+                  <div class="col-sm-1 u-col-h-fixed">
+                     <label class="label-name">@DicSvc.XLate("Patient")</label>
+                  </div>
+                  <div class="col-5" >
+                     <div class="input-group">
+                        <input asp-for="PatientName" type="text" class="k-input k-textbox" />
+                     </div>
+                  </div>
+               </div>
+            <div class="row rowUI">
+               <div class="col-sm-1 u-col-h-fixed">
+                  <label asp-for="Hostname" class="label-name">@DicSvc.XLate("Hostname")</label>
+               </div>
+               <div class="col-5">
+                  <div class="input-group">
+                     <input asp-for="Hostname" type="text" class="k-input k-textbox" />
+                  </div>
+               </div>
+
+               @if (Model.Snapshot > 0)
+               {
+                  <div class="col-1">
+                     <button id="btnDownload" class="k-button k-rounded " style="width: 129px;height: 32px; border: 1px solid;left:158px;">@DicSvc.XLate("Open Snapshot")</button>
+                  </div>
+                  <div class="col-1" >
+                     <button id="btnDownload2"  class="k-button k-rounded " style="width: 129px;height: 32px; border: 1px solid;left:216px;">@DicSvc.XLate("Download Snapshot")</button>
+
+                  </div>
+
+               }
+            
+                  </div>
+
+                  <div class="row rowUI">
+                     <div class="col-sm-1 u-col-h-fixed">
+                        <label asp-for="Description" class="label-name" >@DicSvc.XLate("Description")</label>
+                     </div>
+                     <div class="col-11">
+                        <div class="input-group">
+                           <textarea asp-for="Description" rows="3"  class="k-textarea w-100" style="resize: none;" disabled></textarea>
+                        </div>
+                     </div>
+                  </div>
+                  <div class="row rowUI">
+                     <div class="col-sm-1 u-col-h-fixed">
+                        <label asp-for="Status" class="label-name">@DicSvc.XLate("Status")</label>
+                     </div>
+                     <div class="col-sm-2">
+                        <div class="input-group" style="height:30px;">
+                           @Html.Kendo().DropDownListFor(m => m.Status).DataTextField("Text").DataValueField("Value").BindTo(new List<SelectListItem>() {
+                                           new SelectListItem() { Text = DicSvc.XLate("OPENED"), Value = "0" },
+                                           new SelectListItem() { Text = DicSvc.XLate("CLOSED"), Value = "1" } })
+                        </div>
+                     </div>
+                     <div class="col-sm-9">
+                        <div class="input-group">
+                           <input asp-for="StatusNote" type="text" class="k-input k-textbox" />
+                        </div>
+                     </div>
+                  </div>
+                  <div class="row rowUI">
+                     @if (Model.Status == Status.CLOSED)
+                     {
+                        <label style="opacity: 0.68;top: 48px;position: relative;">@Model.StatusText: @Model.StatusChangeDateUTC</label>
+                     }
+                     else
+                     {
+                        <label style="opacity: 0.68;top: 48px;position: relative;">@Model.StatusText: @Model.IssuedOnUTC</label>
+                     }
+                     @*@Html.HiddenFor(m => m.StatusChangeDateUTC)*@
+                  </div>
+               </div>
+      </form>
+   </div>
+
+   <div class="card-footer h-10 p-0 m-0 border-top bg-white">
+
+      @{
+         string postId = "UI"; //use in case of multi toolbar
+      }
+      @(Html.Kendo().ToolBar()
+                                     .Name("toolbarDetailUI")
+                                     .UmsDefaultErrors(DicSvc, "errors")
+                                     .UmsDefaultSettings(DicSvc, postId)
+      )
+   </div>
+
+</div>
+
+
+
+<script type="text/javascript">
+
+
+   var editor;
+   var consolelog = false;
+   var actualmode = 0;
+   var id = $("#IdUi").val();
+   var defaultValue = $("#Status").val();
+   var defaultValueDesc = $("#Description").val();
+   var tempId = "";
+   var divName = '#userIssuesDetailcontainer';
+   var dialog = $('#@strDetailsDivIdf').data("kendoWindow");
+   var grid = $('#@gridIdName').data("kendoGrid");
+
+
+
+
+
+   function changeToEditMode() {
+      actualmode = 2;
+      if ($("#Status").val() =="0") {
+      $("#btnSaveUI").attr('disabled', true);
+      $(".modify-mode").show();
+      $(".view-mode").hide();
+      
+      toolBarShowButtonByClass("modify-mode");
+
+      $(divName + ' :input').attr('disabled', true);
+      $('#IdUi').attr('disabled', false);
+
+      if ($("#snapUI").val() == "0") {
+         $("#btnDownload").attr('disabled', true);
+         $("#btnDownload2").attr('disabled', true);
+      }
+      else {
+         $("#btnDownload").attr('disabled', false);
+         $("#btnDownload2").attr('disabled', false);
+      }
+
+      $("#Status").attr('disabled', false);
+      $("#StatusNote").attr('disabled', false);
+
+        $(divName +' :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(true);
+           }
+           
+        
+        });
+      }
+    }
+
+    function changeToViewMode() {
+      actualmode = 1;
+      $("#errors").html("");
+      $(".view-mode").show();
+       $(".modify-mode").hide();
+
+
+      toolBarShowButtonByClass("view-mode");
+
+       $(divName + ' :input').attr('disabled', true);
+       $('#IdUi').attr('disabled', false);
+
+       if ($("#snapUI").val() == "0") {
+          $("#btnDownload").attr('disabled', true);
+          $("#btnDownload2").attr('disabled', true);
+       }
+       else {
+          $("#btnDownload").attr('disabled', false);
+          $("#btnDownload2").attr('disabled', false);
+       }
+
+      $(divName +' :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                  cb.enable(false);
+            }
+         });
+    }
+    function setWindowMode() {
+        //customize according model key
+        if ('@keyID' !== '@keyEmptyValueID') {
+            actualmode = 1;
+        }
+        else {
+            actualmode = 2;
+        }
+    }
+
+    function setMode() {
+        if (actualmode === 2)
+            changeToEditMode();
+        else
+            changeToViewMode();
+    }
+
+   $(document).ready(function () {
+
+      $('#btnDownload2').off('click').on('click', function (e) {
+           @*$.ajax({
+            url: '@Url.Action("DownloadSnapshot", "SystemMonitoring")',
+            type: 'GET',
+            data: {
+              id:    @Model.Id,
+                  }
+
+         })
+         .done(function (data) {
+
+            window.location = data;
+            })
+         .fail(function (data) {
+
+            });*@
+ 
+         window.location = "@Url.Action("DownloadSnapshot", "SystemMonitoring", new { id = Model.Id })";
+         e.preventDefault();
+      });
+
+
+      dialog.bind("activate", setMode);
+      dialog.bind("resize", setMode);
+      umsHideAllEditSaveButton();
+      setWindowMode();
+      //set up condition to know if it's a new item
+      setMode();
+
+      $('#btnEditUI').off('click').on('click', function () {
+
+         changeToEditMode();
+
+      });
+
+      $('#btnCancelUI').off('click').on('click', function () {
+          if (tempId != "") {
+             $("#Id").val(tempId);
+          }
+         // IF is new add, close the dialog
+         if ('@keyID' == '@keyEmptyValueID') {
+               dialog.close();
+               return;
+         }
+
+         openDetail('@Model.Id');
+      });
+
+
+
+      $('#btnSaveUI').off('click').on('click', function () {
+         actionSave();
+      });
+
+
+      $('#btnCloseUI').off('click').on('click', function () {
+
+         dialog.close();
+      });
+      $("input[data-val-length-max]").each(function (index, element) {
+         element.setAttribute("maxlength", element.getAttribute("data-val-length-max"))
+      });
+
+
+   $('#btnDownload').off('click').on('click', function (e) {
+      initWindow();
+      e.preventDefault();
+      });
+
+   });
+
+    var changeFun = function () {
+      $("#btnSaveUI").attr('disabled', true);
+       if ($("#Status").val() != defaultValue || $("#StatusNote").val() != defaultValueDesc  ) {
+         $("#btnSaveUI").attr('disabled', false);
+      }
+   };
+   $("#@formId :input").on("input", changeFun);
+   $("#@formId :input").change(changeFun);
+
+   function initWindow() {
+      $("#snapshotimg").attr("src", "@Url.Action("DownloadSnapshot", "SystemMonitoring", new { id = Model.Id })");
+
+      var windowOptions = {
+         actions: [ "Maximize", "Close"],
+         width:"80%",
+         height: "100%",
+
+         title: "",
+         visible: false
+
+      };
+
+      $("#window").kendoWindow(windowOptions);
+      $("#window").data("kendoWindow").open();
+      $("#window").data("kendoWindow").center();
+
+   }
+   function actionSave(){
+      if (OnValidation()) {
+
+          $("#@formId").submit();
+        }
+   }
+
+
+   function OnValidation() {
+
+      var retValue = false;
+      var validator = $("#@formId").kendoValidator().data("kendoValidator");
+      $("#errors").html("");
+
+      if ($("#errors").html() != "")
+      {
+         return false;
+      }
+
+      if (!validator.validate() ) {
+         try {
+            var errors = validator.errors();
+
+               $("#errors").html(buildValidationMessage(errors));
+         }
+         catch (e) {
+               $("#errors").html(e);
+         }
+      }
+      else {
+         $("#errors").html("");
+         retValue = true;
+      }
+
+         return retValue;
+   }
+
+   function OnFailure(response) {
+      window.umsAlert("Error occured", response.errorMessage, 400, 300);
+   }
+   function toolBarShowButtonByClass(clas) {
+      var tb = $("#toolbarDetailUI").data("kendoToolBar");
+      tb.umsShowButtonByClass(clas);
+   }
+   function umsHideAllEditSaveButton()
+   {
+      var tb = $("#toolbarDetailUI").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+
+
+
+   function cancelDeleteItem() {
+        /* do nothing */
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</script>

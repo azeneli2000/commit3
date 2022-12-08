@@ -1,0 +1,75 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@using Digistat.FrameworkStd.Enums.Vitals;
+@using Digistat.FrameworkStd.DictionaryTerms;
+
+@model SDItemViewModel
+
+@inject IDictionaryService DicSvc
+
+<div class="default-value-display">
+    <input type="hidden" asp-for="DefaultValueType" />
+    <input type="hidden" asp-for="DefaultValue" />
+    <input type="hidden" asp-for="StdParameterID" />
+    <input type="hidden" asp-for="StdUnitOfMeasureID" />
+    <input type="hidden" asp-for="ScoreID" />
+
+    <div class="row my-0">
+        <div class="col-md-4 u-col-h-fixed">
+            <label class="m-0 p-0">@Html.DisplayNameFor(x => x.DefaultValueType)</label>
+        </div>
+        <div class="col-md-8 pl-4 default-value-type">
+            @Model.DefaultValueType
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4 u-col-h-fixed">
+            <label class="m-0 p-0">@DicSvc.XLate("Value")</label>
+        </div>
+        <div class="col-md-8">
+            <div data-type="default-value-@DatasetItemDefaultValueType.None" style="@(Model.DefaultValueType != DatasetItemDefaultValueType.None ? "display:none" : "")">
+                <div class="row my-0 no-gutters" style="margin-left: 5px !important;">
+                    <div class="col-md-4">
+                        -
+                    </div>
+                </div>
+            </div>
+            <div data-type="default-value-@DatasetItemDefaultValueType.Static" style="@(Model.DefaultValueType != DatasetItemDefaultValueType.Static ? "display:none" : "")">
+                <div class="row my-0 no-gutters" style="margin-left: 5px !important;">
+                    <div class="col-md-12 static-name">
+                        @Html.Raw(Model.ItemType == ParamType.Boolean && Model.DefaultValueDisplay != null ? DicSvc.XLate(Model.DefaultValueDisplay) : Model.DefaultValueDisplay ?? "-")
+                    </div>
+                </div>
+            </div>
+            <div data-type="default-value-@DatasetItemDefaultValueType.DAS" style="@(Model.DefaultValueType != DatasetItemDefaultValueType.DAS ? "display:none" : "")">
+                <div class="row my-0 no-gutters" style="margin-left: 5px !important;">
+                    <div class="col-md-7">
+                        <label class="m-0 pr-2" asp-for="StdParameterID"></label>
+                    </div>
+                    <div class="col-md-5 das-param">
+                        @Html.Raw(Model.StdParameterID?.ToString() ?? "-")
+                    </div>
+                </div>
+                <div class="row no-gutters" style="margin-left: 5px !important;">
+                    <div class="col-md-7">
+                        <label class="m-0 pr-2" asp-for="StdUnitOfMeasureID"></label>
+                    </div>
+                    <div class="col-md-5 das-unit">
+                        @Html.Raw(Model.StdUnitOfMeasureID?.ToString() ?? "-")
+                    </div>
+                </div>
+            </div>
+            <div data-type="default-value-@DatasetItemDefaultValueType.Score" style="@(Model.DefaultValueType != DatasetItemDefaultValueType.Score ? "display:none" : "")">
+                <div class="row my-0 no-gutters" style="margin-left: 5px !important;">
+                    <div class="col-md-12 score-name">@Html.Raw(Model.DefaultValueDisplay ?? "-")</div>
+                </div>
+            </div>
+            <div data-type="default-value-@DatasetItemDefaultValueType.Sql" style="@(Model.DefaultValueType != DatasetItemDefaultValueType.Sql ? "display:none" : "")">
+                <div class="row my-0 no-gutters" style="margin-left: 5px !important;">
+                    <div class="col-md-12">
+                        <textarea rows="3" readonly class="k-input k-textarea w-100">@Html.Raw(Model.DefaultValue ?? string.Empty)</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

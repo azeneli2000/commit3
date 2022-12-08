@@ -1,0 +1,224 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@{
+    string gridName = "devicedrivers-grid";
+    string popUpWindowName = "devicedriver_dialog";
+   
+   ViewBag.Title = DicSvc.XLate("Device driver");
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+</script>
+
+@section Head
+    {
+    <script src="~/js/device_drivers.js?v=6.0.10" ></script>
+}
+
+<div class="card h-100 m-1 p-2 border-0" id="gridContainer">
+    <div id="@popUpWindowName"></div>
+
+    @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.DeviceDriverListitemModel>()
+            .Name(gridName)
+            .UmsDefaultSettings(DicSvc)
+            .UmsDefaultToolbar("create_devicedriver", "ADD NEW DEVICE DRIVER", "openDetail(0);", DicSvc)
+            .UmsDefaultPager(DicSvc)
+            .Columns(columns =>
+            {
+               columns.Bound(e => e.Id).Visible(false);
+               columns.Bound(e => e.Name);
+               columns.Bound(e => e.Version).Format("{0:n}")
+                     .Width(100);
+               columns.Bound(e => e.Description);
+               columns.Bound(e => e.DriverType)
+                     .Width(100);
+               columns.Bound(e => e.LogEnabled)
+                     .HeaderHtmlAttributes(new { title = "Log Enable" })
+                     .ClientTemplate("<input type='checkbox' #= LogEnabled ? checked='checked':'' # class='check-col  k-checkbox k-disabled ' /><label class='k-checkbox-label'></label>").HtmlAttributes(new { @style = "text-align:center;" })
+                     .Width(105);
+               columns.Bound(e => e.AutoStartDriver)
+                     .HeaderHtmlAttributes(new { title = "Auto Start Driver" })
+                     .ClientTemplate("<input type='checkbox' #= AutoStartDriver ? checked='checked':'' # class='check-col  k-checkbox k-disabled' /><label class='k-checkbox-label'></label>").HtmlAttributes(new { @style = "text-align:center;" })
+                     .Width(105);
+               columns.Bound(e => e.AutoStartWatchDog)
+                     .HeaderHtmlAttributes(new { title = "Auto Start WatchDog" })
+                     .ClientTemplate("<input type='checkbox' #= AutoStartWatchDog ? checked='checked':'' # class='check-col  k-checkbox k-disabled' /><label class='k-checkbox-label'></label>").HtmlAttributes(new { @style = "text-align:center;" })
+                     .Width(105);
+               columns.Bound(e => e.ComputerName).Title(DicSvc.XLate("DAS Broker"));
+               columns.Bound(e => e.Address);
+               columns.Bound(e => e.BedLink)
+                     .Sortable(false).Filterable(false)
+                     .Width(115);
+               columns.Bound(e => e.AlarmSystemType)
+                     .HeaderHtmlAttributes(new { title = "Alarm System" })
+                     .Width(100);
+            //columns.Command(command =>
+            //{
+            //    command.Custom("editcustom").Click("editDeviceDriverDetail").Text(" ");
+            //    command.Custom("deletecustom").Click("onDeleteItem").Text(" ");
+            //}).HtmlAttributes(new { style = "text-align:center;" })
+            //      .Width(120);
+         })
+      .Events(ev => ev.DataBound("onDataBound"))
+      .DataSource(dataSource => dataSource
+         .Ajax()
+         .Model(model =>
+         {
+            model.Id(o => o.Id);
+            model.Field(o => o.Name).Editable(false);
+            model.Field(o => o.Version).Editable(false);
+            model.Field(o => o.Description).Editable(false);
+            model.Field(o => o.DriverType).Editable(false);
+            model.Field(o => o.LogEnabled).Editable(false);
+            model.Field(o => o.AutoStartDriver).Editable(false);
+            model.Field(o => o.AutoStartWatchDog).Editable(false);
+            model.Field(o => o.ComputerName).Editable(false);
+            model.Field(o => o.Address).Editable(false);
+            model.Field(o => o.BedLink).Editable(false);
+            model.Field(o => o.AlarmSystemType).Editable(false);
+         })
+         .ServerOperation(false)
+         .PageSize(20)
+         .Events(events => events.Error("error_handler_drivers"))
+         .Read(read => read.Action("ReadDeviceDrivers", "Connect"))
+      //.Update(update => update.Action("UpdateDeviceDriver", "Connect"))
+      //.Create(create => create.Action("CreateDeviceDriver", "Connect"))
+      )
+    )
+</div>
+
+
+<script>
+
+    function openDetail(Id) {
+
+        var dataItemId = 0;
+
+        if (Id !== undefined) {
+            dataItemId = Id;
+        }
+
+        $.ajax({
+            type: "GET",
+            url: '@Url.Action("GetDeviceDriver", "Connect")',
+            //cache: false,
+            //async: false,
+            data: { id: dataItemId },
+            success: function (data) {
+                var wnd = $("#devicedriver_dialog").data("kendoWindow");
+                wnd.content(data);
+                wnd.center().open();
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                umsAlert('Error', '@DicSvc.XLate("An error occurred while retrieving the Driver Instance, check log for details")');
+            }
+        });
+    }
+
+    function onDataBound(e) {
+        // addOnDataBoundGridHandler(e);
+        
+        var grid = e.sender;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                
+                onGridKeyEnter(item);
+            });
+    }
+    function onGridKeyEnter(item) {
+        //replace Key
+        openDetail(item.Id);
+    };
+
+
+    function error_handler_drivers(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+
+    @{
+       string editItemTitle = "Edit Device Driver";
+       string newItemTitle = "Add Device Driver";
+    }
+    var kndWnd;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                maxHeight:570,
+                width: "90%",
+                title: '@DicSvc.XLate(editItemTitle)',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+
+        }
+
+    });
+
+
+    $(window).resize(function () {
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                for (var i = 0; i < kendoWindow.length; i++) {
+                    var win = $(kendoWindow[i]).data("kendoWindow");
+                    if (!win.element.is(":hidden")) {
+                        win.center();
+                        if (win.resize != undefined) {
+                            win.trigger('resize');
+                        }
+
+                    }
+                }
+            }
+        }, 100);
+    });
+
+    function displayItemDetail(itemID) {
+        var windowWidget = $(popUpWindowName).data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+        $.ajax({
+            url: '@Url.Action("GetDevice", "Template")',
+            type: 'GET',
+            data: { id: itemID }
+        }).done(function (dataHtml) {
+            kendo.ui.progress(windowWidget.element, true);
+			var dialog = $(popUpWindowName ).data('kendoWindow');
+            if (itemID ==='') {
+                dialog.title('@DicSvc.XLate(newItemTitle)');
+            } else {
+                dialog.title('@DicSvc.XLate(editItemTitle)');
+            }
+            dialog.content(dataHtml).center().open();
+
+        });
+    }
+    //
+
+
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+</script>

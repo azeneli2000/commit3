@@ -1,0 +1,298 @@
+﻿@{
+    string gridName = "locations-grid";
+    string popUpWindowName = "IdOfEditWindow";
+    string editItemTitle = "Edit location";
+    //string newItemTitle = "Add new locations";
+   
+   ViewBag.Title = DicSvc.XLate("Locations");
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+</script>
+<script id="locationMoveColTemplate" type="text/x-kendo-template">
+    <button type="button" class="btn w-100" onclick='locationMoveDialog(#=ID#);'><i class="mdi mdi-swap-vertical-bold"></i>@Html.Raw(DicSvc.XLate("Move"))</button>
+</script>
+<script>
+    var locationMoveColTemplate = kendo.template($('#locationMoveColTemplate').html());
+</script>
+<div id="moveLocDialog">
+    <input type="hidden" id="hidCurrLocationSelected" />
+    <div class="row">
+        <button class="btn btnKendo w-100 k-buttonLarge k-button" type="button" onclick="moveLocHandler(0)" style="place-content: space-between;"><i class="mdi mdi-arrow-up mdi-24px float-left"></i>@DicSvc.XLate("Move Up")</button>
+    </div>
+    <div class="row">
+        <button class="btn btnKendo w-100 k-buttonLarge k-button" type="button" onclick="moveLocHandler(1)" style="place-content: space-between;"><i class="mdi mdi-arrow-down mdi-24px float-left"></i>@DicSvc.XLate("Move Down")</button>
+    </div>
+</div>
+<div id="IdOfEditWindow"></div>
+<div class="h-100 text-center">
+    <div class="card h-100 m-1 p-2 text-left">
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.LocationViewModel>()
+                        .Name(gridName)
+                        .UmsDefaultSettings(DicSvc)
+                        .UmsDefaultToolbar("createNewBed", "ADD NEW LOCATION", "displayDetailDialog('0');", DicSvc)
+                        .Columns(columns =>
+                        {
+                            columns.Bound(e => e.ID);
+                            columns.Bound(e => e.LocationIndex).Title(DicSvc.XLate("Index")).Hidden(false).Width(100);
+                            columns.Bound(e => e.LocationName).Title(DicSvc.XLate("Name"));
+                            
+                            columns.Bound(e => e.LocationCode).Title(DicSvc.XLate("Code"));
+                            columns.Bound(e => e.HospitalUnitName).Title(DicSvc.XLate("Hospital Unit"));
+                            columns.Bound(e => e.ID).Sortable(false).Filterable(false).ClientTemplate("#=locationMoveColTemplate(data)#").Title("&nbsp;").Width(100);
+                            
+                        })
+                        .Events(ev => ev //.Edit("onEdit").Cancel("onCancel").DetailInit("onInitDetailLocation").DetailExpand("detailExpand").DetailCollapse("onCollapse")
+                            .DataBound("onDataBound"))
+                        .DataSource(dataSource => dataSource
+                            .Ajax()
+                            .Model(model =>
+                            {
+                                model.Id(o => o.ID);
+                                model.Field(o => o.LocationName).Editable(false);
+                                model.Field(o => o.LocationCode).Editable(false);
+                                model.Field(o => o.LocationIndex).Editable(false);
+                                model.Field(o => o.HospitalUnitGUID).Editable(false);
+                                model.Field(o => o.HospitalUnitName).Editable(false);
+                            })
+                        //.PageSize(20)
+                        .Events(events => events.Error("error_handler_so"))
+                        .Read(read => read.Action("ReadLocations", "SystemConfiguration"))
+                        //.Update(update => update.Action("UpdateLocations", "SystemConfiguration"))
+                        //.Create(create => create.Action("CreateLocations", "SystemConfiguration")))
+                        // .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>")
+                        )
+
+        )
+    </div>
+</div>
+
+<script>
+    var kndWnd;
+    var kndWndPosition;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                maxHeight: 280,
+                maxWidth: 1100,
+                height: 290,
+                title: '@DicSvc.XLate(editItemTitle)',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+
+        }
+    });
+
+     $(document).ready(function() {
+        if (!kndWndPosition) {
+            kndWndPosition = $("#moveLocDialog").kendoWindow({
+                width: "300px",
+                height: "190px",
+                modal: false,
+                visible:false,
+                title: '@DicSvc.XLate("Move selected Location")',
+                close: function (e) {
+                    $('#hidCurrLocationSelected').val('');
+                    $('#' + gridIdName).data("kendoGrid").setOptions({ selectable: true });
+                    $('#' + gridIdName).data("kendoGrid").clearSelection();
+                }
+            });
+
+        }
+    });
+
+    $(window).resize(function () {
+        setTimeout(function () {
+            if (kndWnd) {
+                kndWnd.data("kendoWindow").center();
+            }
+        }, 100);
+    });
+
+    function onDataBound(e) {
+        var grid = this;
+        selectOnGrid();
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                if (!$('#moveLocDialog').is(':visible') ){
+                    var item = grid.dataItem($(e.target).closest('tr'));
+                    onGridKeyEnter(item);
+                }
+            });
+        checkIndex(grid);
+    }
+
+    function checkIndex(grid) {
+       var datas = grid.dataSource.data();
+       //debugger;
+       let grpSub = datas.map(function(item) { return '' + item.LocationIndex  });
+       let isDuplicate = grpSub.some(function(item, idx) {
+          return grpSub.indexOf(item) != idx
+       });
+       let hasNull = grpSub.some(function(item, idx) {
+          return item.endsWith("null");
+       });
+       if (isDuplicate || hasNull) {
+          //debugger;
+
+          $('#' + gridIdName).data('kendoGrid').wrapper.find('.k-grid-toolbar')
+             .append('<div id="grdIdxDuplicated" class="align-items-baseline badge-danger text-light" style="position: absolute; right: 16px;"></div>')
+          var infoText = '@DicSvc.XLateJs("Some location's indexes are duplicated")';
+          $('#grdIdxDuplicated').html('<i class="p-1">' + infoText + '</i><button type="button" id="btnFixDuplicatedIndex"  class="k-button k-button-md k-button-outline k-rounded-md m-1" title="@DicSvc.XLateJs("Generate new index sequence with order Locations-BedIndex-BedId")"><span class="k-button-text">Fix it</span></button>')
+          $('#btnFixDuplicatedIndex').off('click').on('click',
+             function(e) {
+                $.ajax({
+                   url: '@Url.Action("FixLocationsIndex", "SystemConfiguration")',
+                   type: 'GET'
+                }).done(function(data) {
+
+                   var grid = $("#" + gridIdName).data("kendoGrid");
+                   grid.dataSource.read();
+                   grid.refresh();
+
+                }).then(function() {
+                        
+                });
+             });
+       } else {
+          $('#grdIdxDuplicated').remove();
+       }
+    }
+    function toggleItemDblSelection(tgl) {
+
+        var grid = $("#" + gridIdName).data("kendoGrid");
+        if (tgl) {
+            grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+                function (e) {
+                    var item = grid.dataItem($(e.target).closest('tr'));
+                    if (item.ID) {
+                        displayDetailDialog(item.ID);
+                    }
+
+                });
+        }
+        else {
+            grid.element.off('dblclick', 'tbody tr[data-uid]');
+        }
+    }
+
+    function onCancel(e) {
+        grid.refresh();
+    }
+
+    function error_handler_so(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+    function onGridKeyEnter(item) {
+        displayDetailDialog(item.ID);
+    };
+    function displayDetailDialog(Id) {
+        $.ajax({
+            url: '@Url.Action("GetLocation", "SystemConfiguration")',
+            type: 'GET',
+            data: { id: Id }
+        }).done(function (data) {
+            kndWnd.data("kendoWindow")
+                .content(data)
+                .center().open();
+        });
+    }
+
+
+    //functions used for details
+
+    function OnSuccess(response) {
+        if (response.success) {
+            grid.dataSource.read();
+            dialog.close();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+    function OnFailure(response) {
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+
+    function moveLocation(locID,direction) {
+       $.ajax({
+          url: '@Url.Action("MoveLocation", "SystemConfiguration")?LocationID=' + locID + '&direction=' + direction,
+          contentType: 'application/json; charset=utf-8',
+          type: 'GET'
+       }).done(function(data) {
+          //debugger;
+          var grid = $("#" + gridIdName).data("kendoGrid");
+          grid.setOptions({ selectable: false });
+          grid.dataSource.read();
+          grid.refresh();
+       });
+    }
+
+    function moveLocHandler(direction) {
+        var locId = $('#hidCurrLocationSelected').val();
+        moveLocation(locId, direction);
+    }
+
+    function locationMoveDialog(locid) {
+
+        var $hidTmp = $('#hidCurrLocationSelected');
+        if ($hidTmp.val() == '') {
+            selectOnGrid(locid);
+            $('#hidCurrLocationSelected').val(locid);
+            kndWndPosition.data("kendoWindow")
+                .center().open();
+        }
+        else {
+            
+            clarLocSelection();
+        }
+    }
+
+    function selectOnGrid(id) {
+        var locId = id || '';
+        if (!locId || locId == '') {
+            locId = $('#hidCurrLocationSelected').val();
+        }
+        if (locId && locId != '') {
+            var grid = $("#" + gridIdName).data("kendoGrid");
+            grid.items().each(function () {
+                var data = grid.dataItem(this);
+                if (data.ID == locId) {
+                   try {
+                      grid.select(this);
+                   } catch (e) {
+                      console.log('selectOnGrid',e)
+                   } 
+                   grid.content.scrollTop(grid.select().position().top);
+                }
+            });
+            toggleItemDblSelection(false);
+        }
+        else {
+            toggleItemDblSelection(true);
+        }
+    }
+
+    function clarLocSelection() {
+        $('#hidCurrLocationSelected').val('');
+        $('#' + gridIdName).data("kendoGrid").setOptions({ selectable: true });
+        $('#' + gridIdName).data("kendoGrid").clearSelection();
+        kndWndPosition.data('kendoWindow').close();
+    }
+
+</script>

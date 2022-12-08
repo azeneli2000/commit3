@@ -1,0 +1,381 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@using Digistat.FrameworkStd.Enums;
+@model TherapyItemModel
+
+@{
+   ViewData["Title"] = "Data for item " + Model?.Id;
+   string strDialogID = "StandardActionDetail";
+   string strFormID = "formStandardAction";
+
+}
+<form id="@strFormID">
+   <div class="detailsItemContainer">
+      <div class="row">
+         <div class="col-2">
+            <label>Name </label>
+         </div>
+         <div class="col-5">
+            <input id="nameTherapy" class="k-textbox k-input k-textbox" asp-for="Name" style="width:100%;" />
+         </div>
+      </div>
+
+      <div class="row">
+         <div class="col-2">
+            <label>Description </label>
+         </div>
+         <div class="col-5">
+            <input id="descTherapy" class="k-textbox k-input k-textbox" asp-for="Description" style="width:100%;" />
+         </div>
+      </div>
+      <input asp-for="Id" type="hidden" id="hidden_id" />
+
+      <div class="row">
+         <div class="col-2">
+            <label>Type </label>
+         </div>
+         <div class="col-5">
+            @if (Model != null)
+            {
+<<<<<<< HEAD
+               if (Model.Id == 0)
+               {
+                  @Html.Kendo().DropDownListFor(m => m.ItemType).DataTextField("Text").DataValueField("Value").BindTo(new List<SelectListItem>() {
+                  new SelectListItem() { Text = TherapyItemType.Action.GetDisplayAttribute(), Value = ((int)TherapyItemType.Action).ToString() },
+                  new SelectListItem() { Text = TherapyItemType.Mixture.GetDisplayAttribute(), Value = ((int)TherapyItemType.Mixture).ToString()},
+                  new SelectListItem() { Text = TherapyItemType.Invalid.GetDisplayAttribute(), Value = ((int)TherapyItemType.Invalid).ToString()},
+                  new SelectListItem() { Text = TherapyItemType.Protocol.GetDisplayAttribute(), Value = ((int)TherapyItemType.Protocol).ToString()}})
+
+               }
+               else
+               {
+                  <input id="typeTherapy" class="k-textbox k-input k-textbox" asp-for="ItemType" style="width:100%;" readonly />
+
+               }
+=======
+              
+               <input id="typeTherapy" class="k-textbox k-input k-textbox" asp-for="ItemType" style="width:100%;" readonly />
+>>>>>>> 0ed2daa40f0becadac5f12005b2f4a21cafe3e9b
+
+              
+            }
+
+         </div>
+      </div>
+   </div>
+
+   <div class="card" style="height:83%;">
+
+      <kendo-tabstrip name="tabstrip_Therapy" id="tabstripTherapy" style=" border:1px solid lightgray; height:653px;  overflow-x: hidden!important;">
+         <scrollable enabled="true" />
+         <popup-animation>
+            <open effects="fade:in" />
+         </popup-animation>
+         <items>
+            @if (Model != null)
+            {
+               <tabstrip-item text="Classification" selected="true">
+                  <content>
+
+
+                     @{await Html.RenderPartialAsync("_TabClassificationDetail", Model); }
+                  </content>
+               </tabstrip-item>
+               @if ((!Model.ItemType.Equals(TherapyItemType.Protocol)))
+               {
+                  <tabstrip-item text="Quantity Dose">
+                     <content>
+
+                        @{ await Html.RenderPartialAsync("_TabQuanityDoseAction", Model); }
+
+                     </content>
+                  </tabstrip-item>
+
+                  <tabstrip-item text="Schedule">
+                     <content>
+
+                        @{ await Html.RenderPartialAsync("_TabScheduleDetail", Model); }
+
+                     </content>
+
+                  </tabstrip-item>
+
+                  <tabstrip-item text="Properties">
+                     <content>
+                        @{ await Html.RenderPartialAsync("_Properties", Model); }
+                     </content>
+
+                  </tabstrip-item>
+               }
+
+               @if ((Model.ItemType.Equals(TherapyItemType.Protocol)))
+               {
+                  <tabstrip-item text="Items">
+                     <content>
+
+                        @*@{ await Html.RenderPartialAsync("_TabScheduleDetail", Model); }*@
+
+                     </content>
+
+                  </tabstrip-item>
+               }
+               <tabstrip-item text="Link">
+                  <content>
+
+                     @{await Html.RenderPartialAsync("_TabLinkDetail", Model); }
+
+
+                  </content>
+
+               </tabstrip-item>
+            }
+         </items>
+
+      </kendo-tabstrip>
+
+
+      <div class="card-footer h-10 p-0 m-0  bg-white">
+         @(Html.Kendo().ToolBar()
+                                                                .Name("toolbar")
+                                                                .UmsDefaultErrors(DicSvc)
+                                                                .Items(
+                                                                   items =>
+                                                                   {
+                                                                      items.Add().Type(CommandType.Button).Text("Duplicate").Id("btnDuplicateStandardAction").UmsHtmlButtonGeneric("modify-mode");
+                                                                      items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode");
+                                                                   }
+                                                                )
+                                                                .UmsDefaultSettings(DicSvc, "")
+         )
+      </div>
+   </div>
+</form>
+
+<script type="text/javascript">
+   var dialog = $("#@strDialogID").data("kendoWindow");
+   var actualmode;
+
+
+   function setWindowMode() {
+      if ('@Model.Id' !== '' && @Model.Id!== 0) {
+         actualmode = 1;
+      } else {
+         actualmode = 2;
+      }
+      setMode();
+   };
+
+   function setMode() {
+      if (actualmode === 2) {
+         changeToEditMode();
+      }
+      else {
+         changeToViewMode();
+      }
+      dialog.center().resize();
+   };
+
+   function changeToEditMode() {
+        actualmode = 2;
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+            toolBarAllEditSaveButton();
+            toolBarShowButtonByClass("modify-mode");
+
+        $('#@strDialogID :input').attr('disabled', false);
+        $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(true);
+            }
+        });
+         $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoNumericTextBox");
+            if (cb) {
+                cb.enable(true);
+            }
+        });
+         $('#@strDialogID :input').each(function () {
+            var cb = $(this).data("kendoTimePicker");
+            if (cb) {
+                cb.enable(true);
+            }
+        });
+        if ('@Model.Id' =='0') {
+           $('#btnDelete').hide();
+      }
+        $('#unitQuntity').attr('disabled', true);
+       $('#unitQuntitymlh').attr('disabled', true);
+       $('#unitQuntitymgkgh').attr('disabled', true);
+       $('#unitQuntitymgmL').attr('disabled', true);
+       $('#unitQuntityh').attr('disabled', true);
+       $('#unitQuntitymgml').attr('disabled', true);
+       $('#unitQuntitymconversion').attr('disabled', true);
+      $('#unitQuntitymg').attr('disabled', true);
+
+   };
+
+   function changeToViewMode() {
+      actualmode = 1;
+      $(".view-mode").show();
+      $(".modify-mode").hide();
+      toolBarAllEditSaveButton();
+      toolBarShowButtonByClass("view-mode");
+      $('#@strDialogID :input').attr('disabled', true);
+      $('#@strDialogID :input').each(function () {
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+               cb.enable(false);
+         }
+      });
+      $('#@strDialogID :input').each(function () {
+         var cb = $(this).data("kendoNumericTextBox");
+         if (cb) {
+               cb.enable(false);
+         }
+      });
+      $('#@strDialogID :input').each(function () {
+         var cb = $(this).data("kendoTimePicker");
+         if (cb) {
+               cb.enable(false);
+         }
+      });
+   };
+
+   function toolBarShowButtonByClass(clas) {
+      var tb = $("#toolbar").data("kendoToolBar");
+      tb.umsShowButtonByClass(clas);
+   }
+   function toolBarAllEditSaveButton() {
+      var tb = $("#toolbar").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+
+
+   $(document).ready(function () {
+
+      setWindowMode();
+
+      $('.btnEdit').off('click').on('click', function () {
+         changeToEditMode();
+      });
+
+      $('.btnCancel').off('click').on('click', function (e) {
+         e.preventDefault();
+         changeToViewMode();
+         var currentID = $('#hidden_id').val();
+         if (currentID && currentID != '' && currentID != '0') {
+            ShowStandardActionData(currentID);
+         }
+         else {
+            dialog.close();
+         }
+      });
+
+      $('.btnClose').off('click').on('click', function () {
+         dialog.close();
+         $(this).closest(".k-state-focused").focus();
+      });
+
+      $('#btnDuplicateStandardAction').off('click').on('click', function () {
+         $("#nameTherapy").val("");
+         $("#hidden_id").val("0");
+         changeToEditMode();
+      });
+
+      $('#btnDelete').off('click').on('click',function () {
+         umsConfirm('@DicSvc.XLate("Confirm Delete")', '@DicSvc.XLate("Do you really want to delete this Standard Action?")', deleteStandardAction, function () { });
+      });
+
+      $('#btnSave').off('click').on('click',function () {
+         if (OnValidation()) {
+            //[{"Name":"Way1","Enabled":false},{"Name":"Way2","Enabled":true},{"Name":"Way3","Enabled":false}]
+            //debugger;
+            var lists = $('#AllowedRouteGrid').getKendoGrid().dataSource.data();
+            var json = JSON.stringify(lists);
+
+            $("#@strFormID").remove("._a_");
+
+            for (var i = 0; i < lists.length; i++) {
+               var itm = lists[i];
+               var name = '<input type="hidden" name="QuantityDose.Ways[' + i + '].Name"  value="' + itm.Name + '" class="_a_"/>'
+               var enabled = '<input type="hidden" name="QuantityDose.Ways[' + i + '].Enabled"  value="' + itm.Enabled + '" class="_a_"/>'
+               $("#@strFormID").append(name);
+               $("#@strFormID").append(enabled);
+            }
+
+            $.ajax({
+               type: "POST",
+               url: "@Url.Action("TherapyConfigEdit", "Therapy")",
+               data: $("#@strFormID").serialize(),
+               error: OnFailure,
+               success: OnSuccess
+            });
+         }
+      });
+   });
+
+    function deleteStandardAction() {
+        $.ajax({
+            url: '@Url.Action("DeleteAction", "Therapy")',
+            type: 'POST',
+            data: { ID: '@Model.Id' },
+
+        }).done(function (data) {
+            if (data.success) {
+                $('#@strDialogID').data('kendoWindow').close();
+                var grid = $("#" + gridIdName).data("kendoGrid");
+                grid.dataSource.read();
+            }
+            else {
+                umsErrorDialog("Error occured", data.errorMessage, 200, 200);
+            }
+            }).fail(function (response) {
+                umsErrorDialog("Error occured", response, 200, 200);
+        });
+
+    }
+
+   function OnValidation() {
+      debugger;
+      var retValue = true;
+      @*var validator = $("#@strFormID").kendoValidator().data("kendoValidator");
+      if (!validator.validate() ) {
+         try {
+               var errors = validator.errors();
+               $("#errors").html(buildValidationMessage(errors));
+         } catch (e) {
+               $("#errors").html(e);
+         }
+      }
+      else {
+         $("#errors").html("");
+         retValue = true;
+      }*@
+
+      if ($("#nameTherapy").val() == "") {
+         umsErrorDialog("Error", '@(DicSvc.XLate("A name must be provided to this therapy"))', 200, 200);
+         retValue = false;
+      }
+
+      if ($("#descriptionTherapy").val() == "") {
+         umsErrorDialog("Error", '@(DicSvc.XLate("A Description must be provided for this therapy"))', 200, 200);
+         retValue = false;
+      }
+
+      return retValue;
+   }
+
+   function OnSuccess(result, status) {
+      if (status == "success") {
+         var grid = $("#standard-operations-grid").data("kendoGrid");
+         grid.dataSource.read();
+         dialog.close();
+      }
+      else {
+         window.umsAlert("Error occured", response.errorMessage, 400, 300);
+      }
+   }
+   function OnFailure(jqXHR, textStatus, errorThrown) {
+      window.umsAlert("Error occured", errorThrown, 400, 300);
+   }
+</script>

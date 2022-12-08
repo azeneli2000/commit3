@@ -1,0 +1,210 @@
+﻿
+<form id="CabinetForm" class="card-body h-90 p-0 border-0" style="display:none">
+
+    <div class="container-fluid">
+        <div class="row mt-3">
+            @*cabinetShortName*@
+            <div class="col-sm-1 u-col-h-fixed">
+                <label class="label-name field-required" for="CabinetShortNameTxt">Shortname</label>
+            </div>
+            <div class="col-sm-3 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" data-val="true" data-val-required="The Cabinet Short Name field is required." id="CabinetShortNameTxt" disabled>
+                </div>
+            </div>
+            @*cabinetName*@
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+                <label class="label-name field-required" for="CabinetNameTxt">Name</label>
+            </div>
+            <div class="col-sm-5 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" id="CabinetNameTxt" name="StockRoomNameTxt" data-val-required="The Cabinet Name field is required." disabled>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            @*cabinetIndex*@
+            <div class="col-sm-1 u-col-h-fixed">
+                <label class="label-name" for="CabinetIndexTxt">Index</label>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" id="CabinetIndexTxt" disabled>
+                </div>
+            </div>
+
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                </div>
+            </div>
+
+            @*cabinetDescription*@
+            <div class="col-sm-1 u-col-h-fixed">
+                <label class="label-name" for="CabinetDescriptionTxt">Description</label>
+            </div>
+            <div class="col-sm-5 u-col-h-fixed">
+                <div class="input-group">
+                    <textarea class="k-input k-textbox" type="text" id="CabinetDescriptionTxt" disabled></textarea>
+                </div>
+            </div>
+        </div>
+        <br />
+        <div class="row mt-3">
+            @*basket*@
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+                <label class="label-name" for="CabinetIsBasketCheck">Is basket</label>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                    <input id="CabinetIsBasketCheck" type="checkbox" value="false" data-role="checkbox" class="k-checkbox k-checkbox-md k-rounded-md" disabled>
+                    <label for="InheritsSlots" class="k-checkbox-label"> </label>
+                </div>
+            </div>
+
+            @*kit*@
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+                <label class="label-name" for="CabinetIsGenericKitCheck">Generic kit</label>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                    <input id="CabinetIsGenericKitCheck" type="checkbox" value="false" data-role="checkbox" class="k-checkbox k-checkbox-md k-rounded-md" disabled>
+                    <label for="InheritsSlots" class="k-checkbox-label"> </label>
+                </div>
+            </div>
+
+            @*trolley*@
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+                <label class="label-name" for="CabinetIsTrolleyCheck">Is trolley</label>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                    <input id="CabinetIsTrolleyCheck" type="checkbox" value="false" data-role="checkbox" class="k-checkbox k-checkbox-md k-rounded-md" disabled>
+                    <label for="InheritsSlots" class="k-checkbox-label"> </label>
+                </div>
+            </div>
+            @*new position*@
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+                <label class="label-name" for="CabinetIsForNewPositionCheck">New position</label>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                    <input id="CabinetIsForNewPositionCheck" type="checkbox" value="false" data-role="checkbox" class="k-checkbox k-checkbox-md k-rounded-md" disabled>
+                    <label for="InheritsSlots" class="k-checkbox-label"> </label>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</form>
+
+<script>
+    function populateCabinetForm() {
+
+        $('#CabinetShortNameTxt').val(dataItem.CabinetShortName);
+        $('#CabinetNameTxt').val(dataItem.CabinetName);
+        $('#CabinetDescriptionTxt').val(dataItem.CabinetDescription);
+        $('#CabinetIndexTxt').val(dataItem.CabinetIndex);
+        $('#CabinetIsBasketCheck').prop('checked', (dataItem.CabinetIsBasket));
+        $('#CabinetIsTrolleyCheck').prop('checked', (dataItem.CabinetIsTrolley));
+        $('#CabinetIsGenericKitCheck').prop('checked', (dataItem.CabinetIsGenericKit));
+        $('#CabinetIsForNewPositionCheck').prop('checked', (dataItem.CabinetIsForNewPosition));
+        dataItem.Mode = 'Update';
+        console.log(dataItem)
+    }
+    function onCancelCabinet() {
+        $("#CabinetForm").hide();
+        $("#CabinetGroupForm").show();
+    }
+    function UpdateCabinet() {
+        debugger
+        console.log(dataItem.Mode)
+        var cabinetModel =
+        {
+            CabinetId: dataItem.CabinetId,
+            CabinetGroupId: dataItem.CabinetGroupId,
+            CabinetShortName: $('#CabinetShortNameTxt').val(),
+            CabinetName: $('#CabinetNameTxt').val(),
+            CabinetDescription: $('#CabinetDescriptionTxt').val(),
+            CabinetIsBasket: $('#CabinetIsBasketCheck').prop("checked"),
+            CabinetIsTrolley: $('#CabinetIsTrolleyCheck').prop("checked"),
+            CabinetIsGenericKit: $('#CabinetIsGenericKitCheck').prop("checked"),
+            CabinetIsForNewPosition: $('#CabinetIsForNewPositionCheck').prop("checked")
+        }
+       
+            $.ajax({
+                url: '@Url.Action("UpdateCabinet", "StockManagement")',
+                type: 'POST',
+                data: {
+                    model: cabinetModel
+                }
+            }).done(function (data) {
+                if (data.success != undefined && data.success) {
+                    console.log('cabinet  Updated');
+                } else {
+                    $('#errors').html('not saved. reason:' + data.errorMessage);
+                }
+            }).fail(function (response) {
+                console.log(response)
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            });
+    }
+    function InsertCabinet(){
+        var cabinetModel =
+        {
+            CabinetId: dataItem.CabinetId,
+            CabinetGroupId: dataItem.CabinetGroupId,
+            CabinetShortName: $('#CabinetShortNameTxt').val(),
+            CabinetName: $('#CabinetNameTxt').val(),
+            CabinetDescription: $('#CabinetDescriptionTxt').val(),
+            CabinetIsBasket: $('#CabinetIsBasketCheck').prop("checked"),
+            CabinetIsTrolley: $('#CabinetIsTrolleyCheck').prop("checked"),
+            CabinetIsGenericKit: $('#CabinetIsGenericKitCheck').prop("checked"),
+            CabinetIsForNewPosition: $('#CabinetIsForNewPositionCheck').prop("checked")
+        }
+            $.ajax({
+                url: '@Url.Action("InsertNewCabinet", "StockManagement")',
+                type: 'POST',
+                data: {
+                    model: cabinetModel
+                }
+            }).done(function (data) {
+                if (data.success != undefined && data.success) {
+                    console.log('cabinet  Inserted');
+                } else {
+                    $('#errors').html('not saved. reason:' + data.errorMessage);
+                }
+            }).fail(function (response) {
+                console.log(response)
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            });
+    }
+    function DeleteCabinet() {
+        debugger
+        $.ajax({
+            url: '@Url.Action("RemoveCabinet", "StockManagement")',
+            type: 'POST',
+            data: {
+                cabinetId: dataItem.CabinetId,
+            }
+        }).done(function (data) {
+            if (data.success != undefined && data.success) {
+                console.log('cabinet group deleted');
+            } else {
+                $('#errors').html('not deleted. reason:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            console.log(response)
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+    }
+    function clearCabinetForm() {
+        $('#CabinetShortNameTxt').val('')
+        $('#CabinetNameTxt').val('');
+        $('#CabinetDescriptionTxt').val('');
+        $('#CabinetIndexTxt').val(0);
+
+    }
+</script>
+

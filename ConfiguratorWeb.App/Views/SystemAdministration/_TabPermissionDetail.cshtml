@@ -1,0 +1,87 @@
+﻿@model ConfiguratorWeb.App.Models.PermissionViewModel
+@using Digistat.FrameworkStd.UMSLegacy;
+@using Digistat.FrameworkStd.Interfaces;
+@{
+    Layout = null;
+}
+@inject ISystemOptionsService sysOptSvc
+@{
+    bool bolNewPermissionMgr = UMSFrameworkParser.ConvertToBoolean(sysOptSvc.GetSystemOption(string.Empty, null, null, null, "UseRolesForPermissions", true).Value);
+}
+<script>
+function onChangePriorityLevel() {
+    $(".modify-mode").show();
+    $(".view-mode").hide();
+    if ($.trim(this.value()) == "") {
+        $("#PriorityLevel_@Model.Id").parent().css("border-color", "red");
+        $("#PriorityLevel_@Model.Id").parent().css("background-color", "#fff8f8");
+    }
+    else {
+        $("#PriorityLevel_@Model.Id").parent().css("border-color", "#f0f0f0");
+        $("#PriorityLevel_@Model.Id").parent().css("background-color", "#fafafa");
+        _minLevel = this.value();
+        try {
+            $("#enabled-users-grid_@Model.Id").getKendoGrid().dataSource.read();
+        } catch (e) {
+
+        }
+    }
+}
+</script>
+
+<div style="height: 300px;padding-top: 15px;">
+
+
+    @Html.ValidationSummary()
+    <div class="row">
+        <div class="col-md-1 u-col-h-fixed">
+            @Html.LabelFor(m => m.FunctionName)
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            @Html.Kendo().TextBoxFor(m => m.FunctionName).HtmlAttributes(new { @class = "k-input k-textbox w-100" }).Enable(false)
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-1 u-col-h-fixed">
+            @Html.LabelFor(m => m.ModuleName)
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            @Html.Kendo().TextBoxFor(m => m.ModuleName).HtmlAttributes(new { @class = "k-input k-textbox w-100" }).Enable(false)
+        </div>
+    </div>
+    <div class="row" style="align-items: baseline;">
+        <div class="col-md-1 u-col-h-fixed">
+            @Html.LabelFor(m => m.Description)
+        </div>
+        <div class="col-md-3 u-col-h-fixed" style="margin-bottom: -7px;">
+            @Model.Description
+            @Html.HiddenFor(m=>m.Description)
+        </div>
+    </div>
+    @if (!bolNewPermissionMgr)
+    {
+        <div class="row">
+            <div class="col-md-1 u-col-h-fixed">
+                @Html.LabelFor(m => m.PermissionCode)
+            </div>
+            <div class="col-md-3 u-col-h-fixed">
+                @Html.Kendo().TextBoxFor(m => m.PermissionCode).HtmlAttributes(new { @class = "k-input k-textbox w-100" })
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-1 u-col-h-fixed">
+                @Html.LabelFor(m => m.PriorityLevel)
+            </div>
+            <div class="col-md-3 u-col-h-fixed">
+                @(Html.Kendo().NumericTextBox<int>().Name("PriorityLevel_" + Model.Id).Value(Model.PriorityLevel).Decimals(0).Format("#").Events(e => e.Change("onChangePriorityLevel")).HtmlAttributes(new { @class = "control-required w-100" })
+                                                                      .Min(0).Max(99))
+            </div>
+
+        </div>
+    }
+    else
+    {
+        Html.HiddenFor(m => m.PermissionCode);
+        Html.HiddenFor(m => m.PriorityLevel);
+    }
+</div>

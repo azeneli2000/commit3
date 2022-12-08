@@ -1,0 +1,300 @@
+﻿@using Configurator.Std.BL.Configurator
+
+@inject IConfiguratorWebConfiguration config
+@{
+   ViewBag.Title = DicSvc.XLate("Monitor Driver");
+}
+@{
+   string userAgent = Context.Request.Headers["User-Agent"];
+
+   if(userAgent!= null && (userAgent.Contains("MSIE") || userAgent.Contains("Trident")) ) {
+      //Do your special IE stuff here
+      Context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+      Context.Response.Headers["Expires"] = "-1";
+      Context.Response.Headers["Pragma"] = "no-cache";
+   } else {
+      //Do your non IE stuff here
+   }
+}  
+
+<style>
+
+   .commandIcon {
+      margin-left: 5px;
+      padding:5px;
+      border: solid 1px #ebecec;
+      -webkit-border-radius: 4px;
+      -moz-border-radius: 4px;
+      border-radius: 4px;
+   }
+
+
+</style>
+
+
+<script type="text/javascript">
+
+   function ddlErrorHandler() {
+       $('#autorefresh').attr('checked', false);
+       umsErrorDialog("Error", "Unable to retrieve DAS instances <br/>" + new Date());
+   }
+
+
+    function CloseDialog() {
+        if ($('#divUmsAlert').data("kendoDialog")) {
+            $('#divUmsAlert').data("kendoDialog").close();
+        }
+
+   };
+
+   $(function () {
+      $("#getInstanceStatus").on("click", function () {
+         refreshGridDatasource(false);
+      })
+   });
+   function onDasChange(e) {
+      var grid = $("#DriverInstances").data("kendoGrid");
+      var dataSource = new kendo.data.DataSource({
+         data: null
+      });
+      grid.setDataSource(dataSource);
+      grid.dataSource.read();
+   }
+   function onDasInstanceDataBound(e) {
+
+      //debugger;
+      var istancesFound = e.sender.dataSource.data.length;
+      if (istancesFound > 0) {
+         $('#getInstanceStatus').prop('disabled', false);
+      }
+      else {
+         $('#getInstanceStatus').prop('disabled', true);
+      }
+
+      refreshGridDatasource(false);
+   }
+
+
+   function requestRestartDriver(deviceDriverId, processId, broker) {
+
+      $.ajax({
+         type: "GET",
+         url: '@Url.Action("RestartDriver", "Connect")',
+         data: {
+            deviceDriverId: deviceDriverId,
+            processId: processId,
+            dasBroker: broker
+         },
+         success: function (data) {
+
+            refreshGridDatasource(false);
+         },
+         error: function (xhr, textStatus, errorThrown) {
+             umsErrorDialog("Error", "Unable to send Restart driver request");
+         }
+      });
+   }
+
+   function requestKillProcess(deviceDriverId, processId, broker) {
+
+      $.ajax({
+         type: "GET",
+         url: '@Url.Action("KillProcess", "Connect")',
+         data: {
+            deviceDriverId: deviceDriverId,
+            processId: processId,
+            dasBroker: broker
+         },
+         success: function(data) {
+            refreshGridDatasource(false);
+         },
+         error: function(xhr, textStatus, errorThrown) {
+            umsErrorDialog("Error", "Unable to send Kill process request");
+         }
+      });
+   }
+
+
+   function refreshGridDatasource(passthrough) {
+
+      if (passthrough && !$("#autorefresh").is(':checked')) {
+         setRefreshInterval();
+         
+         return;
+      }
+      $('#countdownRefresh').html("loading");
+      //$('#countdownRefresh').hide();
+      CloseDialog();
+      
+      var grid = $("#DriverInstances").data("kendoGrid");
+      var dropDown = $("#DasInstance").data("kendoDropDownList");
+      var dasItem = dropDown.dataItem();
+      dropDown.enable(false);
+
+      kendo.ui.progress(grid.element, true);
+      $.ajax({
+            type: "GET",
+            url: '@Url.Action("GetDasInstanceStatus", "Connect")',
+            //cache: false,
+            //async: false,
+            data: { computerName: dasItem.ComputerName }
+         })
+         .done(function(data) {
+            var grid = $("#DriverInstances").data("kendoGrid");
+            kendo.ui.progress(grid.element, true);
+            var dataSource = new kendo.data.DataSource({
+               data: data
+            });
+
+            dataSource.group({
+               field: "DasBroker" ,
+               aggregates: [{ field: "DasBroker", aggregate: "count" }]
+            });
+            grid.setDataSource(dataSource);
+            dropDown.enable(true);
+            if ($("#autorefresh").is(':checked')) {
+               timeoutTimer = timeoutMilliSec / 1000;
+               $('#countdownRefresh').html(refreshInMessage.format(timeoutTimer)); 
+            }
+            
+            setRefreshInterval();
+         })
+         .fail(
+            function(xhr, textStatus, errorThrown) {
+               umsErrorDialog("Error", "Unable to retrive DAS instance status");
+               var grid = $("#DriverInstances").data("kendoGrid");
+               kendo.ui.progress(grid.element, false);
+               dropDown.enable(true);
+               setRefreshInterval();
+            });
+
+   }
+
+   var interval = 0;
+   var timeoutTimer=0;
+   var refreshInMessage = "refreshed in {0} sec<i class='mdi mdi-clock-fast'></i> ";
+   var timeoutId=0;
+   var timeoutMilliSec = @(config.DasDriversStatusRefreshInterval);
+   function setRefreshInterval() {
+      //console.log("set refresh");
+      //If DasDriversStatusRefreshInterval option in configuration is 0 this function is empty
+      if (timeoutId !== 0) {
+         clearTimeout(timeoutId);
+      }
+      if (interval !== 0) {
+         
+         clearTimeout(interval);
+         $('#countdownRefresh').html('');
+      }
+      if (timeoutMilliSec > 0)
+      {
+         timeoutTimer = timeoutMilliSec / 1000;
+         if ($("#autorefresh").is(':checked')) {
+            $('#countdownRefresh').show();
+         }
+         $('#countdownRefresh').html(refreshInMessage.format(timeoutTimer));
+
+         interval = setInterval(function() {
+            timeoutTimer--;
+            //if (timeoutTimer >= 1) {
+               $('#countdownRefresh').html(refreshInMessage.format(timeoutTimer));
+            //}
+            
+            // Display 'counter' wherever you want to display it.
+            if (timeoutTimer == 0) {
+               // Display a login box
+               clearInterval(interval);
+               $('#countdownRefresh').hide();
+               timeoutTimer = timeoutMilliSec / 1000;
+            }
+         }, 1000);
+         timeoutId = setTimeout(function () { refreshGridDatasource(true); }, timeoutMilliSec);
+         
+      }
+   }
+
+   $(document).ready(function() {
+      $("#autorefresh").off('click').on('click', function () {
+         if ($("#autorefresh").is(':checked')) {
+            $('#countdownRefresh').show();
+         } else {
+            $('#countdownRefresh').hide();
+         }
+         setRefreshInterval();
+      });
+   });
+</script>
+
+<div class="text-center">
+
+    <div class="row m-0 mb-2">
+       <div class="col-md-2 u-col-h-fixed pt-2">
+          @DicSvc.XLate("Data Acquisition Node", Digistat.FrameworkStd.Enums.StringParseMethod.Html)
+       </div>
+        <div class="col-md-3 u-col-h-fixed">
+            @(Html.Kendo().DropDownList()
+                  .Name("DasInstance")
+                  .HtmlAttributes(new { @style = "width:100%;" })
+                  .DataTextField("DisplayName")
+                  .DataValueField("ComputerName")
+                  .DataSource(source =>
+                  {
+                     source.Read(read =>
+                     {
+                        read.Action("GetDasInstancesList", "Connect");
+                     })
+                     .Events(events => events.Error("ddlErrorHandler"));
+
+                  })
+                  .Events(ev => ev.DataBound("onDasInstanceDataBound").Change("onDasChange"))
+            )
+        </div>
+        <div class=" col-md-1 u-col-h-fixed">
+            <input type="button" id="getInstanceStatus" class="k-button k-button-md  btnKendo" disabled value="@DicSvc.XLate("Get Status", Digistat.FrameworkStd.Enums.StringParseMethod.Html)" />
+        </div>
+
+        @if (config.DasDriversStatusRefreshInterval > 0)
+        {
+    <div class="col-md-6 u-col-h-fixed">
+       
+       <div class="float-right">
+          <span id="countdownRefresh"></span>
+          
+          &nbsp;&nbsp;
+          @Html.Kendo().CheckBox().Name("autorefresh").Checked(true).Label(string.Format(DicSvc.XLate("Auto update every {0} seconds", Digistat.FrameworkStd.Enums.StringParseMethod.Html), config.DasDriversStatusRefreshInterval / 1000))
+       </div>
+    </div>
+        }
+
+    </div>
+    <div class="border rounded mx-2 p-2 text-left " style="min-height: calc(100vh - 190px)">
+      
+            @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.DasStatusViewModel>()
+                                .Name("DriverInstances")
+                                .HtmlAttributes(new { style = "min-height:200px;height:100%;"})
+                                .Columns(columns =>
+                                {
+
+                                    columns.Template("<a class='commandIcon' href=\"javascript:requestRestartDriver(#= DeviceDriverId #, #= ProcessId #, '#= DasBroker #')\" title=\"" + DicSvc.XLate("Restart driver") + "\"><i style=\"font-weight:bold;\" class='mdi mdi-restart mdi-18px'></i></a><a class='commandIcon' href=\"javascript:requestKillProcess(#= DeviceDriverId #, #= ProcessId #, '#= DasBroker #')\" title=\"" + DicSvc.XLate("Kill process") + "\"><i style=\"font-weight:bold;\" class='mdi mdi-power-standby mdi-18px'></i></a>")
+                                        //.ClientHeaderTemplate("<i style=\"font-weight:bold;\" class='mdi mdi-restart mdi-18px'></i>")
+                                        .Width(92);
+                                   columns.Bound(e => e.DasBroker).Hidden(true).ClientGroupHeaderTemplate(DicSvc.XLate("Broker")+": #=value# (#:count# items)");
+                                    columns.Bound(e => e.Name);
+                                    columns.Bound(e => e.Version);
+                                    columns.Bound(e => e.ProcessStatus).ClientTemplate("<div class='#= ProcessStatusClass#'>#= ProcessStatus#</div>");
+                                    columns.Bound(e => e.LastDatasetElaspedTime);
+                                    columns.Bound(e => e.DriverStatus).Hidden();
+                                    columns.Bound(e => e.DriverStatusDescription).ClientTemplate("<div class='#= DriverStatusClass#'>#= DriverStatusDescription#</div>");
+                                    columns.Bound(e => e.DeviceStatus).Hidden();
+                                    columns.Bound(e => e.DeviceStatusDescription).ClientTemplate("<div class='#= DeviceStatusClass#'>#= DeviceStatusDescription#</div>");
+                                    //columns.Bound(e => e.DeviceMessage);
+                                    columns.Bound(e => e.Address);
+                                    columns.Bound(e => e.BedName);
+                                })
+                 
+                 .Pageable(p => p.PreviousNext(false).Numeric(false).Messages(m=>m.Display("{2} items")))
+            )
+            
+    </div>
+</div>
+

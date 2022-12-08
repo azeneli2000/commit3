@@ -1,0 +1,1086 @@
+﻿@using System.Collections
+@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@model ConfiguratorWeb.App.Models.ReportMaster.ReportMasterViewModel
+
+@{
+   Layout = null;
+   string formIdRmc = "form_" + new Guid().ToString();
+   List<string> repTemp = (List<string> )ViewData["ReportTemplatesListName"];
+
+}
+
+<script type="text/javascript">
+   //debugger;
+   function toFirstUpper(target) {
+      var string = target.toString();
+      return string.charAt(0).toUpperCase() + string.substring(1);
+   }
+
+   var dataSourceRMC = @Html.Raw(Json.Serialize(Model));
+   var dataSourceRmcTempl = @Html.Raw(Json.Serialize(repTemp));
+   var dataSourceRmcParams = new kendo.data.DataSource();
+   var dataSourceForGrid = new kendo.data.DataSource({
+      data:dataSourceRMC.Menu
+   });
+   function onRmDataBound() {
+      //var grid = this;
+      //grid.element.on('click', 'tbody tr[data-uid]',
+      //   function (e) {
+
+      //      var item = grid.dataItem($(e.target).closest('tr'));
+      //      if (item) {
+      //         saveMenuChanges();
+      //         viewDetail(item);
+      //      }
+
+      //   });
+   }
+   function onRowChange(arg) {
+      //debugger;
+      var selected = $.map(this.select(), function(item) {
+         return $(item).text();
+      });
+      var grid = this;
+      var item = grid.dataItem(this.select());
+      if (item) {
+         saveMenuChanges();
+         viewDetail(item);
+      }
+   }
+   function saveMenuChanges() {
+
+      var Name = $('#menuName').val();
+
+      if (Name.length == 0)
+         return;
+
+      var NameOriginal = $('#menuOriginalName').val();
+      var isNew = false;
+      var menu = dataSourceRMC.Menu.find(function(x) { return x.Name === NameOriginal; });
+      if (!menu ) {
+         menu = {};
+         isNew = true;
+      }
+
+      menu.Name                   = $('#menuName').val();
+      menu.Callback               = $('#menuCallback').val();
+      menu.Path                   = $('#menuPath').val();
+      menu.Template               = $('#menuTemplate').data('kendoDropDownList').value();
+      menu.Preview                = document.getElementById("menuPreview").checked ? "True" : "False";
+      menu.Print                  = document.getElementById("menuPrint").checked ? "True" : "False";
+      menu.UseWindowsPrintDialog  = document.getElementById("menuUseWindowsPrintDialog").checked ? "True" : "False";
+      menu.WatermarkEnabled       = document.getElementById("menuWatermarkEnabled").checked ? "True" : "False";
+      menu.OutlineEnabled         = document.getElementById("menuOutlineEnabled").checked ? "True" : "False";
+      menu.PrintButtonEnabled     = document.getElementById("menuPrintButtonEnabled").checked ? "True" : "False";
+      menu.ExportFormats          = $("#menuExportFormats").data("kendoMultiSelect").value().join(";");
+      //debugger;
+      if (isNew || menu.Parameters == undefined) 
+         menu.Parameters = {Parameter:[]};
+
+
+      if ($('#tempParKey').val() != "") {
+         //debugger;
+         var oldVal = $('#tempParValue').val();
+         var dsItem = dataSourceRmcParams.data().find(function(x) { return x.Name === $('#tempParKey').val(); });
+         if (dsItem) {
+            dsItem.Value = oldVal;
+         }
+         $('#tempParKey').val("");
+      }
+
+      menu.Parameters.Parameter = dataSourceRmcParams.data().toJSON();
+
+      //menu.Parameters
+      if (isNew) {
+         dataSourceRMC.Menu.push(menu);
+      }
+
+      if (isNew || Name != NameOriginal) {
+         var grid = $('#reportMasterGrid').getKendoGrid();
+         var dataSource = new kendo.data.DataSource({
+            data:dataSourceRMC.Menu
+         });
+         grid.setDataSource(dataSource);
+      }
+   }
+   function onChangePrinterDefaultSetting() {
+      var bChecked = document.getElementById("printerDefaultSetting").checked;
+      setMenuPreviewArea(bChecked);
+      if (!bChecked) {
+         $('.ums-printerArea *').prop("disabled", true).off('click');
+         $('#printerCopies').getKendoNumericTextBox().enable(false);
+         $('#printerDuplex').getKendoDropDownList().enable(false);
+      } else {
+         $('.ums-printerArea *').prop("disabled", false).on('click');
+         $('#printerCopies').getKendoNumericTextBox().enable(true);
+         $('#printerDuplex').getKendoDropDownList().enable(true);
+      }
+   }
+   function onChangeMenuPreview() {
+      var bChecked = document.getElementById("menuPreview").checked;
+      setMenuPreviewArea(bChecked);
+   }
+   function setMenuPreviewArea(bChecked) {
+      if (bChecked != undefined && bChecked==true) {
+         $('.card.ums-preview-area *').prop("disabled", false).on('click');
+         $('#menuExportFormats').getKendoMultiSelect().enable(true);
+
+      } else {
+         //$('.card.ums-preview-area').hide();  
+         $('.card.ums-preview-area *').prop("disabled", true).off('click');
+         $('#menuExportFormats').getKendoMultiSelect().enable(false);
+      }
+   }
+   function viewDetail(element) {
+      //if (!element.Name) {
+      //   debugger;
+      //}
+      //debugger;
+      var item = dataSourceRMC.Menu.find(function(x) { return x.Name === element.Name; } );
+      if (!item ) {
+         item = [];
+         item.Name = "";
+         item.Callback               = "";
+         item.Path                   = "";
+         item.Template               = "";
+         item.Preview                = "False";
+         item.Print                  = "False";
+         item.UseWindowsPrintDialog  = "False";
+         item.WatermarkEnabled       = "False";
+         item.OutlineEnabled         = "False";
+         item.PrintButtonEnabled     = "False";
+         item.ExportFormats          = "";
+         item.Parameters             = [];
+      }
+
+      $('#menuOriginalName').val(item.Name);
+      $('#menuName').val(item.Name);
+      $('#menuCallback').val(item.Callback);
+      $('#menuPath').val(item.Path);
+      $('#menuTemplate').data('kendoDropDownList').value(item.Template);
+
+      document.getElementById("menuPrint").checked = (item.Print && item.Print == "True");
+      document.getElementById("menuPreview").checked = (item.Preview && item.Preview == "True");
+      
+      setMenuPreviewArea(document.getElementById("menuPreview").checked);
+
+      document.getElementById("menuWatermarkEnabled").checked = (item.WatermarkEnabled && item.WatermarkEnabled=="True");
+      document.getElementById("menuOutlineEnabled").checked = (item.OutlineEnabled && item.OutlineEnabled=="True");
+      document.getElementById("menuPrintButtonEnabled").checked = (item.PrintButtonEnabled && item.PrintButtonEnabled=="True");
+      document.getElementById("menuUseWindowsPrintDialog").checked = (item.UseWindowsPrintDialog && item.UseWindowsPrintDialog=="True");
+      var msUnit = $("#menuExportFormats").data("kendoMultiSelect");
+      msUnit.value([]);
+      if (item.ExportFormats && item.ExportFormats.length>0) {
+
+         msUnit.value(item.ExportFormats.split(";"));
+         //onExportFormatsChange();
+      }
+      //debugger;
+      var listbox1 = $("#menuParameters").getKendoListBox();
+      dataSourceRmcParams = new kendo.data.DataSource({
+         transport: {
+            read: function(e) {
+               // On success.
+               e.success(item.Parameters.Parameter);
+               // On failure.
+               // e.error("XHR response", "status code", "error message");
+            }
+         }
+      });
+      ;
+      listbox1.setDataSource(dataSourceRmcParams);
+      $('#tempParValue').val('');
+   }
+   function getTemplateParameters() {
+      var templateName = $('#menuTemplate').data('kendoDropDownList').value();
+      if (templateName.length>0) {
+         $.ajax({
+            url: '@Url.Action("ReadReportTemplateParams", "ReportMaster")',
+            type: 'GET',
+            data: {templateName:templateName}
+
+         }).done(function (data) {
+            //debugger;
+            try {
+               if (!data) {
+                  return;
+               }
+               dataSourceRmcParams = new kendo.data.DataSource({
+                  transport: {
+                     read: function(e) {
+                        // On success.
+                        e.success(data);
+                        // On failure.
+                        // e.error("XHR response", "status code", "error message");
+                     }
+                  }
+               });
+               var listbox1 = $("#menuParameters").getKendoListBox();
+               //listbox1.remove(listbox1.items());
+               listbox1.setDataSource(dataSourceRmcParams);
+               //if (data.length>0) {
+               //   for (var i = 0; i < data.length; i++) {
+               //      listbox1.add({ Name:data[i].Key,Value: data[i].Value});
+               //   }
+               //}
+            } catch (e) {
+
+            }
+            $('#tempParValue').val('');
+         });
+      }
+   }
+
+
+</script>
+<style>
+   #menuExportFormats_taglist > li ,
+   #uiExportFormats_taglist > li {
+      color: #ffffff;
+      border-width: 1px;
+      border-style: solid;
+      background-color: #4A90E2 !important;
+      border-color: #386caa !important;
+      padding: 4px !important;
+   }
+
+   .k-multiselect-wrap {
+      max-height: 65px !important;
+      height: 65px !important;
+      overflow: auto !important;
+   }
+   #reportMasterGrid  a.k-link {
+      padding: 5px;
+   }
+   #reportMasterGrid  a.k-grid-filter > span{
+      margin-top: 2px;
+      padding: 5px;
+   }
+   .k-widget.k-dropdown {
+      max-height: 32px !important;
+   }
+</style>
+
+<div class="h-100 ">
+   <div class="card m-0 p-0 text-left" id="divItemDetail" style="height: 93% !important;">
+
+      <form id="@formIdRmc" style="overflow: auto"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+            data-ajax="true" data-ajax-method="POST" data-ajax-loading="progressl">
+
+         <kendo-tabstrip name="tabstrip">
+            <popup-animation>
+               <open effects="fade:in" />
+            </popup-animation>
+            <items>
+               <tabstrip-item text="@DicSvc.XLateHtml("Menu Items")" selected="true">
+                  <content>
+                     <div class="row" style="margin: 0px !important; max-height: 521px">
+                        <div class="col-6 pl-0">
+                           <div class="row" style="margin: 0px !important;">
+                              <div class="col-12 pl-0">
+                                 @(Html.Hidden("menuOriginalName"))
+
+                                 @(Html.Kendo().Grid(Model.Menu)
+                                    .Name("reportMasterGrid")
+                                    .Filterable()
+                                    .HtmlAttributes(new { style = "height:467px;margin:1px;width:100%;" })
+                                    .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLateHtml(CommonStrings.NO_RECORD_FOUND) + "</div>"))
+                                    .Sortable()
+                                    .Selectable(e => e.Enabled(true))
+                                    .Scrollable()
+                                    .Navigatable(true)
+                                    .Resizable(resize => resize.Columns(false))
+                                    .Columns(columns =>
+                                    {
+                                       columns.Bound(e => e.Name).ClientFooterTemplate("<span>&nbsp;</span>");
+                                    })
+                                    .DataSource("dataSourceForGrid")
+                                    .Events(ev => ev.DataBound("onRmDataBound").Change("onRowChange"))
+                                 )
+                              </div>
+                           </div>
+                           <div class="row mt-3">
+                              <div style="max-height: 40px;">
+                                 <button type="button" style="max-height: 32px;" class="btn btnKendo " onclick="btnAddMenuClick();">
+                                    <span class="mdi mdi-plus"></span>
+                                 </button>
+                                 <button type="button" style="max-height: 32px;" class="btn btnKendo " onclick="btnDeleteMenuClick();">
+                                    <span class="mdi mdi-minus"></span>
+                                 </button>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-6 mt-3 pl-0">
+                           <div class="row">
+                              <div class="col-4 pl-0">
+                                 <label for="menuName">@DicSvc.XLateHtml("Name")</label>
+                              </div>
+                              <div class="col-8 p-0">
+                                 <input id="menuName" class="k-input k-textbox " />
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-4 pl-0">
+                                 <label for="menuPath">@DicSvc.XLateHtml("Control Bar Path")</label>
+                              </div>
+                              <div class="col-8 p-0">
+                                 <input id="menuPath" class="k-input k-textbox " />
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-4 pl-0">
+                                 <label for="menuCallback">@DicSvc.XLateHtml("Callback")</label>
+                              </div>
+                              <div class="col-8 p-0">
+                                 <input id="menuCallback" class="k-input k-textbox " />
+                              </div>
+                           </div>
+                           <div class="row mb-0">
+                              <div class="col-4 pl-0">
+                                 <label for="menuTemplate">@DicSvc.XLateHtml("Template")</label>
+                              </div>
+                              <div class="col-8 p-0">
+                                 
+                                 <div class="input-group">
+                                    <input id="menuTemplate" class="w-89" /> @**@
+                                    <div class="input-group-append">
+                                       <button id="btnHostname" onclick="getTemplateParameters();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Get parameters from template")">
+                                          <span class="ig-24px">I</span>
+                                       </button>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+
+                           <div class="row mb-0">
+
+                              <div class="col-4 pl-0">
+                                 <label>@DicSvc.XLateHtml("Print")</label>
+                              </div>
+                              <div class="col-1 p-0">
+                                 @Html.Kendo().CheckBox().Name("menuPrint").Label("")
+                              </div>
+                              <div class="col-4 pl-0">
+                                 <label>@DicSvc.XLateHtml("Preview")</label>
+                              </div>
+                              <div class="col-1 p-0">
+                                 @Html.Kendo().CheckBox().Name("menuPreview").Label("").HtmlAttributes(new { onchange = "onChangeMenuPreview();" })
+                              </div>
+                           </div>
+                           <div class="card ums-preview-area">
+
+                              <div class="row border-bottom pt-2" style="min-height: 90px;">
+                                 <div class="col-3 pl-0 ">
+                                    <label for="menuExportFormats">@DicSvc.XLateHtml("Export Formats")<span class="d-none ml-3 badge badge-primary" id="menuExportFormatsCount" title="selected items">0</span></label>
+                                 </div>
+
+                                 <div class="col-9 px-0">
+                                    <div style="display: flex">
+                                       @(Html.Kendo().MultiSelect().Name("menuExportFormats").HtmlAttributes(new { style = "height:70px;" })
+                                          .ClearButton(true).Placeholder("click to select")
+                                          .AutoClose(false)
+                                          .Enable(false)
+                                          .Items(t =>
+                                          {
+
+                                             t.Add().Value("CSV").Text("CSV");
+                                             t.Add().Value("DOCX").Text("DOCX");
+                                             t.Add().Value("EMAIL").Text("EMAIL");
+                                             t.Add().Value("HTM").Text("HTM");
+                                             t.Add().Value("IMMAGINE").Text("IMMAGINE");
+                                             t.Add().Value("ODF").Text("ODF");
+                                             t.Add().Value("PDF").Text("PDF");
+                                             t.Add().Value("PPTX").Text("PPTX");
+                                             t.Add().Value("RTF").Text("RTF");
+                                             t.Add().Value("TXT").Text("TXT");
+                                             t.Add().Value("XML").Text("XML");
+                                             t.Add().Value("XLS").Text("XLS");
+                                             t.Add().Value("XLSX").Text("XLSX");
+
+                                          }
+                                          ))
+                                       <div style="max-width: 32px; margin-left: 6px">
+                                          <button id="btnSelectAllUnit" type="button" style="max-height: 32px; margin-bottom: 5px" title='@DicSvc.XLateHtml("Select All")' class="btn btnKendo " onclick="btnSelectAllUnitClick();">
+                                             <span class="mdi mdi-check-box-multiple-outline"></span>
+                                          </button>
+                                          <button id="btnClearAllUnit" type="button" style="max-height: 32px;" class="btn btnKendo " title='@DicSvc.XLateHtml("Clear All")' onclick="btnClearAllUnitClick();">
+                                             <span class="mdi mdi-close"></span>
+                                          </button>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                              <div class="row my-0">
+                                 <div class="col-5 pl-0">
+                                    <label>@DicSvc.XLateHtml("Watermark Enabled")</label>
+                                 </div>
+                                 <div class="col-1 p-0">
+                                    @Html.Kendo().CheckBox().Name("menuWatermarkEnabled").Label("")
+                                 </div>
+
+                                 <div class="col-5 pl-0">
+                                    <label>@DicSvc.XLateHtml("Outline Enabled")</label>
+                                 </div>
+                                 <div class="col-1 p-0">
+                                    @Html.Kendo().CheckBox().Name("menuOutlineEnabled").Label("")
+                                 </div>
+
+                                 <div class="col-5 pl-0">
+                                    <label>@DicSvc.XLateHtml("Print Enabled")</label>
+                                 </div>
+                                 <div class="col-1 p-0">
+                                    @Html.Kendo().CheckBox().Name("menuPrintButtonEnabled").Label("")
+                                 </div>
+                                 <div class="col-5 pl-0">
+                                    <label>@DicSvc.XLateHtml("Use Windows Print Dialog")</label>
+                                 </div>
+                                 <div class="col-1 p-0">
+                                    @Html.Kendo().CheckBox().Name("menuUseWindowsPrintDialog").Label("")
+                                 </div>
+                              </div>
+                           </div>
+
+                           <div class="row " style="margin: 0px !important">
+                              <div class="col-4 pl-0">
+                                 <span class="pl-3">@DicSvc.XLateHtml("Parameters")</span>
+                                 <select size="5" id="menuParameters" style="width: 200px; height: 78px; margin-left: 6px; margin-bottom: 6px">
+                                 </select>
+                              </div>
+                              <div class="col-7 mt-5 ml-auto">
+                                 <span class="pl-3">@DicSvc.XLateHtml("Value")</span>
+                                 <input id="tempParValue" class="k-input k-textbox " />
+                                 <hidden id="tempParKey" value=""/>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLateHtml("Printer")">
+                  <content>
+                     <div class="row ">
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("Change default settings")</label>
+                        </div>
+                        <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("printerDefaultSetting").Label("").Checked(Model.PrinterSettings!=null).HtmlAttributes(new { onchange = "onChangePrinterDefaultSetting();" })
+                        </div>
+                     </div>
+                     <fieldset class="ums-printerArea">
+                        <div class="row">
+                           <div class="col-3 pl-0">
+                              <label>@DicSvc.XLateHtml("Printer name")</label>
+                           </div>
+                           <div class="col-8 p-0">
+                              <input id="printerName" class="k-input k-textbox " />
+                           </div>
+                        </div>
+                        <div class="row">
+                           <div class="col-3 pl-0">
+                              <label>@DicSvc.XLateHtml("Copies")</label>
+                           </div>
+                           <div class="col-8 p-0">
+
+                              @(Html.Kendo().NumericTextBox<int>().Name("printerCopies").Min(1).Max(99).Format("#").Enable(Model.PrinterSettings!=null))
+                           </div>
+                        </div>
+                        <div class="row ">
+                           <div class="col-3 pl-0">
+                              <label>@DicSvc.XLateHtml("Collate")</label>
+                           </div>
+                           <div class="col-1 p-0">
+                              @Html.Kendo().CheckBox().Name("printerCollate").Label("")
+                           </div>
+                        </div>
+
+                        <div class="row">
+                           <div class="col-3 pl-0">
+                              <label>@DicSvc.XLateHtml("Duplex")</label>
+                           </div>
+                           <div class="col-8 p-0">
+                              
+                              @(Html.Kendo().DropDownList().Name("printerDuplex") //.HtmlAttributes(new { style = "height:70px;" })
+                                 .Enable(Model.PrinterSettings!=null)
+                                 .Items(t =>
+                                 {
+
+                                    t.Add().Text("");
+                                    t.Add().Text("Default");
+                                    t.Add().Text("Simplex");
+                                    t.Add().Text("Vertical");
+                                    t.Add().Text("Horizontal");
+                                 }
+                                 ))
+                           </div>
+                        </div>
+                        <div class="row ">
+                           <div class="col-3 pl-0">
+                              <label>@DicSvc.XLateHtml("Show dialog")</label>
+                           </div>
+                           <div class="col-1 p-0">
+                              @Html.Kendo().CheckBox().Name("printerShowDialog").Label("")
+                           </div>
+                        </div>
+                     </fieldset>
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLateHtml("Storage")">
+                  <content>
+                     <div class="card">
+                        <div class="row mb-4 ml-0 pl-0 ums-header">FileSystem</div>
+
+                        <div class="row">
+
+                           <div class="col-3 pl-0">
+                              <label>@DicSvc.XLateHtml("Storage Path")</label>
+                           </div>
+                           <div class="col-8 p-0">
+                              <input id="storagePath" class="k-input k-textbox " />
+                           </div>
+                        </div>
+                     
+                        <div class="m-3 border">
+                           <div class="row mb-4 ml-0 pl-0 ums-header">Credential</div>
+                           <div class="row">
+                              <div class="col-3 pl-0">
+                                 <label>@DicSvc.XLateHtml("User Name")</label>
+                              </div>
+                              <div class="col-8 p-0">
+                                 <input id="storageUser" class="k-input k-textbox " />
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-3 pl-0">
+                                 <label>@DicSvc.XLateHtml("Password")</label>
+                              </div>
+                              <div class="col-8 p-0">
+                                 <input id="storagePassword" class="k-input k-textbox " />
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-3 pl-0">
+                                 <label>@DicSvc.XLateHtml("Server")</label>
+                              </div>
+                              <div class="col-8 p-0">
+                                 <input id="storageServer" class="k-input k-textbox " />
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-3 pl-0">
+                                 <label>@DicSvc.XLateHtml("Share Name")</label>
+                              </div>
+                              <div class="col-8 p-0">
+                                 <input id="storageShareName" class="k-input k-textbox " />
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLateHtml("UI")">
+                  <content>
+                     <div class="row mb-0">
+
+                        <div class="col-2 pl-0">
+                           <label>@DicSvc.XLateHtml("Show Progress")</label>
+                        </div>
+                        <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("uiShowProgress").Label("")
+                        </div>
+
+                        <div class="col-2 pl-0">
+                           <label>@DicSvc.XLateHtml("Outline Enabled")</label>
+                        </div>
+                        <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("uiOutlineEnabled").Label("")
+                        </div>
+
+                        <div class="col-2 pl-0">
+                           <label>@DicSvc.XLateHtml("Print Button Enabled")</label>
+                        </div>
+                        <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("uiPrintButtonEnabled").Label("")
+                        </div>
+                        <div class="col-2 pl-0">
+                           <label>@DicSvc.XLateHtml("Use Windows Print Dialog")</label>
+                        </div>
+                        <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("uiUseWindowsPrintDialog").Label("")
+                        </div>
+                     </div>
+                     <div class="row ">
+                        <div class="col-2 pl-0">
+                           <label>@DicSvc.XLateHtml("Watermark Enabled")</label>
+                        </div>
+                        <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("uiWatermarkEnabled").Label("")
+                        </div>
+                        <div class="col-2 pl-0">
+                           <label>@DicSvc.XLateHtml("Watermark")</label>
+                        </div>
+                        <div class="col-5 p-0">
+                           @Html.Kendo().TextBox().Name("uiWatermark")
+                        </div>
+                     </div>
+                     <div class="card ">
+
+                        <div class="row  pt-3" >
+                           <div class="col-3 pl-0 ">
+                              <label>@DicSvc.XLateHtml("Enabled Export Formats")</label>
+                           </div>
+
+                           <div class="col-9 px-0">
+                              <div style="display: flex">
+                                 @(Html.Kendo().MultiSelect().Name("uiExportFormats").HtmlAttributes(new { style = "height:70px;" })
+                                    .ClearButton(true).Placeholder("click to select")
+                                    .AutoClose(false)
+                                    .Items(t =>
+                                    {
+
+                                       t.Add().Value("CSV").Text("CSV");
+                                       t.Add().Value("DOCX").Text("DOCX");
+                                       t.Add().Value("EMAIL").Text("EMAIL");
+                                       t.Add().Value("HTM").Text("HTM");
+                                       t.Add().Value("IMMAGINE").Text("IMMAGINE");
+                                       t.Add().Value("ODF").Text("ODF");
+                                       t.Add().Value("PDF").Text("PDF");
+                                       t.Add().Value("PPTX").Text("PPTX");
+                                       t.Add().Value("RTF").Text("RTF");
+                                       t.Add().Value("TXT").Text("TXT");
+                                       t.Add().Value("XML").Text("XML");
+                                       t.Add().Value("XLS").Text("XLS");
+                                       t.Add().Value("XLSX").Text("XLSX");
+
+                                    }
+                                    ))
+                                 <div style="max-width: 32px; margin-left: 6px">
+                                    <button id="btnUiSelectAllUnit" type="button" style="max-height: 32px; margin-bottom: 5px" title='@DicSvc.XLateHtml("Select All")' class="btn btnKendo " onclick="btnUiSelectAllUnitClick();">
+                                       <span class="mdi mdi-check-box-multiple-outline"></span>
+                                    </button>
+                                    <button id="btnUiClearAllUnit" type="button" style="max-height: 32px;" class="btn btnKendo " title='@DicSvc.XLateHtml("Clear All")' onclick="btnUiClearAllUnitClick();">
+                                       <span class="mdi mdi-close"></span>
+                                    </button>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+
+                     </div>
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLateHtml("Email")" >
+                  <content>
+                     
+                     <div class="row">
+
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("From Name")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="emailFromName" class="k-input k-textbox " />
+                        </div>
+                     </div>
+
+                     
+                     <div class="row">
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("From Address")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="emailFromAddress" class="k-input k-textbox " />
+                        </div>
+                     </div>
+                     <div class="row">
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("Destinations")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="emailDestinations" class="k-input k-textbox " />
+                        </div>
+                     </div>
+                     <div class="row">
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("Format")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           @*<input id="emailFormat" class="k-input k-textbox " />*@
+                           @(Html.Kendo().DropDownList().Name("emailFormat") //.HtmlAttributes(new { style = "height:70px;" })
+                              .Items(t =>
+                              {
+
+                                 t.Add().Text("");
+                                 t.Add().Text("csv");
+                                 t.Add().Text("docx");
+                                 t.Add().Text("odf");
+                                 t.Add().Text("pdf");
+                                 t.Add().Text("pptx");
+                                 t.Add().Text("rtf");
+                                 t.Add().Text("txt");
+                                 t.Add().Text("xls");
+                                 t.Add().Text("xlsx");
+                              }
+                              ))
+                        </div>
+                     </div>
+                     <div class="row">
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("Subject")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="emailSubject" class="k-input k-textbox " />
+                        </div>
+                     </div>
+                     <div class="row">
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("Body")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           @Html.TextArea("emailBody", "", 20, 40, new { @class = "k-textarea", style = "max-height: 250px;min-height: 250px;" })
+                        </div>
+                     </div>
+                        
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLateHtml("Export Settings")">
+                  <content>
+                     <div class="row h-90">
+
+                        <div class="col-2 pl-0">
+                           <label>@DicSvc.XLateHtml("Options")</label>
+                        </div>
+                        <div class="col-6 p-0">
+                           @Html.TextArea("esOptions", "", 20, 40, new { @class = "k-textarea" ,style="max-height: 500px;min-height: 350px;"})
+                           
+                        </div>
+
+                     </div>
+                     
+                  </content>
+               </tabstrip-item>
+            </items>
+         </kendo-tabstrip>
+      </form>
+
+
+   </div>
+   <div class="card-footer h-10 p-0 m-0 mt-1 border-0">
+      @(Html.Kendo().ToolBar()
+         .Name("toolbarRMC")
+         .UmsDefaultErrors(DicSvc)
+         .Items(
+            items =>
+            {
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Generate XML")).Id("btnRmcXml")   .UmsHtmlButtonSave();
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnRmcCancel")      .UmsHtmlButtonCancel();
+            }
+         )
+         .UmsDefaultSettings(DicSvc, "")
+         )
+   </div>
+</div>
+
+<script>
+   
+   function setControlsValues() {
+      if (dataSourceRMC.PrinterSettings) {
+         $('#printerName').val(dataSourceRMC.PrinterSettings.PrinterName);
+         $('#printerCopies').getKendoNumericTextBox().value(dataSourceRMC.PrinterSettings.Copies);
+         $('#printerDuplex').getKendoDropDownList().value(dataSourceRMC.PrinterSettings.Duplex);
+         document.getElementById("printerCollate").checked = (dataSourceRMC.PrinterSettings.Collate && dataSourceRMC.PrinterSettings.Collate=="True");
+         document.getElementById("printerShowDialog").checked = (dataSourceRMC.PrinterSettings.ShowDialog && dataSourceRMC.PrinterSettings.ShowDialog=="True");
+      }
+      if (dataSourceRMC.UISettings) {
+         var ui = dataSourceRMC.UISettings;
+         document.getElementById("uiShowProgress").checked          = (ui.ShowProgress  && ui.ShowProgress == "True");
+         document.getElementById("uiUseWindowsPrintDialog").checked = (ui.UsePrintDialog  && ui.UsePrintDialog == "True");
+         document.getElementById("uiPrintButtonEnabled").checked    = (ui.PrintButton  && ui.PrintButton == "True");
+         document.getElementById("uiOutlineEnabled").checked        = (ui.Outline  && ui.Outline == "True");
+         document.getElementById("uiWatermarkEnabled").checked      = (ui.WatermarkEnabled  && ui.WatermarkEnabled == "True");
+         $("#uiWatermark").val(ui.Watermark);
+         if (ui.ExportParameters && ui.ExportParameters.length>0) {
+            $("#uiExportFormats").getKendoMultiSelect().value(ui.ExportParameters.split(";"));   
+         }
+         
+         //.data("kendoMultiSelect")
+      }
+      //debugger;
+      if (dataSourceRMC.ExportSettings) {
+         $('#esOptions').val(dataSourceRMC.ExportSettings.replaceAll('&quot;','"').replaceAll('&lt;','<').replaceAll('&amp;','&'));
+      }
+      if (dataSourceRMC.MailSettings) {
+         var ss = dataSourceRMC.MailSettings;
+         $('#emailFromName').val(ss.FromName.replaceAll('&quot;','"'));
+         $('#emailFromAddress').val(ss.FromAddress);
+         $('#emailDestinations').val(ss.Destinations);
+         $('#emailFormat').getKendoDropDownList().value(ss.Format);
+         $('#emailSubject').val(ss.Subject.replaceAll('&quot;','"'));
+         $('#emailBody').val(ss.Body.replaceAll('&quot;','"'));
+      }
+      if (dataSourceRMC.StorageSettings) {
+         var ss = dataSourceRMC.StorageSettings;
+         $('#storagePath').val(ss.Path);
+         $('#storageServer').val(ss.Server);
+         $('#storageShareName').val(ss.ShareName);
+         $('#storageUser').val(ss.User);
+         $('#storagePassword').val(ss.Password);
+      }
+   }
+   
+   $(document).ready(function() {
+      $('.card.ums-preview-area *').prop("disabled", true).off('click');
+      if (!dataSourceRMC.PrinterSettings) {
+         $('.ums-printerArea *').prop("disabled", true).off('click');
+      }
+      
+
+      $('#menuParameters').kendoListBox(
+         {
+            dataTextField: "Name",
+            dataValueField: "Value",
+            change: onParameterSelected
+         });
+      
+      
+      //debugger;
+      $('#menuTemplate').kendoDropDownList(
+         {
+            dataSource: dataSourceRmcTempl
+            //dataTextField: "Name",
+            //dataValueField: "Name"
+         });
+      setControlsValues();
+
+      $('#btnRmcCancel').off('click').on('click', function () {
+         //debugger;
+         var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+         objRepoDialog.close();
+      });
+      $('#btnRmcXml').off('click').on('click', function () {
+         //debugger;
+         saveMenuChanges();
+         var xml = ReportJsonToXML();
+         if (!validateRmcXml(xml)) {
+            return;
+         }
+         if (editor && !$('#aceEditor').hasClass('d-none')) {
+            editor.getSession().setValue(xml);
+            var textarea = $(textareaIdValueModelGuid).hide();
+            textarea.val(editor.getSession().getValue());
+            
+         } else {
+            var textarea = $(textareaIdValueModelGuid);
+            textarea.val(xml);
+         }
+         var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+         objRepoDialog.close();
+      });
+      $('#reportMasterGrid').getKendoGrid().select("tr:eq(0)");
+
+   });
+   function onParameterSelected(e) {
+      //debugger;
+      
+      var listbox1 = $("#menuParameters").getKendoListBox();
+
+      if ($('#tempParKey').val() != "") {
+         var oldVal = $('#tempParValue').val();
+         var dsItem = dataSourceRmcParams.data().find(function(x) { return x.Name === $('#tempParKey').val(); });
+         if (dsItem) {
+            dsItem.Value = oldVal;
+         }
+         
+      }
+      var item = listbox1.select();
+      if (item.length > 0) {
+
+         //var element = e.sender.select();
+         var par = listbox1.dataItem(item[0]);
+         $('#tempParValue').val(par.Value);
+         $('#tempParKey').val(par.Name);
+      }
+   }
+   
+   function btnUiSelectAllUnitClick() {
+      var msUnit = $("#uiExportFormats").data("kendoMultiSelect");
+      var values = $.map(msUnit.dataSource.data(), function (dataItem) {
+         return dataItem.Value;
+      });
+      msUnit.value(values);
+   }
+
+   function btnUiClearAllUnitClick() {
+      var msUnit = $("#uiExportFormats").data("kendoMultiSelect");
+      msUnit.value('');
+      
+   }
+   function btnSelectAllUnitClick() {
+      var msUnit = $("#menuExportFormats").data("kendoMultiSelect");
+      var values = $.map(msUnit.dataSource.data(), function (dataItem) {
+         return dataItem.Value;
+      });
+      msUnit.value(values);
+      
+   }
+
+   function btnClearAllUnitClick() {
+      var msUnit = $("#menuExportFormats").data("kendoMultiSelect");
+      msUnit.value('');
+      
+   }
+
+   function btnAddMenuClick() {
+
+      if ($('#menuName').val() !== "") {
+         saveMenuChanges();
+      }
+
+      var grid = $('#reportMasterGrid').getKendoGrid();
+      grid.clearSelection();
+      var element = {Name:""};
+      viewDetail(element);
+   }
+   function btnDeleteMenuClick() {
+      //debugger;
+      var grid = $('#reportMasterGrid').getKendoGrid();
+
+      var rows = grid.select();
+
+      if (!rows || rows.length == 0 ) {
+         alert('select 1 menu to proceed');
+         return;
+      }
+      var menu = dataSourceRMC.Menu.find(function(x) { return x.Name === rows[0].innerText; });
+      if (menu ) {
+         jQuery(dataSourceRMC.Menu).each(function (index){
+            if(dataSourceRMC.Menu[index].Name == menu.Name){
+               dataSourceRMC.Menu.splice(index,1); // This will remove the object that first name equals to Test1
+               return false; // This will stop the execution of jQuery each loop.
+            }
+         });
+
+         var dataSource = new kendo.data.DataSource({
+            data:dataSourceRMC.Menu
+         });
+         grid.setDataSource(dataSource);
+
+         var element = {Name:""};
+         viewDetail(element);
+      }
+   }
+
+   function ReportJsonToXML() {
+      //debugger;
+      var xml = '<ReportMaster>\r\n';
+      var menu = '\t<Menu Name="{0}" Callback="{1}" Path="{2}" Template="{3}" Preview="{4}" Print="{5}" UseWindowsPrintDialog="{6}" WatermarkEnabled="{7}" OutlineEnabled="{8}" PrintButtonEnabled="{9}" ExportFormats="{10}">\r\n';
+      for (var i in dataSourceRMC.Menu) {
+         var r = dataSourceRMC.Menu[i];
+         xml += kendo.format( menu,r.Name,r.Callback,r.Path,r.Template,r.Preview,r.Print,r.UseWindowsPrintDialog,r.WatermarkEnabled,r.OutlineEnabled,r.PrintButtonEnabled,r.ExportFormats);
+
+         xml += '\t\t<Parameters>';
+         if (r.Parameters && r.Parameters.Parameter && r.Parameters.Parameter.length>0) {
+            xml += '\r\n';
+            for (var j in r.Parameters.Parameter) {
+               var p = r.Parameters.Parameter[j];
+               xml += kendo.format('\t\t\t<Parameter Name="{0}" Value="{1}"/>\r\n',p.Name,p.Value);
+            }
+         }
+         
+         xml += '\t\t</Parameters>\r\n';
+         xml += '\t</Menu>\r\n';
+      }
+      //PrinterSettings 
+      var bPrinterSettings = document.getElementById("printerDefaultSetting").checked;
+      if (bPrinterSettings) {
+         var printer = '\t<PrinterSettings PrinterName="{0}" Copies="{1}" Duplex="{2}" Collate="{3}" ShowDialog="{4}" />\r\n';
+         var x0 = $('#printerName').val();
+         var x1 = $('#printerCopies').getKendoNumericTextBox().value();
+         var x2 = $('#printerDuplex').getKendoDropDownList().value();
+         var x3 = document.getElementById("printerCollate").checked ;
+         var x4 = document.getElementById("printerShowDialog").checked ;
+         xml += kendo.format(printer,x0,x1,x2,toFirstUpper(x3),toFirstUpper(x4));
+      }
+
+
+      //UISettings 
+      //<UISettings ="True" ="ghfghfgh" ExportParameters="CSV;DOCX;PDF;XLS;XLSX"/>
+      var uiSettings = '\t<UISettings ShowProgress="{0}" UsePrintDialog="{1}" PrintButton="{2}" Outline="{3}" WatermarkEnabled="{4}" Watermark="{5}" ExportParameters="{6}" />\r\n';
+      {
+         var x0 = document.getElementById("uiShowProgress").checked;
+         var x1 = document.getElementById("uiUseWindowsPrintDialog").checked;
+         var x2 = document.getElementById("uiPrintButtonEnabled").checked;
+         var x3 = document.getElementById("uiOutlineEnabled").checked;
+         var x4 = document.getElementById("uiWatermarkEnabled").checked;
+         var x5 = $("#uiWatermark").val();
+         var x6 = $("#uiExportFormats").getKendoMultiSelect().value().join(";");
+         xml += kendo.format(uiSettings,toFirstUpper(x0),toFirstUpper(x1),toFirstUpper(x2),toFirstUpper(x3),toFirstUpper(x4),x5,x6);
+      }
+      var storageSettings = '\t<StorageSettings  Path="{0}" Server="{1}" ShareName="{2}" User="{3}" Password="{4}" />\r\n';
+      {
+         var x0 = $('#storagePath').val();
+         var x1 = $('#storageServer').val();
+         var x2 = $('#storageShareName').val();
+         var x3 = $('#storageUser').val();
+         var x4 = $('#storagePassword').val();
+         xml += kendo.format(storageSettings,x0,x1,x2,x3,x4);
+      }
+      var mailSettings    = '\t<MailSettings   FromAddress="{0}" FromName="{1}" Body="{2}" Subject="{3}" Format="{4}" Destinations="{5}" />\r\n';
+      {
+         var x0 = $('#emailFromName').val().replaceAll('"','&quot;');
+         var x1 = $('#emailFromAddress').val();
+         var x2 = $('#emailBody').val().replaceAll('"','&quot;');
+         var x3 = $('#emailSubject').val().replaceAll('"','&quot;');
+         var x4 = $('#emailFormat').val();
+         var x5 = $('#emailDestinations').val();
+         xml += kendo.format(mailSettings,x0,x1,x2,x3,x4,x5);
+      }
+      var exportSettings = '\t<ExportSettings>{0}</ExportSettings>\r\n'; 
+      {
+         var x0 = $('#esOptions').val().replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('&','&amp;');
+         xml += kendo.format(exportSettings,x0);
+      }
+      xml += '</ReportMaster>';
+      var xml = xml.replace(/<\/?[0-9]{1,}>/g, '');
+
+      return xml;
+   }
+   function OBJtoXML(obj) {
+      var xml = '';
+      for (var prop in obj) {
+         xml += obj[prop] instanceof Array ? '' : "<" + prop + ">";
+         if (obj[prop] instanceof Array) {
+            for (var array in obj[prop]) {
+               xml += "<" + prop + ">";
+               xml += OBJtoXML(new Object(obj[prop][array]));
+               xml += "</" + prop + ">";
+            }
+         } else if (typeof obj[prop] == "object") {
+            xml += OBJtoXML(new Object(obj[prop]));
+         } else {
+            xml += obj[prop];
+         }
+         xml += obj[prop] instanceof Array ? '' : "</" + prop + ">";
+      }
+      var xml = xml.replace(/<\/?[0-9]{1,}>/g, '');
+      return xml
+   }
+
+   function validateRmcXml(text2validate) {
+      var xml = text2validate;
+      var oParser = new DOMParser();
+      var oDOM = oParser.parseFromString(xml, "text/xml");
+      if (oDOM.getElementsByTagName('parsererror').length > 0) {
+        
+         umsAlert("Report Master XML", (new XMLSerializer()).serializeToString(oDOM));
+         return false;
+      } else {
+
+         return true;
+      }
+   }
+   
+</script>
+
+

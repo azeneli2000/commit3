@@ -1,0 +1,390 @@
+﻿
+<div class="card-footer h-10 p-0 m-0 border-top bg-white">
+    <div id="toolbarDetail" name="toolbarDetail" data-role="toolbar" class="k-toolbar k-widget k-toolbar-resizable"
+         role="toolbar"  tabindex="0">
+        <div tabindex="0" class="k-overflow-anchor k-button k-button-md k-rounded-md k-button-flat k-button-flat-base"
+             title="More tools" role="button" style="visibility: hidden; width: 1px;">
+            <span class="k-icon k-i-more-vertical"></span>
+        </div>
+        <div  data-overflow="never" class="k-toolbar-first-visible">
+            <div id="errors" class="errorSpan"></div>
+        </div>
+        <div  data-overflow="auto" class="k-separator" role="separator">
+            &nbsp;
+        </div>
+
+        @*new*@
+        <a role="button"
+           href="#"
+           class="k-buttonLarge view-mode k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base"
+           id="newButton" type="button" data-overflow="auto" onclick="setMode(); return false;"
+           aria-disabled="false" style="display: inline;"><span class="k-button-text">New Stockroom</span></a>
+        @*save*@
+        <a role="button" href=""
+           class="k-buttonLarge btnSave btnRed modify-mode k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base "
+           id="saveButton" type="button" data-overflow="auto" onclick="onSave();return false"
+           aria-disabled="false"><span class="k-button-text">Save</span></a>
+        @*cancel*@
+        <a role="button" href="#"
+           class="k-buttonLarge btnCancel modify-mode k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base"
+           id="cancelButton" type="button" data-overflow="auto" onclick="onCancel();return false"
+           aria-disabled="false"><span class="k-button-text">Cancel</span></a>
+        @*edit*@
+        <a role="button"
+           href="#"
+           class="k-buttonLarge btnEdit view-mode k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base"
+           id="editButton" type="button" data-overflow="auto" onclick="onEdit();return false"
+           aria-disabled="false" style="display: inline;"><span class="k-button-text">Edit</span></a>
+        @*delete*@
+        <a role="button"
+           href="#"
+           class="k-buttonLarge modify-mode k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base"
+           id="deleteButton" type="button" data-overflow="auto" onclick="onDelete();return false;"
+           aria-disabled="false"><span class="k-button-text">Delete</span></a>
+        @*Add resource*@
+        <a role="button"
+           href="#"
+           class="k-buttonLarge btnClose view-mode k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base k-toolbar-last-visible"
+           id="addResourceButton" type="button"  data-overflow="auto" onclick="showResources();return false"
+           aria-disabled="false" style="display: none;"><span class="k-button-text">Add Resource</span></a>
+        @*Move resource*@
+        <a role="button"
+           href="#"
+           class="k-buttonLarge btnClose view-mode k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base k-toolbar-last-visible"
+           id="moveResourceButton" type="button"  data-overflow="auto" onclick="showStockDropDowns();return false;"
+           aria-disabled="false" style="display: none;"><span class="k-button-text">Move Resource</span></a>
+        @*close*@
+        <a role="button"
+           href=""
+           class="k-buttonLarge btnClose view-mode k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base k-toolbar-last-visible"
+           id="closeButton" type="button" data-overflow="auto"
+           aria-disabled="false" style="display: inline;"><span class="k-button-text">Close</span></a>
+    </div>
+</div>
+
+<script>
+    function showResources() {
+        var wnd = $("#Resources").data("kendoWindow");
+        wnd.refresh({
+            url: '@Url.Action("ResourceView")'
+        });
+        wnd.open();
+        wnd.center();
+    }
+    function showStockDropDowns() {
+        var wnd = $("#StockDropDowns").data("kendoWindow");
+        wnd.refresh({
+            url: '@Url.Action("StockView")'
+        });
+        wnd.open();
+        wnd.center();
+    }
+    function setMode() {
+        debugger;
+        dataItem.Mode = 'Insert';
+        console.log(dataItem);
+
+        if (dataItem.Type == 'Root') {
+            $("#StockRoomForm").show();
+            clearStockRoomForm();
+            disableToolbarButtons();
+            enableFormControls('StockRoomForm');
+        }
+
+        if (dataItem.Type == 'StockRoom') {
+            $("#CabinetGroupForm").show();
+            $("#StockRoomForm").hide();
+            $('#hierarchy').text('CabinetGroup');
+            clearCabinetGroupForm();
+            disableToolbarButtons();
+            enableFormControls('CabinetGroupForm');
+        }
+        if (dataItem.Type == 'CabinetGroup') {
+            $("#CabinetForm").show();
+            $("#CabinetGroupForm").hide();
+            $('#hierarchy').text('Cabinet');
+            clearCabinetForm();
+            disableToolbarButtons();
+            enableFormControls('CabinetForm');
+
+        }
+        if (dataItem.Type == 'Cabinet') {
+            $("#LocationForm").show();
+            $('#hierarchy').text('Location');
+            clearLocationForm();
+            disableToolbarButtons();
+            $("#CabinetForm").hide();
+            enableFormControls('LocationForm');
+
+        }
+        if (dataItem.Type == 'Location') {
+            $("#PositionForm").show();
+            $('#hierarchy').text('Position');
+            clearPositionForm();
+            disableToolbarButtons();
+            $("#LocationForm").hide();
+            enableFormControls('PositionForm');
+
+        }
+
+        if (dataItem.Type == 'Position') {
+        }
+    }
+    function disableToolbarButtons() {
+        $("#closeButton").hide();
+        $("#editButton").hide();
+        $("#deleteButton").hide();
+        $("#newButton").hide();
+        $('#addResourceButton').hide();
+        $('#moveResourceButton').hide();
+        $("#saveButton").show();
+        $("#cancelButton").show();
+    }
+    function showToolbarButtons() {
+        $('#addResourceButton').hide();
+        $('#moveResourceButton').hide();
+        $("#closeButton").show();
+        $("#editButton").show();
+        $("#deleteButton").show();
+        $("#newButton").show();
+        $("#saveButton").hide();
+        $("#cancelButton").hide();
+    }
+    function onCancel() {
+        showToolbarButtons();
+
+        switch (dataItem.Type) {
+            case 'Root':
+                disableFormControls('StockRoomForm');
+                break;
+            case 'StockRoom':
+                disableFormControls('StockRoomForm');
+                debugger;
+                if (dataItem.Mode == 'Insert') {
+                    onCancelCabinetGroup();
+                    $('#hierarchy').text('StockRoom');
+                }
+                else
+                    populateStockRoomForm();
+
+                break;
+            case 'CabinetGroup':
+
+                disableFormControls('CabinetGroupForm');
+                if (dataItem.Mode == 'Insert') {
+                    onCancelCabinet();
+                    $('#hierarchy').text('CabinetGroup');
+                }
+                else
+                    populateCabinetGroupForm();
+                break;
+            case 'Cabinet':
+
+                disableFormControls('CabinetForm');
+                debugger;
+                if (dataItem.Mode == 'Insert') {
+                    onCancelLocation();
+                    $('#hierarchy').text('Cabinet');
+                }
+                else
+                    populateCabinetForm();
+                break;
+
+
+            case 'Location':
+                disableFormControls('LocationForm');
+                debugger;
+                if (dataItem.Mode == 'Insert') {
+                    onCancelPosition();
+                    $('#hierarchy').text('Location');
+                }
+                else
+                    populateLocationForm();
+                break;
+
+            case 'Position':
+
+                disableFormControls('PositionForm');
+                debugger;
+                populatePositionForm();
+                $('#addResourceButton').show();
+                $('#newButton').hide();
+
+
+                break;
+            case 'Resource':
+
+                disableFormControls('ResourceForm');
+                debugger;
+                populateResourceForm();
+                $('#moveResourceButton').show();
+                $('#newButton').hide();
+
+
+                break;
+            default:
+        }
+    }
+    function onSave() {
+        debugger;
+        switch (dataItem.Type) {
+            case 'Root':
+                InsertStockRoom();
+                break;
+            case 'StockRoom':
+                if (dataItem.Mode == 'Update') {
+                    UpdateStockroom();
+                }
+                if (dataItem.Mode == 'Insert') {
+                    InsertCabinetGroup();
+                }
+                break;
+            case 'CabinetGroup':
+                if (dataItem.Mode == 'Update') {
+                    UpdateCabineGroup();
+                }
+                if (dataItem.Mode == 'Insert') {
+                    InsertCabinet();
+                }
+                break;
+            case 'Cabinet':
+                if (dataItem.Mode == 'Update') {
+                    UpdateCabinet();
+                }
+                if (dataItem.Mode == 'Insert') {
+                    InsertLocation();
+                }
+                break;
+            case 'Location':
+                if (dataItem.Mode == 'Update') {
+                    UpdateLocation();
+                }
+                if (dataItem.Mode == 'Insert') {
+                    InsertPosition();
+                }
+                break;
+            case 'Position':
+                if (dataItem.Mode == 'Update') {
+                    UpdatePosition();
+                }
+                break;
+            case 'Resource':
+                if (dataItem.Mode == 'Update') {
+                    UpdateResource()
+                }
+                break;
+            default: break;
+        }
+    }
+    function onDelete() {
+        debugger;
+        //todo translate msg
+        switch (dataItem.Type) {
+         
+            case 'StockRoom':
+            debugger
+                if (!dataItem.hasChildren ) {
+                    DeleteStockRoom();
+                }
+                else
+                    umsErrorDialog("Anomalies", "The stockroom has cabinet groups!", 200, 200);
+           
+                break;
+            case 'CabinetGroup':
+                if (!dataItem.hasChildren) {
+                    DeleteCabinetGroup();
+                }
+                else
+                    umsErrorDialog("Anomalies", "The cabinet group has cabinets !", 200, 200);
+
+                break;
+            case 'Cabinet':
+                 if (!dataItem.hasChildren) {
+                    DeleteCabinet();
+                }
+                else
+                    umsErrorDialog("Anomalies", "The cabinet group has locations !", 200, 200);
+
+                break;
+            case 'Location':
+                  if (!dataItem.hasChildren) {
+                    DeleteLocation();
+                }
+                else
+                    umsErrorDialog("Anomalies", "The location group has positions !", 200, 200);
+                break;
+            case 'Position':
+                if (!dataItem.hasChildren) {
+                    DeletePosition();
+                }
+                else
+                    umsErrorDialog("Anomalies", "The position  has resources !", 200, 200);
+                break;
+            case 'Resource':
+                DeleteResource();
+                break;
+            default: break;
+        }
+    }
+    //todo : refactor remove switch pass dataItem.Type + 'Form'
+    function onEdit() {
+        dataItem.Mode = 'Update';
+        debugger;
+        showToolbarButtons();
+        switch (dataItem.Type) {
+            case 'Root':
+                enableFormControls('StockRoomForm');
+                disableToolbarButtons()
+                break;
+            case 'StockRoom':
+                enableFormControls('StockRoomForm');
+                disableToolbarButtons();
+                debugger;
+
+                break;
+            case 'CabinetGroup':
+                enableFormControls('CabinetGroupForm');
+                disableToolbarButtons();
+                onCancelCabinet();
+
+                break;
+            case 'Cabinet':
+                enableFormControls('CabinetForm');
+                disableToolbarButtons();
+                onCancelLocation();
+                break;
+            case 'Location':
+                debugger;
+                enableFormControls('LocationForm');
+                disableToolbarButtons();
+                onCancelPosition();
+                break;
+
+            case 'Position':
+                debugger;
+                enableFormControls('PositionForm');
+                disableToolbarButtons();
+                break;
+            case 'Resource':
+                debugger;
+                $('#ResourceIdealQtyTxt').removeAttr('disabled');
+                $('#ResourceMinQtyTxt').removeAttr('disabled');
+                $('#ResourceAlarmQtyTxt').removeAttr('disabled');
+                disableToolbarButtons();
+                break;
+        }
+    }
+    function enableFormControls(formName) {
+        $(`#${formName} :input`).each(function () {
+            var input = $(this);
+            input.removeAttr('disabled');
+        });
+    }
+    function disableFormControls(formName) {
+        $(`#${formName} :input`).each(function () {
+            var input = $(this);
+            input.attr('disabled', 'disabled');
+        });
+    }
+
+</script>

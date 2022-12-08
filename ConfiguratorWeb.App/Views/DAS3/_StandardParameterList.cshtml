@@ -1,0 +1,67 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@inject IDictionaryService DicSvc
+@{
+    Layout = null;
+}
+
+<script>
+
+    function onStandardParamListChange(e) {
+        {
+            @if(!string.IsNullOrEmpty(ViewBag.selectFunction))
+            {
+               <text>
+                var item = e.sender.dataItem(e.sender.select())
+                </text>
+                <text>
+                    @(ViewBag.selectFunction)(item);
+                </text>
+                
+            }
+
+        }
+    }
+</script>
+<div style="height:90%">
+    @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.StandardParameterViewModel>
+           ()
+           .Name("standardParameter_grid_")
+           .Columns(columns =>
+           {
+               columns.Bound(e => e.ID).Width(70);
+
+               columns.Bound(e => e.Print);
+               columns.Bound(e => e.Description);
+
+           })
+           .Selectable(o=>o.Enabled(true))
+        .Pageable(pager => pager
+            .Info(true)
+            .PreviousNext(true)
+            .Refresh(true)
+        )
+        .Events(e=>e.Change("onStandardParamListChange"))
+        //.Editable(editable=>editable.DisplayDeleteConfirmation(false))
+        //.Events(ev => ev.Edit("onEdit").Cancel("onCancel").DetailInit("onInitDetailStandardDatasetItem_" + Model.sd_ID).Edit("onEditItem_" + Model.sd_ID))
+        //.Events(ev => ev.Edit("onEdit").Cancel("onCancel").DetailInit("onInitDetailStandardDatasetItem_" + Model.sd_ID))
+        .Sortable().Filterable().HtmlAttributes(new { style = "height:97%;margin:10px;" })
+        .Scrollable()
+         .DataSource(dataSource => dataSource
+
+        .Ajax()
+        .Model(model =>
+        {
+            model.Id(o => o.ID);
+            model.Field(e => e.Print).Editable(false);
+            model.Field(e => e.Description).Editable(false);
+
+        })
+        .PageSize(20)
+        //.Events(events => events.Error("error_handler_users"))
+        .Read(read => read.Action("GetStandardParameters", "DAS3"))
+        //.Destroy(destroy => destroy.Action("DeleteDatasetItem", "Vitals"))
+        //.Update(update => update.Action("UpdateUsers", "SystemAdministration"))
+        //.Create(create => create.Action("CreateStandardDataset", "Vitals"))
+        )
+    )
+</div>

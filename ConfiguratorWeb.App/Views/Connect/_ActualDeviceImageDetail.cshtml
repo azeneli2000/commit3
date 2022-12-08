@@ -1,0 +1,541 @@
+﻿@model ConfiguratorWeb.App.Models.ActualDeviceImageViewModel
+@using System.Text
+@using ConfiguratorWeb.App.Extensions
+
+@{
+   Layout = null;
+
+   string strGuidFunction = string.Format("{0}_{1}_{2}", Model.DeviceType, Model.DeviceName ?? "", Model.DeviceSerialNumber ?? "");
+   string strDialogID = "divDeviceDriverImageDetail";
+   string formId = "form_" + strDialogID;
+   string keyID = strGuidFunction ;
+   string keyEmptyValueID = "";
+
+   string objSbDelete = "";
+   if (!Model.IsNewRecord)
+   {
+       if (!string.IsNullOrWhiteSpace(Model.DeviceName) && string.IsNullOrWhiteSpace(Model.DeviceSerialNumber))
+       {
+           string deleteMessageFormat = "Do you really want to delete image for device type \"{0}\" with name \"{1}\"?";
+           objSbDelete = string.Format(DicSvc.XLate(deleteMessageFormat), DicSvc.XLate(Model.DeviceTypeDescription), Model.DeviceName);
+       }
+
+       if (!string.IsNullOrWhiteSpace(Model.DeviceName) && !string.IsNullOrWhiteSpace(Model.DeviceSerialNumber))
+       {
+           string deleteMessageFormat = "Do you really want to delete image for device type \"{0}\" with name \"{1}\" and serial \"{2}\"?";
+           objSbDelete = string.Format(DicSvc.XLate(deleteMessageFormat), DicSvc.XLate(Model.DeviceTypeDescription), Model.DeviceName, Model.DeviceSerialNumber);
+       }
+
+       if (string.IsNullOrWhiteSpace(Model.DeviceName) && !string.IsNullOrWhiteSpace(Model.DeviceSerialNumber))
+       {
+           string deleteMessageFormat = "Do you really want to delete image for device type \"{0}\" with serial \"{1}\"?";
+           objSbDelete = string.Format(DicSvc.XLate(deleteMessageFormat), DicSvc.XLate(Model.DeviceTypeDescription), Model.DeviceSerialNumber);
+       }
+
+       if (string.IsNullOrWhiteSpace(Model.DeviceName) && string.IsNullOrWhiteSpace(Model.DeviceSerialNumber))
+       {
+           string deleteMessageFormat = "Do you really want to delete image for device type \"{0}\"?";
+           objSbDelete = string.Format(DicSvc.XLate(deleteMessageFormat), DicSvc.XLate(Model.DeviceTypeDescription));
+       }
+   }
+
+    
+}
+
+<script type="text/javascript">
+    var isNewRecord = '@Model.IsNewRecord' === '@true';
+    var mdiErrorClass = "mdi text-center mdi-alert-octagon-outline mdi-48px text-danger";
+    function onImageUploadSuccess(e) {
+        //debugger;
+        var element = $('#deviceImageContainer');
+        kendo.ui.progress(element, true);
+
+        $("#BinariesCacheIdentifier").val(e.response.BinariesCacheIdentifier);
+        //setTimeout(function(){
+        //    kendo.ui.progress(element, false);
+        //}, 2000);
+        kendo.ui.progress(element, false);
+        document.getElementById('deviceImageContainer').style.backgroundImage = "url(" + selImgRaw + ")";
+    }
+    var selImgRaw = "";
+    function onImageSelect(e) {
+        //debugger;
+        document.getElementById('deviceImageContainer').className ="";
+        $("#errors").html('');
+        var fileInfo = e.files[0];
+        if (fileInfo.validationErrors) {
+            document.getElementById('deviceImageContainer').style.backgroundImage = "";
+            document.getElementById('deviceImageContainer').className = mdiErrorClass;
+            var errors = fileInfo.validationErrors;
+            $("#errors").html(buildValidationMessage(errors));
+            $(".k-upload-status.k-upload-status-total")
+                .html("<span class='mdi mdi-alert-octagon-outline text-danger'>" + errors + "</span>");
+            
+            e.preventDefault();
+            return ;
+        }
+        var wrapper = this.wrapper;
+        selImgRaw = "";
+        setTimeout(function () {
+            addPreview(fileInfo, wrapper);
+        });
+    }
+    function addPreview(file, wrapper) {
+        var raw = file.rawFile;
+        var reader = new FileReader();
+
+        if (raw) {
+            reader.onloadend = function () {
+                selImgRaw = this.result;
+            };
+            reader.readAsDataURL(raw);
+        }
+    }
+    
+    
+    function onImageError(e) {
+        //debugger;
+        var fileInfo = e.files[0];
+        var wrapper = this.wrapper;
+        selImgRaw = "";
+        document.getElementById('deviceImageContainer').style.backgroundImage = "";
+        document.getElementById('deviceImageContainer').className ='mdi mdi-alert-octagon-outline mdi-36px txt-danger';
+    }
+</script>
+<style>
+
+    .image-container {
+        border: solid 1px #ddd;
+        height: 100%;
+        width: 100%;
+        margin-bottom: 3px;
+    }
+
+    .k-upload .k-upload-files .k-file {
+        display: none;
+    }
+    .k-upload .k-upload-files, .k-upload .k-upload-selected {
+        border-color: #ff0000;
+        display: none;
+    }
+
+    input#ImageFile {
+       opacity: 0;
+    }
+
+    .k-dropzone-hint {
+       display: none;
+    }
+</style>
+
+
+<div class="card h-90" id="@strDialogID" style="padding-top: 10px; padding-bottom: 10px ">
+
+    <form asp-controller="Connect" asp-action="SaveActualDeviceImageDetail" id="@formId" 
+          data-ajax-failure="OnFailure" data-ajax-success="OnSuccess" kendo-auto-scroll="true"
+          data-ajax="true" data-ajax-method="POST">
+
+        <div asp-validation-summary="ModelOnly"></div>
+
+        <input asp-for="IsNewRecord" type="hidden" />
+        <input asp-for="BinariesCacheIdentifier" type="hidden" />
+        <span asp-validation-for="BinariesCacheIdentifier"></span>
+
+
+        <div class="row h-90">
+
+            <div style="height:90%" class="col-3">
+                <!--Right column with image and buttons-->
+                <div class="row">
+                    <div class="col-12 image-container">
+                        <div id="deviceImageContainer" style="height:300px;margin:10px;background: url(data:image/@Model.Extension;base64,@Model.Image) no-repeat center center; background-size:contain;"></div>
+                    </div>
+                </div>
+
+                <div class="row">
+
+                    <div class="w-100 modify-mode">
+                        @(Html.Kendo().Upload()
+                              .Name("ImageFile")
+                              .HtmlAttributes(new { aria_label = "control-required", style = "max-height: 42px;" })
+                              .Multiple(false)
+                              .Validation(config => config.AllowedExtensions(new[] { ".jpeg", ".jpg", ".png" }))
+                              .Messages(messages => messages
+                                         .Select(DicSvc.XLate("Upload"))
+                                         .HeaderStatusUploading(DicSvc.XLate("Uploading image"))
+                                         .HeaderStatusUploaded(DicSvc.XLate("New image uploaded"))
+                                         .InvalidFileExtension(DicSvc.XLate("Only jpg or png images are allowed"))
+                                  
+                              )
+                              .Async(async => async
+                                 .Save("UploadDeviceImage", "Connect")
+                                 .AutoUpload(true)
+
+                              )
+                              .Events(ev => ev.Success("onImageUploadSuccess").Select("onImageSelect"))
+                        )
+                    </div>
+                </div>
+            </div><!--Right column with image and buttons-->
+
+            <div class="col-8 offset-1">
+                <!--Left column with controls-->
+                <div class="row">
+                    <div class="col-md-2 u-col-h-fixed">
+                        <label asp-for="DeviceType" class="field-required">@DicSvc.XLate("Type"):</label>
+                    </div>
+                    <div class="col-md-6 u-col-h-fixed">
+                        @if (Model.IsNewRecord)
+                        {
+                            @(Html.Kendo().DropDownListFor(m => m.DeviceType)
+                                                              .HtmlAttributes(new { @style = "width:100%;", @class = "form-control" })
+                                                              //.Filter(FilterType.Contains)
+                                                              .OptionLabel("Select product...")
+                                                              .DataTextField("Text")
+                                                              .DataValueField("Value")
+                                                              .DataSource(source =>
+                                                              {
+                                                                  source.Read(read => { read.Action("GetDeviceTypeList", "Generic"); });
+                                                              })
+                            )
+                            <span asp-validation-for="DeviceType"></span>
+                        }
+                        else
+                        {
+                            <input type="hidden" asp-for="DeviceType" /> @Model.DeviceTypeDescription
+                        }
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-2 u-col-h-fixed">
+                        <label asp-for="DeviceName" class="label-name">@DicSvc.XLate("Name"):</label>
+                    </div>
+                    <div class="col-md-6 u-col-h-fixed">
+                        <script>
+                            function filterDeviceType() {
+                                return {
+                                    deviceType: $("#DeviceType").val()
+                                };
+                            }
+                        </script>
+                        @if (Model.IsNewRecord)
+                        {
+                            @(Html.Kendo().DropDownListFor(m => m.DeviceName)
+                                                          .HtmlAttributes(new { @style = "width:100%;" })
+                                                          //.Filter(FilterType.Contains)
+                                                          .OptionLabel("Select product...")
+                                                          .DataTextField("deviceName")
+                                                          .DataValueField("deviceName")
+                                                          .DataSource(source =>
+                                                          {
+                                                              source.Read(read =>
+                                                              {
+                                                                  read.Action("GetActualDeviceNamesListByType", "Generic")
+                                                                      .Data("filterDeviceType");
+                                                              })
+                                                                  .ServerFiltering(true);
+
+                                                          })
+                                                          .Enable(false)
+                                                          .AutoBind(false)
+                                                          .CascadeFrom("DeviceType")
+                            )
+                        }
+                        else
+                        {
+                            <input type="hidden" asp-for="DeviceName" />
+                            @Model.DeviceName
+                        }
+                        <script>
+                            function filterDeviceName() {
+                                return {
+                                    deviceType: $("#DeviceType").val(),
+                                    name: $("#DeviceName").val()
+                                };
+                            }
+                        </script>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-2 u-col-h-fixed">
+                        <label asp-for="DeviceSerialNumber" class="">@DicSvc.XLate("Serial"):</label>
+                    </div>
+                    <div class="col-md-6 u-col-h-fixed">
+                        @if (Model.IsNewRecord)
+                        {
+                            @(Html.Kendo().DropDownListFor(m => m.DeviceSerialNumber)
+                                                  .Filter(FilterType.Contains)
+                                                  .HtmlAttributes(new { @style = "width:100%;" })
+                                                  .OptionLabel("Select product...")
+                                                  .DataTextField("deviceSerial")
+                                                  .DataValueField("deviceSerial")
+                                                  .DataSource(source =>
+                                                  {
+                                                      source.Read(read =>
+                                                      {
+                                                          read.Action("GetActualDeviceSerialsListByTypeAndName", "Generic")
+                                                              .Data("filterDeviceName");
+                                                      })
+                                                          .ServerFiltering(false);
+
+                                                  })
+                                                  .Enable(false)
+                                                  .AutoBind(false)
+                                                  .CascadeFrom("DeviceName")
+                            )
+                        }
+                        else
+                        {
+                            <input type="hidden" asp-for="DeviceSerialNumber" />@Model.DeviceSerialNumber
+                        }
+
+                    </div>
+                </div>
+
+
+
+            </div><!--Left column with controls-->
+        </div> <!--div class="row"-->
+
+
+
+    </form>
+</div>
+<div class=" h-10 p-0 m-0 mt-1 bg-white">
+    @{
+        string postId = ""; //use in case of multi toolbar
+    }
+    @(Html.Kendo().ToolBar()
+          .Name("toolbar_" + strGuidFunction)
+          .UmsDefaultErrors(DicSvc)
+          .Items(
+             items =>
+             {
+                 
+                 items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode");
+                items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Download")).Id("btnDownloadImage").UmsHtmlButtonGeneric("btn ");
+             }
+          )
+          .UmsDefaultSettings(DicSvc, postId)
+    )
+</div>
+
+
+
+
+<script type="text/javascript">
+    var consolelog = false;
+    var actualmode=0;
+    var divName = '#divItemDetail';
+    var dialog = $(popUpWindowName).data("kendoWindow");
+    var grid = $('#' + gridIdName).data("kendoGrid");
+
+    function changeToEditMode() {
+        actualmode = 2;
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("modify-mode");
+
+        $(divName +' :input').attr('disabled', false);
+   
+    }
+
+    function changeToViewMode() {
+        actualmode = 1;
+        $(".view-mode").show();
+        $(".modify-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("view-mode");
+
+        $(divName +' :input').attr('disabled', true);
+ 
+    }
+    function setWindowMode() {
+        //customize according model key
+        if (!isNewRecord) {
+            actualmode = 1;
+        } else {
+            //$('#BedName').attr('readonly', false);
+            actualmode = 2;
+        }
+    }
+
+    function setMode() {
+        if (actualmode === 2)
+            changeToEditMode();
+        else
+            changeToViewMode();
+    }
+
+    
+    $(document).ready(function() {
+
+        umsHideAllEditSaveButton();
+        setWindowMode();
+        //set up condition to know if it's a new item
+        setMode();
+        $('#btnEdit' + '@postId').off('click').on('click', function () {
+            if(consolelog)console.log("btnEdit called");
+            changeToEditMode();
+        });
+        $('#btnCancel' + '@postId').off('click').on('click', function () {
+            if (consolelog)console.log("btnCancel called");
+            // IF is new add, close the dialog
+            if (isNewRecord) {
+                dialog.close();
+                return;
+            }
+
+            //TODO: reload data
+            var currentItem = {
+                DeviceType: @Model.DeviceType,
+                DeviceName: '@Model.DeviceName',
+                DeviceSerialNumber: '@Model.DeviceSerialNumber'
+            };
+            onGridKeyEnter(currentItem);
+            changeToViewMode();
+        });
+        $('#btnSave'+'@postId').off('click').on('click', function() {
+            if (consolelog)console.log("btnSave called");
+            actionSave();
+        });
+        $('#btnDelete').off('click').on('click', function () {
+            
+            if (consolelog)console.log("btnDelete called");
+            if (!isNewRecord) {
+                umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteItem, cancelDeleteItem);    
+            }
+            
+        });
+
+        $('#btnClose' + '@postId').off('click').on('click', function () {
+            if (consolelog)console.log("btnClose called");
+            dialog.close();
+        });
+        $("input[data-val-length-max]").each(function (index, element) {
+            element.setAttribute("maxlength", element.getAttribute("data-val-length-max"))
+        });
+        $("#btnDownloadImage").off("click").on("click", function () {
+
+            if (isNewRecord)
+                return false;
+          
+            var baseUrl =   '@Url.RouteUrl(new { Controller = "Connect", Action = "DownloadDeviceImage" })';
+            var devType =    @Model.DeviceType;
+            var devName =   '@Model.DeviceName';
+            var devSerial = '@Model.DeviceSerialNumber';
+
+            window.location.href = baseUrl + "?deviceType=" + devType + "&deviceName=" + devName + "&deviceSerialNumber=" + devSerial;
+
+            return false;
+
+        });
+    });
+
+
+
+    function actionSave()
+    {
+        if (OnValidation()) {
+            //uncomment for production
+            $("#@formId").submit();
+        }
+    }
+
+    function OnValidation() {
+        var retValue = true;
+        var customFieldValidation = function() {
+            var retFV = false;
+            //Only if we have field not validable by Model
+            try {
+                //retFV = $('#Location_LocationName').val().length === 0;
+            } catch (e) {
+                //
+            }
+            return retFV;
+        }
+        var validator = $("#@formId").kendoValidator().data("kendoValidator");
+        if (!validator.validate() ) {
+            retValue = false;
+            try {
+                var errors = validator.errors();
+                $("#errors").html(buildValidationMessage(errors));
+            } catch (e) {
+                $("#errors").html(e);
+            }
+        }
+        else {
+            $("#errors").html("");
+            retValue = true;
+        }
+
+        return retValue;
+    }
+    function OnSuccess(response) {
+        if (response.success) {
+            grid.dataSource.read();
+            dialog.close();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+    function OnFailure(response) {
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+    function toolBarShowButtonByClass(clas) {
+        var tb = $("#toolbar_@strGuidFunction").data("kendoToolBar");
+        tb.umsShowButtonByClass(clas);
+    }
+    function umsHideAllEditSaveButton()
+    {
+        var tb = $("#toolbar_@strGuidFunction").data("kendoToolBar");
+        tb.umsHideAllEditSaveButton();
+    }
+
+    function deleteItem() {
+        $.ajax({
+            url: '@Url.Action("DeleteActualDeviceImage", "Connect")',
+            type: 'POST',
+            data: { deviceType: @Model.DeviceType, deviceName: '@Model.DeviceName', deviceSerialNumber: '@Model.DeviceSerialNumber'}
+        
+        }).done(function (data) {
+            if (data.success != undefined && data.success) {
+                dialog.close();
+                grid.dataSource.read();
+            } else {
+                $('#errors').html('not saved. reason:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+
+    }
+
+    function cancelDeleteItem() {
+
+        /* do nothing */
+    }
+
+
+
+
+    function error_handler_devices(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+
+
+</script>

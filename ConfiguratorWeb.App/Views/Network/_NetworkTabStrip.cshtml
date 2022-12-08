@@ -1,0 +1,341 @@
+﻿@model ConfiguratorWeb.App.Models.NetworkViewModel
+@using Digistat.FrameworkStd.Interfaces;
+@using ConfiguratorWeb.App.Extensions
+@{
+   Layout = null;
+   string strDialogID = "divTLServerDetails";
+}
+    <div class="card h-90 " id="@strDialogID">
+        <form asp-controller="Network" id="form_@Model.Id" asp-action="SaveNetworkDetail"
+              data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+              data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+            <div id="Results"></div>
+
+            @Html.HiddenFor(m => m.Id)
+            @Html.HiddenFor(m => m.CurrentProductName)
+            @Html.HiddenFor(m => m.CurrentProductVersion)
+            @Html.HiddenFor(m => m.ControlbarCurrentVersion)
+
+            <kendo-tabstrip name="tabstrip_@Model.Id" style="height: 478px;">
+                <scrollable enabled="true" />
+                <popup-animation>
+                    <open effects="fade:in" />
+                </popup-animation>
+                <items>
+                    <tabstrip-item text="@DicSvc.XLate("Networks")" selected="true" id="tabstrip-@Model.Id-pagedetail">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabNetworkDetail", Model);}
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Linked System Options")" id="tabstrip-@Model.Id-so">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabLinkedSystemOptions", Model);}
+                        </content>
+                    </tabstrip-item>
+                    @*<tabstrip-item text="@DicSvc.XLate("Beds")" id="tabstrip-@Model.Id-beds">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabBedsLocation", Model);}
+                        </content>
+                    </tabstrip-item>*@
+                </items>
+            </kendo-tabstrip>
+        </form>
+    </div>
+    <div class="card-footer h-10 p-0 m-0  border-0 bg-white">
+        @(Html.Kendo().ToolBar()
+                    .Name("toolbarDetail")
+                    .UmsDefaultErrors(DicSvc)
+                    .Items(
+                    items =>
+                    {
+                        items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode");
+                    }
+                    )
+                    .UmsDefaultSettings(DicSvc, "")
+        )
+    </div>
+
+
+
+
+<script>
+   function changeToEditMode() {
+      actualmode = 2;
+      $(".modify-mode").show();
+      $(".view-mode").hide();
+      toolBarAllEditSaveButton();
+      toolBarShowButtonByClass("modify-mode");
+
+      $('#@strDialogID :input').attr('disabled', false);
+      $('#@strDialogID :input').each(function () {
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+            cb.enable(true);
+         }
+      });
+      $('#@strDialogID :input').each(function () {
+         var cb = $(this).data("kendoCheckBox");
+         if (cb) {
+            cb.enable(true);
+         }
+      });
+      $('#@strDialogID :input').each(function () {
+         var cb = $(this).data("kendoNumericTextBox");
+         if (cb) {
+            cb.enable(true);
+         }
+      });
+      $('#@strDialogID :input').each(function () {
+         var cb = $(this).data("kendoTimePicker");
+         if (cb) {
+            cb.enable(true);
+         }
+      });
+      if ('@Model.Id' == '' || '@Model.Id' =='0') {
+         $('#btnDelete').hide();
+      }
+      manageLockBed()
+        
+
+   }
+   function manageLockBed(){
+      //debugger;
+      var $netType = $('#NetworkType_@Model.Id.ToString()').getKendoDropDownList();
+      let cbLocked = $('#LockBed').data('kendoCheckBox');
+      if ($netType.value() != '1' //!= BedSide
+         || $('#linked-bed-grid').getKendoGrid().dataSource.data().length !== 1 /*If more then 1 bed is selected*/) {
+          
+         cbLocked.check(false);
+         cbLocked.enable(false);
+      } else {
+         cbLocked.enable();
+      }
+   }
+   function changeToViewMode() {
+      actualmode = 1;
+      $(".view-mode").show();
+      $(".modify-mode").hide();
+      toolBarAllEditSaveButton();
+      toolBarShowButtonByClass("view-mode");
+      $('#@strDialogID :input').attr('disabled', true);
+      $('#@strDialogID :input').each(function () {
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+            cb.enable(false);
+         }
+      });
+      $('#@strDialogID :input').each(function () {
+         var cb = $(this).data("kendoCheckBox");
+         if (cb) {
+            cb.enable(false);
+         }
+      });
+      $('#@strDialogID :input').each(function () {
+         var cb = $(this).data("kendoNumericTextBox");
+         if (cb) {
+            cb.enable(false);
+         }
+      });
+      $('#@strDialogID :input').each(function () {
+         var cb = $(this).data("kendoTimePicker");
+         if (cb) {
+            cb.enable(false);
+         }
+      });
+   }
+
+   var actualmode;
+   function setWindowMode() {
+      if ('@Model.Id' !== '' && @Model.Id!==0) {
+         actualmode = 1;
+      } else {
+         actualmode = 2;
+      }
+      setMode();
+   }
+   function setMode() {
+      if (actualmode === 2)
+         changeToEditMode();
+      else
+         changeToViewMode();
+      dialog.center().resize();
+   }
+
+
+
+
+   function toolBarShowButtonByClass(clas) {
+      var tb = $("#toolbarDetail").data("kendoToolBar");
+      tb.umsShowButtonByClass(clas);
+   }
+   function toolBarAllEditSaveButton() {
+      var tb = $("#toolbarDetail").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+   var dialog = $("#NetworkEditWindow").data("kendoWindow");
+   dialog.bind("activate", setMode);
+   dialog.bind("resize", setMode);
+   $(document).ready(function () {
+      setWindowMode();
+      $('.btnEdit').off('click').on('click',function () {
+         changeToEditMode();
+      })
+      $('.btnCancel').off('click').on('click',function () {
+         var currentID = $('#Id').val();
+         if (currentID && currentID != '0') {
+            openDetail({ Id: $('#Id').val() });
+         }
+         else {
+            dialog.close();
+         }
+
+      })
+      $('.btnClose').off('click').on('click',function () {
+         dialog.close();
+         $(this).closest(".k-state-focused").focus();
+      })
+
+      $('#btnDelete').off('click').on('click',function () {
+         umsConfirm('@DicSvc.XLate("Confirm Delete")', '@DicSvc.XLate("Do you really want to delete this Network item?")', deleteNetwork, cancelDeleteNetwork);
+      });
+      $('#btnSave').off('click').on('click',function () {
+         if (OnValidationNetwork()) {
+            $('#linked-bed-grid').attr('id', 'Bed');
+            $("#form_@Model.Id").submit();
+            $("#form_@Model.Id").find("#Bed").attr('id', 'linked-bed-grid');
+         }
+      });
+   });
+
+
+   function deleteNetwork() {
+      $.ajax({
+         url: '@Url.Action("DeleteNetwork", "Network")',
+         type: 'POST',
+         data: { id: @Model.Id },
+         async: false
+
+      }).done(function (data) {
+         if (data.success) {
+            $('#NetworkEditWindow').data('kendoWindow').close();
+            var grid = $("#" + gridIdName).data("kendoGrid");
+            grid.dataSource.read();
+         }
+         else {
+            umsErrorDialog("Error occured", data.errorMessage, 200, 200);
+         }
+      }).fail(function (response) {
+         umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+      });
+
+   }
+
+   function cancelDeleteNetwork() {
+
+      /* do nothing */
+   }
+
+</script>
+
+<script type="text/javascript">
+
+
+
+
+   function OnSuccess(response) {
+      //debugger;
+      if (response.success) {
+         $('#NetworkEditWindow').data('kendoWindow').close();
+         var grid = $("#network-grid").data("kendoGrid");
+         grid.dataSource.read();
+      }
+      else {
+         window.umsAlert("Error occured", response.errorMessage, 400, 300);
+      }
+   }
+   function OnFailure(response) {
+      //debugger;
+      window.umsAlert("Error occured", response.errorMessage, 400, 300);
+   }
+
+
+   function OnValidationNetwork() {
+      //debugger;
+      var gridBeds = $("#linked-bed-grid").data("kendoGrid");
+      var validator = $("#form_@Model.Id").kendoValidator({
+         rules: {
+            defLocationRule: function (input) {
+               if (input.is("[name=LocationID]")) {
+                  return gridBeds.items().length == 0 ? (input.val().length == 0 || input.val()==0)  : input.val() > 0;
+               }
+               else {
+                  return true;
+               }
+
+            },
+            bedSideOneBed: function (input) {
+               if (input.is("[name=Type]")) {
+                  console.log(input.id);
+                  //debugger;
+                  return input.val() != 1 || (input.val() == 1 && (gridBeds.items().length == 1)) ;
+               }
+               else {
+                  return true;
+               }
+
+            }
+         },
+         messages: {
+            defLocationRule: '@DicSvc.XLateJs("The Default Location field is required.")',
+            bedSideOneBed: '@DicSvc.XLateJs("For type BedSide, select one and only one Bed")'
+         }
+      }).data("kendoValidator");
+      var customErrors = [];
+      var customFieldErrors = [];
+      @*var networkType = $('input[name=Type]').val();
+
+            if (networkType == 1) {
+               if ($('#multiselectTimes').val() == "") {
+                  customErrors.push('@DicSvc.XLateJs("Times value is required")');
+                  customFieldErrors.push({ field: "#multiselectTimesErr", class: "border rounded border-danger" });
+
+               }
+            }*@
+      if (!validator.validate() || ($('#HostName').val().length == 0)|| customErrors.length > 0) {
+         var errors = validator.errors();
+         if (customErrors.length > 0) {
+            errors.push(customErrors);
+         }
+         if ($('#HostName').val().length == 0) {
+            errors.push('@DicSvc.XLate("HostName couldn't be empty", Digistat.FrameworkStd.Enums.StringParseMethod.Js)');
+            $('#HostName').addClass('k-invalid');
+         }
+         $("#errors").html(buildValidationMessage(errors));
+         return false;
+      }
+      else {
+         $("#errors").html("");
+      }
+      return true;
+   }
+
+   function ValidateTabs() {
+      $("#tabstrip_@Model.Id").find("span.k-link").removeClass("tab-invalid");
+      var invalidTabs = [];
+      $("input.k-invalid").each(function () {
+         var idInvalid = $(this).attr('id');
+         var tabContentId = $("#" + idInvalid).closest("div[role='tabpanel']").attr("id");
+
+         var tabId = $("#tabstrip_@Model.Id").find("li[aria-controls='" + tabContentId + "']").attr("id");
+         $("#" + tabId + " span.k-link").addClass("tab-invalid");
+
+         if ($.inArray(tabId, invalidTabs) < 0) {
+            //add to array
+            invalidTabs.push(tabId);
+         }
+      });
+      if (invalidTabs.length > 0)
+         $("#" + invalidTabs[0]).trigger("click");
+   }
+
+</script>

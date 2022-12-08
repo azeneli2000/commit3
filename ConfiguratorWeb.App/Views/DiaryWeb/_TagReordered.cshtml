@@ -1,0 +1,298 @@
+﻿@using ConfiguratorWeb.App.Models.DiaryWeb
+@model Category
+@{
+   var gridName = "tagReodered";
+}
+<style>
+
+   .footerReorderGrid {
+      width: 974px;
+      position: relative;
+      right: 1px;
+      top: 7px;
+   }
+</style>
+
+
+<div class="card h-90 pt-1 pb-2">
+   <div id="TagDetailContainerR" class="card-body h-90 p-0 border-0">
+      <div style="width: 100%">
+         <div style="width: 100%; height: 100%">
+            <div style="display: flex; flex-direction: row;">
+               @(Html.Kendo().Grid<Tag>
+          ()
+          .Name(gridName).HtmlAttributes((new { style = "margin:8px;width:94%;" }))
+          .Columns(columns =>
+          {
+             columns.Bound(e => e.IDtag).Visible(false);
+             columns.Bound(e => e.IndexTag).Visible(false);
+             columns.Bound(e => e.TextTag).Title(DicSvc.XLate("Name")).Width("45%");
+             columns.Bound(e => e.ColorTag).Title(DicSvc.XLate("Color")).HtmlAttributes((new { style = "text-align:center;font-weight:bold;font-size:12px;margin: 0 0 0 0; padding: 0 0 0 0 " })).ClientTemplate("<div style='background: #: ColorTag # ; color: #= pickTextColorBasedOnBgColorAdvanced(ColorTag)# ;' />#: ColorTag #</div>").Width("30%").Filterable(false);
+             columns.Bound(e => e.IsSystemTag).Width("20%").ClientTemplateId("is_system_tag").Visible(true);
+             columns.Bound(e => e.IsActiveTag).Title(DicSvc.XLate("Is Active")).Width("25%").ClientTemplate("<input class='check-col  k-checkbox k-checkbox-md k-rounded-md' disabled='disabled' type='checkbox' #=IsActiveTag ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" }).Width("25%");
+
+          })
+   .Navigatable(true)
+    .Selectable(s => s.Mode(GridSelectionMode.Single))
+         //.Sortable()
+         .Scrollable()
+          .DataSource(dataSource => dataSource
+          .Ajax()
+
+          .Model(model =>
+          {
+             model.Id(o => o.IDtag);
+             model.Field(o => o.TextTag).Editable(false);
+             model.Field(o => o.ColorTag).Editable(false);
+             model.Field(o => o.IndexTag);
+             model.Field(o => o.IsActiveTag);
+
+          })
+          //.Events(events => events.Error("onGridError"))
+          .Read(read => read.Action("GetTags", "DiaryWeb"))
+          ).NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+          )
+
+
+               <div style="display:flex; flex-direction:column;">
+                  <div class="arrowCategoryT" style="margin-top: 10px; margin-right: 7px;" disabled="disabled">
+                     <div style="display:flex; flex-direction:column;">
+                        <button id="moveCategoryUpT"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base" style="margin-bottom: 1px;" type="button"><span class="k-icon k-i-arrow-60-up"></span></button>
+                        <button id="moveCategoryDownT"  class="k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base" type="button"><span class="k-icon k-i-arrow-60-down"></span></button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            <div class="card-footer  p-0 m-0 border bg-white footerReorderGrid">
+
+
+               @(Html.Kendo().ToolBar()
+                              .Name("toolbarDiaryTagReorder")
+                              .UmsDefaultErrors(DicSvc)
+                                .UmsDefaultSettings(DicSvc, "RTag"))
+
+
+            </div>
+         </div>
+      </div>
+   </div>
+</div>
+<script id="is_system_tag" type="text/x-kendo-template">
+    #if(IsSystemTag == true){#
+   <div align=center>
+<span class="k-icon k-i-gear"></span>
+ </div>
+
+    #}else{#
+    <div align=center>
+        <span class="mdi mdo-close p-0 m-0 mdi-14px text-warning" title="@DicSvc.XLate("")"></span>
+    </div>
+    #}#
+
+</script>
+<script>
+    RCatToolBarShowButtonByClass("modify-mode") ;
+   var RP_actualmode = 2;
+   var enableGridsRT = true;
+   $("#@gridName").on("click", "tr.k-state-selected", function () {
+
+      if (enableGridsRT == true) {
+
+      $(".arrowCategoryT").attr('disabled', false);
+      $("#moveCategoryUpT").attr('disabled', false);
+      $("#moveCategoryDownT").attr('disabled', false);
+         checkAssociationIndex("@gridName", 4);
+         //$(".arrowSubject").css("display", "flex");
+         //$(".arrowSubject").css("direction", "column");
+     }
+   });
+
+
+   var toolbarDialogId = "RTag";
+
+   function ordeRTagIndex() {
+
+      var visibleGrid = $('#@gridName').data("kendoGrid");
+      for (var i = 0; i < visibleGrid.dataSource._data.length; i++) {
+         visibleGrid.dataSource._data[i].IndexTag = i;
+      }
+
+   };
+
+   $("#moveCategoryDownT").off('click').on("click", function (idx, elem) {
+      $("#moveCategoryUpT").attr('disabled', false);
+      var visibleGrid = $('#@gridName').data("kendoGrid");
+      if (visibleGrid.dataSource._data.length > 1) {
+         var selected = visibleGrid.select();
+         if (selected.length > 0) {
+
+            $.each(selected, function (idx, elem) {
+               var dataItem = visibleGrid.dataItem($(this));
+               var index = visibleGrid.dataSource.indexOf(dataItem);
+               var maxIndex = visibleGrid.dataSource._data.length - 1;
+               if (index < maxIndex) {
+                  var newIndex = index + 1;
+
+                  visibleGrid.dataSource.remove(dataItem);
+                  visibleGrid.dataSource.insert(newIndex, dataItem);
+                  visibleGrid.select("tr:eq(" + (newIndex) + ")");
+
+                  ordeRTagIndex("@gridName");
+               }
+               if (index == maxIndex - 1) {
+                  $("#moveCategoryDownT").attr('disabled', true);
+               }
+            });
+         }
+      }
+   });
+   $("#moveCategoryUpT").off('click').on("click", function (idx, elem) {
+      $("#moveCategoryDownT").attr('disabled', false);
+
+      var visibleGrid = $("#@gridName").data("kendoGrid");
+      var selected = visibleGrid.select();
+      if (visibleGrid.dataSource._data.length > 1) {
+         if (selected.length > 0) {
+
+            $.each(selected, function (idx, elem) {
+               var dataItem = visibleGrid.dataItem($(this));
+               var index = visibleGrid.dataSource.indexOf(dataItem);
+               if (index > 0) {
+                  var newIndex = index - 1;
+                  visibleGrid.dataSource.remove(dataItem);
+                  visibleGrid.dataSource.insert(newIndex, dataItem);
+                  visibleGrid.select("tr:eq(" + (newIndex) + ")");
+
+                  ordeRTagIndex("@gridName");
+               }
+               if (index == 1) {
+                  $("#moveCategoryUpT").attr('disabled', true);
+               }
+            });
+         }
+      }
+
+   });
+
+
+   function ReorderTag()
+   {
+
+      debugger;
+      var grid = $("#@gridName").data("kendoGrid");
+      grid.clearSelection();
+      var listbox = $('#@gridName').getKendoGrid().dataSource.data();
+      var tagsr = {};
+      for (let i = 0; i < listbox.length; i++) {
+         if (listbox[i].Text !== "") {
+           /* categoriesr.push({ ID: listbox[i].ID, Index: listbox[i].Index })*/
+            tagsr[listbox[i].IDtag] = listbox[i].IndexTag;
+         }
+      }
+
+      $.ajax({
+         url: '@Url.Action("ReorderDiaryTag", "DiaryWeb")',
+         type: 'POST',
+         data: { tags: tagsr },
+
+      })
+      .done(function (data) {
+         /*RCatChangeToViewMode();*/
+
+         var grid = $("#DiaryWebTags").data("kendoGrid");
+         grid.dataSource.read();
+         var dialog = $('#DiaryTagDetailDialogR').data("kendoWindow");
+         dialog.close();
+      });
+
+   }
+
+   function RCatsetMode() {
+
+
+      if (RP_actualmode === 2) {
+
+         RCatChangeToEditMode();
+      }
+      else {
+         RCatChangeToViewMode();
+      }
+   };
+
+   function RCatToolBarShowButtonByClass(buttonClass) {
+      var tb = $("#toolbarDiaryTagReorder").data("kendoToolBar");
+      tb.umsShowButtonByClass(buttonClass);
+   }
+   function RCatToolBarAllEditSaveButton() {
+      var tb = $("#toolbarDiaryTagReorder").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+
+   function RCatChangeToEditMode() {
+      enableGridsR = true;
+      var grid = $("#@gridName").data("kendoGrid");
+      grid.clearSelection();
+
+      //$(".arrowCategory").attr('disabled', true);
+      //$("#moveCategoryUp").attr('disabled', true);
+      //$("#moveCategoryDown").attr('disabled', true);
+
+      RP_actualmode = 2;
+      //RCatToolBarAllEditSaveButton();
+      //RCatToolBarShowButtonByClass("modify-mode");
+      $('#btnSave' + toolbarDialogId).css("display", "block");
+      $('#btnClose' + toolbarDialogId).css("display", "block");
+   };
+
+   function RCatChangeToViewMode() {
+
+      enableGridsR = false;
+      var grid = $("#@gridName").data("kendoGrid");
+      grid.clearSelection();
+      RP_actualmode = 1;
+      RCatToolBarAllEditSaveButton();
+      RCatToolBarShowButtonByClass("view-mode");
+      $('#moveCategoryUpT').attr('disabled', true);
+      $('#moveCategoryDownT').attr('disabled', true);
+
+   };
+
+
+   $(document).ready(function () {
+
+      var dialog = $('#DiaryTagDetailDialogR').data("kendoWindow");
+      dialog.bind("activate", RCatsetMode);
+      dialog.bind("resize", RCatsetMode);
+
+      RCatsetMode();
+
+      $('#btnEdit' + toolbarDialogId).off('click').on('click', function () {
+
+
+         RCatChangeToEditMode();
+
+      });
+
+      
+      $('#btnCancel'+ toolbarDialogId).off('click').on('click', function () {
+
+            dialog.close();
+      });
+
+      $('#btnSave' + toolbarDialogId).off('click').on('click', function () {
+         ReorderTag();
+
+      });
+
+      $('#btnClose' + toolbarDialogId).off('click').on('click', function () {
+         $("html").css("overflow-y", "hidden");
+
+         var grid = $("#DiaryWebTags").data("kendoGrid");
+         grid.dataSource.read();
+         dialog.close();
+      });
+   });
+
+</script>

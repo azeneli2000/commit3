@@ -1,0 +1,63 @@
+﻿@model IEnumerable<ConfiguratorWeb.App.Models.HospitalUnitViewModel>
+@{
+    Layout = null;
+    string soId = (string) ViewBag.soID;
+}
+
+<input type="hidden" id="SystemOptionID" value="@soId" />
+
+<script>
+
+    function onChangeHU(arg) {
+        debugger;
+        var mygrid = this;
+        var model = mygrid.dataItem(mygrid.select());
+        var soID = $('#SystemOptionID').val();
+        $('#HospitalUnitGUID_' + soID).val(model.GUID);
+        $('#HospitalUnitName_' + soID).val(model.ShortName);
+        $('#HospitalUnitName_' + soID).change();
+        if (window['onHUSelected']) {
+            onHUSelected(model.GUID,model.ShortName);
+        }
+        var dialogAbout = $("#popupHospitalUnits");
+
+        if (dialogAbout && dialogAbout.data('kendoWindow')) {
+            dialogAbout.data("kendoWindow").close();
+        }
+        
+    }
+   
+</script>
+
+<div style="text-align:center;">
+
+    @(Html.Kendo().Grid(Model)
+          .Name("hu-grid-"+soId).HtmlAttributes(new { style = "height:360px;margin-top:10px;" })
+          .Columns(columns =>
+          {
+              columns.Bound(e => e.GUID).Visible(false);
+              columns.Bound(e => e.ShortName).HtmlAttributes(new { @style = "text-align:left;" });
+          })
+          .Pageable(pager => pager
+                  .Input(false)
+                  .Numeric(true)
+                  .Info(true)
+                  .PreviousNext(true)
+                  .Refresh(false)
+                  .PageSizes(false)
+                  ) //it's not working
+          .Sortable(true)
+          .Filterable()
+          .Selectable()
+          .Scrollable()
+          .Events(ev => ev.Change("onChangeHU"))
+          .DataSource(dataSource => dataSource
+              .Ajax()
+              .ServerOperation(false)
+          .PageSize(20)
+          )
+          .NoRecords(x => x.Template("<div class='text-center'>" + DicSvc.XLate("No records found") + "</div>"))
+    )
+</div>
+
+

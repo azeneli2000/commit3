@@ -1,0 +1,143 @@
+﻿@model Digistat.FrameworkStd.Model.CDSS.CDSSRuleOption
+@{
+
+   List<DropDownListItem> listType = new List<DropDownListItem>()
+   {
+
+      new DropDownListItem(){Text = DicSvc.XLate("Text"),Value = "0"},
+      new DropDownListItem(){Text = DicSvc.XLate("List"),Value = "1"},
+      new DropDownListItem(){Text = DicSvc.XLate("Integer"),Value = "2"},
+      new DropDownListItem(){Text = DicSvc.XLate("Decimal"),Value = "3"},
+      new DropDownListItem(){Text = DicSvc.XLate("Xml"),Value = "4"},
+      new DropDownListItem(){Text = DicSvc.XLate("Bool"),Value = "5"}
+   };
+}
+<script src="~/js/ums.cdss.ruleOptionEdit.js" asp-append-version="true"></script>
+<script type="text/javascript">
+   /* DO NOT USE comment like // but only this */
+
+   /* TRANSLATION */
+   var dicsvcXlateFalse = '@DicSvc.XLate("False")';
+   var dicsvcXlateTrue = '@DicSvc.XLate("True")';
+   var dicsvcXlateNotAValidXml = '@DicSvc.XLate("not a valid xml")';
+
+   var typeOfEdit= @ViewData["typeOptions"];
+   var simpleChoise = "";
+   
+   var dsList;
+   $(document).ready(function(a) {
+      onDocReadyEditOpt();
+   });
+
+
+</script>
+<div class="k-edit-form-container" style="width: 450px">
+
+   <input id="uid" name="uid" type="hidden" value="" data-bind="value:uid">
+   <input id="RuleID" name="RuleID" type="hidden" value="" data-bind="value:RuleID">
+   <input id="PatientID" name="PatientID" type="hidden" value="" data-bind="value:PatientID">
+
+   <div class="editor-label">
+      <label for="optName">
+         @DicSvc.XLate("Option Name")
+      </label>
+   </div>
+   <div class="editor-field">
+      <input class="k-textbox" id="optName" name="optName" value="" data-bind="value:Name" readonly="readonly">
+      <input class="k-textbox" id="optIndex" name="optIndex" value="" data-bind="value:Index" type="hidden">
+   </div>
+
+   <div class="editor-label" style="margin-top: 6px;">
+      <label for="Label">@DicSvc.XLate("Label")</label>
+   </div>
+   <div class="editor-field">
+      <input class="k-textbox" id="Label" name="Label" value="" data-bind="value:Label">
+      <span class="field-validation-valid" data-valmsg-for="Label" data-valmsg-replace="true"></span>
+   </div>
+
+   <div class="editor-label">
+      <label for="Description">@DicSvc.XLate("Description")</label>
+   </div>
+   <div class="editor-field">
+      <textarea class="k-textbox" id="Description" name="Description" value="" data-bind="value:Description" rows="5" style="min-height: 90px;max-height: 90px;height: 90px;"></textarea>
+      <span class="field-validation-valid" data-valmsg-for="Description" data-valmsg-replace="true"></span>
+   </div>
+
+   <div style="display: flex; justify-content: space-between; margin-top: 6px;">
+      <div style="display: flex; flex-direction: column;width: 50%">
+         <div class="editor-label">
+            <label for="Type">@DicSvc.XLate("Type")</label>
+         </div>
+         <div class="editor-field">
+            @(Html.Kendo().DropDownListFor(m => m.Type).BindTo(listType).AutoWidth(true)
+               .DataTextField("Text").DataValueField("Value").ValuePrimitive(true).Events(e=>e.Change("onTypeChange")))
+
+         </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; width: 50%">
+         <div class="editor-label">
+            <label for="IsVisible">@DicSvc.XLate("Visible")</label>
+         </div>
+         <div class="editor-field">
+            <input class="k-checkbox" data-val="true" data-val-required="The IsVisible field is required." id="IsVisible" name="IsVisible" type="checkbox" value="true" data-bind="checked:IsVisible">
+            <label class="k-checkbox-label" for="IsVisible"></label>
+            <input name="IsVisible" type="hidden" value="true" data-bind="value:IsVisible">
+            <span class="field-validation-valid" data-valmsg-for="IsVisible" data-valmsg-replace="true"></span>
+         </div>
+      </div>
+   </div>
+
+   <div class="editor-label">
+      <label for="Value">@DicSvc.XLate("Value")</label>
+   </div>
+   <div class="editor-field" id="ValueBox">
+      <input class="k-input k-textbox" id="Value" name="Value" type="text" value="" data-bind="value:Value" style="display: none">
+      <input id="ValueBool" data-bind="value:Value" style="display: none" />
+      <input id="ValueList" data-bind="value:Value" style="display: none" />
+      <div id="ValueXml" data-bind="value:Value" style="display: none"></div>
+   </div>
+
+
+   <div id="Limits" style="display: flex; justify-content: space-between; margin-top: 6px;">
+      <div style="display: flex; flex-direction: column;width: 50%">
+         <div class="editor-label">
+            <label for="MinLimit">@DicSvc.XLate("Min")</label>
+         </div>
+         <div class="editor-field">
+
+            @Html.Kendo().NumericTextBoxFor(m => m.MinLimit).Decimals(0).RestrictDecimals(true).Step(1)
+         </div>
+      </div>
+      <div style="display: flex; flex-direction: column; margin-right: 26px;width: 50%">
+         <div class="editor-label">
+            <label for="MaxLimit">@DicSvc.XLate("Max")</label>
+         </div>
+
+         <div class="editor-field">
+            @Html.Kendo().NumericTextBoxFor(m => m.MaxLimit).Decimals(0).RestrictDecimals(true).Step(1)
+         </div>
+      </div>
+   </div>
+
+   <div id="ListEdit" style="margin-top: 6px; display: none">
+      <div class="editor-label">
+         <label for="ListItems">@DicSvc.XLate("Choises")</label>
+      </div>
+      <div class="editor-field">
+         <input class="k-textbox" id="ListItems" name="ListItems" value="" data-bind="value:ListItems" style="display: none">
+         <div class="d-flex flex-row">
+            <div class="p-0">
+               <div id="ListItemsGrid"></div>
+            </div>
+            <div class="p-0">
+               <div class="d-flex flex-column">
+                  <button id="btnListItemsScriptNew" type="button" class="btn border mdi mdi-24px ig-24px lh-1-0 mdi-plus   " onClick="onClickListItemsScriptNew();"></button>
+                  <button id="btnListItemsScriptDel" type="button" class="btn border mdi mdi-24px ig-24px lh-1-0 mdi-minus  " onClick="onClickListItemsScriptDel();"></button>
+
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+   </div>

@@ -1,0 +1,172 @@
+﻿@{
+   string gridName = "outputstates-grid";
+   
+   ViewBag.Title = DicSvc.XLate("Collect");
+}
+
+<script>
+   var gridIdName = "@gridName";
+   //alert(kendo.culture().name);
+</script>
+
+
+
+<div class="h-100 text-center">
+   <div class="card h-100 m-1 p-2 text-left">
+
+      @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.DasOutputStateViewModel>()
+                .Name(gridName)
+                .UmsDefaultSettings(DicSvc)
+                .UmsDefaultToolbar("create_outputstate", "ADD NEW", "displayOutputStateDetailDialog(0,0,0,true);", DicSvc)
+                .UmsDefaultPager(DicSvc)
+                .Columns(columns =>
+                {
+                   columns.Bound(e => e.LocationId).Hidden(true);
+                   columns.Bound(e => e.LocationDescription);
+                   columns.Bound(e => e.BedId).Hidden(true);
+                   columns.Bound(e => e.BedDescription);
+                   //columns.Bound(e => e.PatientId).Hidden(true);
+                   //columns.Bound(e => e.PatientDescription);
+                   columns.Bound(e => e.Type).Hidden(true);
+                   columns.Bound(e => e.TypeDescription);
+                   columns.Bound(e => e.IsNew).Hidden(true);
+                   columns.Bound(e => e.SamplingSeconds);
+                   columns.Bound(e => e.IsSystem).ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #= IsSystem ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" }); 
+                   columns.Bound(e => e.StartDateUtc).Format("{0:g}");//.ClientTemplate("#= kendo.parseDate(StartDateUtc,'dd/MM/yyyy') #");
+                   columns.Bound(e => e.StopDateUtc).Format("{0:g}");//.ClientTemplate("#= kendo.parseDate(StopDateUtc,'dd/MM/yyyy') #");
+                })
+                .Editable(GridEditMode.PopUp)
+                .Events(ev => ev.DataBound("onDataBound").Edit("onOutputStateSelected"))
+                .DataSource(dataSource => dataSource
+                   .Ajax()
+                   .PageSize(20)
+                   .Events(events => events.Error("error_handler_outputstates"))
+                   .Read(read => read.Action("ReadOutputStates", "Connect"))
+                )
+      )
+   </div>
+</div>
+
+<div id="outputstateEditWindow"></div>
+<div id="locationSelectionDialog"></div>
+<div id="bedSelectionDialog"></div>
+
+<script>
+    var kndWnd = null;
+    var locWnd = null;
+    var bedWnd = null;
+
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $("#outputstateEditWindow").usmKendoWindow({
+                height: 360,
+                minWidth: '80%',
+                title: '@DicSvc.XLate("Edit Output State")',
+                close: function(e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+        }
+        if (!locWnd) {
+            locWnd = $("#locationSelectionDialog").usmKendoWindow({
+                height: 500, //the grid is 455px
+                width: 700,
+                title: '@DicSvc.XLate("Select Location")',
+                close: function(e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+        }
+        if (!bedWnd) {
+            bedWnd = $("#bedSelectionDialog").usmKendoWindow({
+                height:400,
+                minWidth: 700,
+                title: '@DicSvc.XLate("Select Bed")',
+                close: function(e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+        }
+    });
+    
+   $(window).resize(function () {
+      setTimeout(function () {
+         var kendoWindow = $("[data-role='window']");
+         if (kendoWindow.length) {
+            for (var i = 0; i < kendoWindow.length; i++) {
+               var win = $(kendoWindow[i]).data("kendoWindow");
+               if (!win.element.is(":hidden")) {
+                  win.center();
+                  if (win.resize != undefined) {
+                     win.trigger('resize');
+                  }
+
+               }
+            }
+         }
+      }, 100);
+   });
+    ////$(window).resize(function () {
+    ////    setTimeout(function () {
+    ////        if (kndWnd) {
+    ////            kndWnd.data("kendoWindow").center();
+    ////        }
+    ////    }, 100);
+    ////});
+
+    function onDataBound() {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick','tbody tr[data-uid]',
+            function(e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+               displayOutputStateDetailDialog(item.LocationId, item.BedId, item.PatientId);
+            });
+    }
+    function onOutputStateSelected(e) {
+      //  debugger;
+        var item = e.sender.dataItem(e.sender.select());
+       displayOutputStateDetailDialog(item.LocationId, item.BedId, item.PatientId,false);
+    }
+
+    function displayOutputStateDetailDialog(locId, bId, patId, addNew) {
+
+       var windowWidget = kndWnd.data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+        $.ajax({
+            url: '@Url.Action("GetOutputState", "Connect")',
+            type: 'GET',
+           data: {
+              locationId: locId,
+              bedId: bId,
+               patientId: patId,
+             isNew: addNew
+           }
+        }).done(function (dataHtml) {
+            kendo.ui.progress(windowWidget.element, true);
+            var itemDialog = kndWnd.data("kendoWindow");
+            itemDialog.content('');
+            itemDialog.content(dataHtml);
+            itemDialog.center().open();
+        });
+    }
+
+   function error_handler_outputstates(e) {
+        kendo.ui.progress('#' + gridIdName, false);
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+
+    function onGridKeyEnter(item) {
+       displayOutputStateDetailDialog(item.LocationId, item.BedId, item.PatientId,false);
+    };
+
+</script>

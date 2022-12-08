@@ -1,0 +1,594 @@
+﻿@using System.Collections
+@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@model ConfiguratorWeb.App.SysOptionConfig.SMTPUserReportConfiguration
+
+@{
+   Layout = null;
+   string formIdCc = "form_" + Guid.NewGuid().ToString();
+}
+<script type="text/javascript">
+
+   var dataSourceUG = @Html.Raw(Json.Serialize(Model));
+    var dataSourceUGHome = new kendo.data.DataSource();
+    var dataSourceUGlDetail = new kendo.data.DataSource();
+   var dataSourceForGrid = new kendo.data.DataSource({
+       data: dataSourceUG.Groups
+   });
+
+
+    function toggleControls(disable) {
+        $('#@formIdCc :input:not(#btnGroupAdd)').prop('disabled', disable);
+        $('#UserReport_Locations').data('kendoMultiSelect').enable(!disable);
+
+    }
+
+    function onRowChange(arg) {
+        var grid = this;
+        var item = grid.dataItem(this.select());
+        var rowIndex = grid.items().index(this.select());
+        if (item) {
+            if ($('#usrRptGroupIndex').val() == '') {
+                viewDetail(item, rowIndex);
+            }
+            else {
+                if (applyChanges()) {
+                    viewDetail(item, rowIndex);
+                }
+            }
+        } else {
+            clearFields();
+
+        }
+        $('#groupGrid').find('tbody').find("tr").removeClass('k-state-selected');
+        $('#groupGrid').find('tbody').find("tr:eq(" + (rowIndex) + ")").addClass('k-state-selected');
+    }
+
+    function viewDetail(element, index) {
+        var rcptGrid = $('#gridUsrReportRecipients').data('kendoGrid');
+        if (index >= 0) {
+            var item = $('#groupGrid').data('kendoGrid').dataSource.view().find(function (x) { return x.LocationID == element.LocationID; });
+            $('#usrRptLocation').val(item.LocationID);
+            $('#urRptSubject').val(item.EmailSubject);
+            $('#urRptBody').val(item.EmailBody);
+            $('#usRptMailSenderName').val(item.EmailSender.Name);
+            $('#usRptMailSenderAddress').val(item.EmailSender.Email);
+            $('#usrRptGroupIndex').val(index);
+            $('#UserReport_Locations').data('kendoMultiSelect').enable(true);
+            if (item.LocationID && item.LocationID != '') {
+                var arrLocations = item.LocationID.split(',');
+                //remove "all"
+                if (arrLocations && arrLocations.length > 0) {
+                    var idxToRemove = -1;
+                    for (var i = 0; i < arrLocations.length; i++) {
+                        if (arrLocations[i] == '*') {
+                            idxToRemove = i;
+                            break;
+                        }
+                    }
+                    if (idxToRemove >= 0) {
+                        arrLocations.splice(idxToRemove, 1);
+                    }
+                }
+
+                $('#UserReport_Locations').data('kendoMultiSelect').value([]);
+                $('#UserReport_Locations').data('kendoMultiSelect').value(arrLocations);
+            }
+            //Clear grid
+            var dataSource = new kendo.data.DataSource({
+                data: []
+            });
+            rcptGrid.setDataSource(dataSource);
+
+            if (item.EmailRecipients && item.EmailRecipients.length > 0) {
+                var dataSource = new kendo.data.DataSource({
+                    data: item.EmailRecipients
+                });
+                rcptGrid.setDataSource(dataSource);
+            }
+
+            //select row
+            var row = $('#groupGrid').data('kendoGrid').element.find("tr[data-uid='" + element.uid + "']");
+            if (row.length > 0) {
+                $('#groupGrid').data('kendoGrid').select(row);
+            }
+
+        } else {
+            clearFields();
+        }
+        toggleControls(false);
+
+    }
+
+    function resetEditor() {
+        var currIdx = $('#usrRptGroupIndex').val();
+        if (currIdx && currIdx >= 0) {
+            var grid = $('#groupGrid').getKendoGrid();
+            var item = grid.dataSource.at(currIdx);
+            if (item) {
+                viewDetail(item, currIdx);
+            } else {
+                clearFields();
+            }
+        }
+        else {
+            clearFields();
+        }
+    }
+
+    function btnAddMenuClick() {
+
+        if ($('#usrRptGroupIndex').val() !== "") {
+            applyChanges();
+        }
+
+        var grid = $('#groupGrid').getKendoGrid();
+        grid.clearSelection();
+        grid.refresh();
+        var element = { LocationID: "" };
+        viewDetail(element, -1);
+        $('#usrRptGroupIndex').val('-1');
+    }
+
+
+    function newGroupNotCompleted() {
+        var ret = false;
+        var grdRecipients = $('#gridUsrReportRecipients').data('kendoGrid');
+        if ($('#usrRptGroupIndex').val() == "-1") {
+            if ($('#urRptSubject').val() != '' || $('#urRptBody').val() != ''
+                || $('#usRptMailSenderAddress').val() != '' || grdRecipients.dataSource.data().length > 0) {
+                ret = true;
+            }
+        }
+        return ret;
+    }
+
+
+
+    function onDeleteReceipientRow(e) {
+        var grdRecipients = $('#gridUsrReportRecipients').data('kendoGrid');
+        var modelToDelete = $(e.target).closest("tr");
+        grdRecipients.removeRow(modelToDelete);
+    }
+
+    function onDeleteRowGroup(e) {
+        var grid = $("#groupGrid").data("kendoGrid");
+        var gridDataSource = $('#groupGrid').getKendoGrid().dataSource.view();
+        var modelToDelete = grid.dataItem($(e.target).parents('tr'));
+        var locIDToDelete = modelToDelete.LocationID;
+        var idxToDelete = -1;
+        for (var i = 0; i < gridDataSource.length; i++) {
+            if (gridDataSource[i].LocationID == locIDToDelete) {
+                idxToDelete = i;
+                break;
+            }
+        }
+        gridDataSource.splice(idxToDelete, 1);
+        var dataSource = new kendo.data.DataSource({
+            data: gridDataSource
+        });
+        $('#groupGrid').getKendoGrid().setDataSource(dataSource);
+        var element = { LocationID: "" };
+        viewDetail(element, -1);
+    }
+
+    function checkGroupValid() {
+        var strRet = [];
+        if ($('#urRptSubject').val() == '') {
+            strRet.push('@DicSvc.XLate("Email Subject is mandatory")');
+        }
+        if ($('#urRptBody').val() == '') {
+            strRet.push('@DicSvc.XLate("Email Body is mandatory")');
+        }
+        if ($('#usRptMailSenderAddress').val() == '') {
+            strRet.push('@DicSvc.XLate("Email Sender Address is mandatory")');
+        }
+        else {
+            if (!emailIsValid($('#usRptMailSenderAddress').val())) {
+                strRet.push('"' + $('#usRptMailSenderAddress').val() + '" @DicSvc.XLate("is not a valid email address")');
+            }
+        }
+        var grdRecipients = $('#gridUsrReportRecipients').data('kendoGrid');
+        if (grdRecipients.dataSource.data().length == 0) {
+            strRet.push('@DicSvc.XLate("At least one recipient must exists")');
+        }
+        else {
+            for (var i = 0; i < grdRecipients.dataSource.data().length; i++) {
+                var strEmailRecipient = grdRecipients.dataSource.data()[i].Email;
+                if (!(strEmailRecipient && emailIsValid(strEmailRecipient))) {
+                    strRet.push('"' + strEmailRecipient + '" @DicSvc.XLate("is not a valid email address")');
+                }
+            }
+        }
+        return strRet;
+    }
+
+    function applyChanges() {
+        var dsOriginal = $('#groupGrid').getKendoGrid().dataSource.view();
+        var bolRet = false;
+        var errMSgs = checkGroupValid();
+        if (errMSgs.length == 0) {
+            var groupIndex = $('#usrRptGroupIndex').val();
+            if (groupIndex != '') {
+                var intGroupIndex = parseInt(groupIndex);
+                var arrLocationIDs = $('#UserReport_Locations').data('kendoMultiSelect').value();
+                var strLocationIds = '*';
+                if (arrLocationIDs.length > 0) {
+                    strLocationIds = arrLocationIDs.join(',');
+                }
+                $('#usrRptLocation').val(strLocationIds);
+                var elementToAdd = {
+                    LocationID: strLocationIds,
+                    EmailSubject: $('#urRptSubject').val(),
+                    EmailBody: $('#urRptBody').val(),
+                    EmailSender: {
+                        Name: $('#usRptMailSenderName').val(),
+                        Email: $('#usRptMailSenderAddress').val(),
+                    }
+                };
+
+                var grdRecipients = $('#gridUsrReportRecipients').data('kendoGrid');
+                elementToAdd.EmailRecipients = grdRecipients.dataSource.data();
+                //Check if element already exists
+                var bolAlreadyExists = false;
+                if (intGroupIndex >= 0) {
+                    dsOriginal[groupIndex] = elementToAdd;
+                }
+                else {
+
+                    for (var i = 0; i < dsOriginal.length; i++) {
+                        if (dsOriginal[i].LocationID == strLocationIds) {
+                            bolAlreadyExists = true;
+                            break;
+                        }
+                    }
+                    if (!bolAlreadyExists) {
+                        dsOriginal.push(elementToAdd);
+                    }
+                    else {
+                        window.umsAlert('@DicSvc.XLate("Error")', '@DicSvc.XLate("A configuration for same location already exists")');
+                    }
+                }
+                if (!bolAlreadyExists) {
+                    var dataSource = new kendo.data.DataSource({
+                        data: dsOriginal
+                    });
+                    $('#groupGrid').getKendoGrid().setDataSource(dataSource);
+                    $('#usrRptGroupIndex').val('');
+                    bolRet = true;
+                }
+
+            }
+        } else {
+            var strMsg = '';
+            for (var i = 0; i < errMSgs.length; i++) {
+                strMsg = strMsg + '<br>' + errMSgs[i];
+            }
+            window.umsAlert('Error', strMsg);
+        }
+        return bolRet;
+    }
+
+    function clearFields() {
+        $('#urRptSubject').val("");
+        $('#urRptBody').val("");
+        $('#urRptLocation').val('');
+        $('#usrRptGroupIndex').val('');
+        $('#usRptMailSenderName').val('');
+        $('#usRptMailSenderAddress').val('');
+        $('#UserReport_Locations').data('kendoMultiSelect').value([]);
+        $('#UserReport_Locations').data('kendoMultiSelect').enable(true);
+        var dataSource = new kendo.data.DataSource({
+            data: []
+        });
+        $('#gridUsrReportRecipients').data('kendoGrid').setDataSource(dataSource);
+    }
+
+
+
+    function emailIsValid (email) {
+        return /^([\w-\.]+@@([\w-]+\.)+[\w-]{2,4})?$/.test(email)
+    }
+
+</script>
+
+<div class="h-100 ">
+   <div class="card m-0 p-0 text-left" id="divItemDetail" style="height: 93% !important;">
+
+       <form id="@formIdCc" style="overflow: auto"
+             data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+             data-ajax="true" data-ajax-method="POST" data-ajax-loading="progressl">
+           <div class="row" style="margin: 0px !important; ">
+               <div class="col-4 pl-0">
+                   <button type='button' class='btn btnKendo headerActionBtnLeft' id="btnGroupAdd" title='@DicSvc.XLateHtml("Add new")' onclick='btnAddMenuClick();'>
+                       <span class='mdi mdi-plus  headerAddBtn'> Add</span>
+                   </button>
+                   <input type="hidden" id="usrRptGroupIndex" />
+                   @(Html.Kendo().Grid(Model.Groups)
+                                        .Name("groupGrid")
+                                        .HtmlAttributes(new { style = "height:367px;margin:1px;width:100%;" })
+                                        //.NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLateHtml(CommonStrings.NO_RECORD_FOUND) + "</div>"))
+                                        .Selectable(e => e.Enabled(true).Mode(GridSelectionMode.Single))
+                                        .Scrollable()
+                                        .Navigatable(true)
+                                        .Editable(e => e.CreateAt(GridInsertRowPosition.Bottom).DisplayDeleteConfirmation(false))
+                                        .Resizable(resize => resize.Columns(false))
+                                        .Columns(columns =>
+                                        {
+                                            columns.Bound(e => e.LocationID).Width("33%");
+                                            columns.Bound(e => e.EmailSubject);
+                                            columns.Command(command =>
+                                                      {
+                                                             command.Custom("DeleteRow")
+                                                             .IconClass("k-icon k-i-close")
+                                                             .Click("onDeleteRowGroup")
+                                                             .Text(" ");
+                                                         }).Width(30)
+                                                  .HtmlAttributes(new { style = "padding:0px !important;" });
+                                        })
+                                        .DataSource("dataSourceForGrid")
+                                        .Events(ev => ev.Change("onRowChange"))
+                                    )
+               </div>
+               <div class="col-8" style="overflow:auto; max-height:435px;">
+                   <div class="row mb-0">
+                       <div class="col-8">
+
+                       </div>
+
+                       <div class="col-4 text-right">
+                           <button type="button" id="btnApplyChanges" onclick="applyChanges();" class="btn btnKendo">@DicSvc.XLate("Apply")</button>
+                           <button type="button" id="btnCancelChanges" class="btn btnKendo" onclick="resetEditor();">@DicSvc.XLate("Cancel")</button>
+                       </div>
+                   </div>
+                   <div class="row" >
+                       <div class="col-12">
+                           <kendo-tabstrip name="tabstripUserReportConfig">
+                               <scrollable enabled="true" />
+                               <popup-animation>
+                                   <open effects="fade:in" />
+                               </popup-animation>
+                               <items>
+                                   <tabstrip-item text="@DicSvc.XLate("General")" selected="true" id="tabstripUserReport-General">
+                                       <content>
+
+                                           <div class="row">
+                                               <div class="col-4 pl-0">
+                                                   <label for="urRptLocation">@DicSvc.XLateHtml("Location/s")</label>
+                                               </div>
+                                               <div class="col-8 p-0">
+                                                   <input id="usrRptLocation" type="hidden" class="k-input k-textbox " />
+                                                   @(Html.Kendo().MultiSelect()
+                                                    .Name("UserReport_Locations")
+                                                    .DataTextField("LocationName")
+                                                    .DataValueField("Id")
+                                                    .Placeholder("Select location/s")
+                                                    .AutoBind(false)
+                                                    .Enable(false)
+
+                                                    .DataSource(source =>
+                                                    {
+                                                        source
+                                                        .Read(read =>
+                                                        {
+                                                            read.Action("GetLocationList", "BedLocation");
+                                                        })
+                                                        .ServerFiltering(true);
+                                                    })
+                                                )
+                                               </div>
+                                           </div>
+                                           <div class="row">
+                                               <div class="col-4 pl-0">
+                                                   <label for="usRptMailSenderName">@DicSvc.XLateHtml("Email Sender - Name")</label>
+                                               </div>
+                                               <div class="col-8 p-0">
+                                                   <input id="usRptMailSenderName" class="k-input k-textbox " />
+                                               </div>
+                                           </div>
+                                           <div class="row">
+                                               <div class="col-4 pl-0">
+                                                   <label for="usRptMailSenderAddress" class="field-required">@DicSvc.XLateHtml("Email Sender - Address")</label>
+                                               </div>
+                                               <div class="col-8 p-0">
+                                                   <input id="usRptMailSenderAddress" class="k-input k-textbox " />
+                                               </div>
+                                           </div>
+                                           <div class="row">
+                                               <div class="col-4 pl-0">
+                                                   <label for="urRptSubject" class="field-required">@DicSvc.XLateHtml("Email Subject")</label>
+                                               </div>
+                                               <div class="col-8 p-0">
+                                                   <input id="urRptSubject" class="k-input k-textbox " />
+                                               </div>
+                                           </div>
+                                           <div class="row">
+                                               <div class="col-4 pl-0">
+                                                   <label for="urRptBody" class="field-required">@DicSvc.XLateHtml("Email Body")</label>
+
+                                               </div>
+                                               <div class="col-8 p-0">
+                                                   <textarea id="urRptBody" class="k-input k-textbox" style="height:140px;"  />
+                                                   <button id="btnInfoBodyContent" class="btn lh-1-0 border ig-18px" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("help")">
+                                                       <span class="mdi  mdi-information-outline mdi-24px"></span>
+                                                   </button>
+                                               </div>
+                                           </div>
+
+
+                                       </content>
+                                   </tabstrip-item>
+                                   <tabstrip-item text="@DicSvc.XLate("Recipients")" selected="false" id="tabstripUserReport-Recipients">
+                                       <content>
+                                           <div class="row ">
+                                               <div class="col-2 pl-0">
+                                                   <label for="urRptBody">@DicSvc.XLateHtml("Recipients")</label>
+                                               </div>
+                                               <div class="col-10 p-0">
+                                                   @(Html.Kendo().Grid<ConfiguratorWeb.App.SysOptionConfig.SMTPUserReportConfiguration.EmailRecipient>()
+                                              .Name("gridUsrReportRecipients")
+                                              .Filterable(f => f.Enabled(false))
+                                              .ToolBar(p=>p.Create().Text(DicSvc.XLate("Adds")))
+                                              .Columns(c =>
+                                              {
+                                                  c.Bound(p=>p.Name);
+                                                  c.Bound(p=>p.Email);
+                                                  //c.Bound(e => e.CommandText); //.ClientFooterTemplate(footerTemplateAdd.FormatWith("btnAddLineDetail()"));
+                                                  //c.Template("<span class='dragIcon mdi mdi-chevron-up mdi-18px ig-18px' onclick='onUpCl(this)'></span><span class='dragIcon mdi mdi-chevron-down  mdi-18px ig-18px' onclick='onDownCl(this)'></span>")
+                                                  //   .Width(70)
+                                                  //   .HtmlAttributes(new { style = "padding:0px !important;" });
+                                                  c.Command(command =>
+                                                  {
+                                                      command.Custom("DeleteRecipientRow")
+                                                         .IconClass("k-icon k-i-close")
+                                                         .Click("onDeleteReceipientRow")
+                                                         .Text(" ");
+                                                  }).Width(30);
+                                              })
+                                              .HtmlAttributes(new { style = "height:220px;margin:1px;width:90%;" })
+
+                                              //.NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLateHtml(CommonStrings.NO_RECORD_FOUND) + "</div>"))
+                                              .Sortable()
+                                              .Selectable(e => e.Enabled(true))
+                                              .Scrollable()
+                                              .Navigatable(true)
+                                              .Editable(e => e.Mode(GridEditMode.InCell).CreateAt(GridInsertRowPosition.Bottom).DisplayDeleteConfirmation(false).Enabled(true))
+                                              .Resizable(resize => resize.Columns(false)))
+                                               </div>
+
+                                           </div>
+                                       </content>
+                                   </tabstrip-item>
+
+                               </items>
+                           </kendo-tabstrip>
+                       </div>
+                   </div>
+
+               </div>
+            </div>
+               
+
+
+
+
+       </form>
+
+
+   </div>
+   <div class="card-footer h-10 p-0 m-0 border-0">
+      @(Html.Kendo().ToolBar()
+         .Name("SMTPUserReportConfig")
+         .UmsDefaultErrors(DicSvc,"usrRptCfgErrors")
+         .Items(
+            items =>
+            {
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Generate XML")).Id("btnCcXml").UmsHtmlButtonSave();
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnCcCancel").UmsHtmlButtonCancel();
+            }
+         )
+      )
+   </div>
+</div>
+
+<script>
+
+
+    function validateConfig() {
+        var ret = true;
+        var objDSGrid = $("#groupGrid").data("kendoGrid").dataSource.view();
+        var intExistsAll = 0;
+        if (objDSGrid) {
+            for (var i = 0; i < objDSGrid.length; i++) {
+                if (objDSGrid[i].LocationID == '*') {
+                    intExistsAll++;
+                }
+            }
+        }
+        if (intExistsAll!=1) {
+            $("#usrRptCfgErrors").html('@DicSvc.XLate("A configuration for 'ALL' locations must exist and must be only one")');
+            ret = false;
+        }
+        return ret;
+    }
+
+    function generateXML() {
+         if (validateConfig()) {
+               var objToSend = {
+                Groups: []
+               };
+               var objDSGrid = $("#groupGrid").data("kendoGrid").dataSource.view();
+               if (objDSGrid) {
+                   for (var i = 0; i < objDSGrid.length; i++) {
+                       objToSend.Groups.push(objDSGrid[i]);
+                   }
+               }
+               $.ajax({
+                   url: '@Url.Action("SerializeUserReportConfiguration", "SystemConfiguration")',
+                   type: 'POST',
+                   data: JSON.stringify(objToSend),
+                   contentType: "application/json; charset=utf-8",
+                   async: true,
+                   dataType: "json",
+
+               }).done(function (response) {
+                   var xml = '';
+                   if (response) {
+                       xml = response.data;
+                   }
+                   if (response.success) {
+                       if (editor && !$('#aceEditor').hasClass('d-none')) {
+                           editor.getSession().setValue(xml);
+                           var textarea = $(textareaIdValueModelGuid).hide();
+                           textarea.val(editor.getSession().getValue());
+
+                       } else {
+                           var textarea = $(textareaIdValueModelGuid);
+                           textarea.val(xml);
+                       }
+                       var objRepoDialog = $('#divSysOptSmtpUserReportConfigDialog').data('kendoWindow');
+                       objRepoDialog.close();
+                   }
+                   else {
+                       umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+                   }
+               }).fail(function (response) {
+                   umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+               });
+           }
+    }
+
+    $(document).ready(function () {
+
+       toggleControls(true);
+
+      $('#btnCcCancel').off('click').on('click', function () {
+          var objRepoDialog = $('#divSysOptSmtpUserReportConfigDialog').data('kendoWindow');
+         objRepoDialog.close();
+      });
+
+
+
+       $('#btnInfoBodyContent').off('click').on('click', function () {
+           window.umsAlert('Info','@DicSvc.XLate("Email body.Placeholder {0} will be replaced with User Report Identifier ")')
+       });
+
+
+
+        $('#btnCcXml').off('click').on('click', function () {
+            if (newGroupNotCompleted()) {
+                umsConfirm('@Html.Raw(DicSvc.XLate("Unsaved changes"))', '@Html.Raw(DicSvc.XLate("Some changes are not applied. Do you want to continue?"))', generateXML, null);
+            }
+            else {
+                generateXML();
+            }
+
+
+
+        });
+
+   });
+</script>
+
+

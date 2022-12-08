@@ -1,0 +1,93 @@
+﻿@model ConfiguratorWeb.App.Models.UserViewModel
+@{
+    Layout = null;
+}
+
+
+
+
+<div style="height:360px">
+    <div>
+        <div class="col-md-1 u-col-h-fixed">
+            
+        </div>
+        <div class="col-md-5 u-col-h-fixed">
+            @*<kendo-multiselect for="UserRole.RoleName" name="roles" style="width:100%"
+                               placeholder="Select roles..."
+                               datatextfield="RoleName"
+                               datavaluefield="RoleID">
+                <datasource type="DataSourceTagHelperType.Ajax" page-size="80" server-filtering="true" >
+                    <groups>
+                       <group field="RoleGroup"></group>
+                    </groups>
+                    <transport>
+                        <read url="@Url.Action("Grouping_GetRoles", "Generic")" data="onAdditionalData" />
+                    </transport>
+                </datasource>
+            </kendo-multiselect>*@
+
+
+            @*@(Html.Kendo().MultiSelectFor(m => m)
+                            .Name("roles")
+                              .DataTextField("RoleName")
+                              .DataValueField("RoleID")
+                          .Placeholder("Select roles...")
+                          .DataSource(source => source
+                              .Custom()
+                                  .Group(g => g.Add("RoleGroup", typeof(string)))
+                              .Transport(transport => transport
+                                .Read(read =>
+                                {
+                                    read.Action("Grouping_GetRoles", "Generic")
+                                        .Data("onAdditionalData");
+                                }))
+                              .ServerFiltering(true))
+            )*@
+
+
+
+
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+@*<div style="height:260px">
+        @(Html.Kendo().Grid<ConfiguratorWeb.UI.Models.Users.PersonnelRoleViewModel>()
+            .Name("role-grid_" + @ViewData["UserId"])
+    .Columns(columns =>
+    {
+        columns.Bound(e => e.GUID).Visible(false);
+        columns.Bound(e => e.Code);
+        columns.Bound(e => e.Name);
+        columns.Bound(e => e.IsFirstSurgeon);
+        columns.Bound(e => e.InPlanningByDefault);
+
+    })
+             .Editable(editable => editable.Mode(GridEditMode.InLine))
+                    .Scrollable(scrollable => scrollable.Virtual(true)).Sortable().Filterable().HtmlAttributes(new { style = "height:90%;margin:10px;" })
+                           .Sortable()
+                           .Scrollable()
+                           .DataSource(dataSource => dataSource
+                                   .Ajax()
+                                   .Model(model =>
+                                            {
+                                                model.Id(o => o.GUID);
+                                                model.Field(o => o.GUID).DefaultValue(Guid.NewGuid().ToString());
+                                                model.Field(o => o.Name);
+                                                model.Field(o => o.Code);
+                                                model.Field(o => o.IsFirstSurgeon);
+                                                model.Field(o => o.InPlanningByDefault);
+                                            })
+                                             .Events(events => events.Error("error_handler_users"))
+                                                .Read(read => read.Action("ReadRole", "SystemAdministration"))
+                                                        )
+
+
+        )
+    </div>*@
+

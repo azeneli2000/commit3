@@ -1,0 +1,138 @@
+﻿@{
+   string gridName = "permissions-grid";
+   string popUpWindowName = "IdOfEditWindow";
+   
+   ViewBag.Title = DicSvc.XLate("Miscellanea");
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+</script>
+
+<div class="card h-100 m-1 p-2 border-0" id="gridContainer">
+    <div id="@popUpWindowName"></div>
+
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.MiscellaneaViewModel>()
+            .Name(gridName)
+            .UmsDefaultSettings(DicSvc)
+                .UmsDefaultToolbar("createNewMiscellanea", "Add New Entry", "displayItemDetail(0);", DicSvc)
+            .Columns(columns =>
+            {
+                columns.Bound(e => e.Id).Visible(false);
+                columns.Bound(e => e.Key).Width(260);
+                columns.Bound(e => e.Value);
+
+            })
+            .Events(ev => ev 
+                .DataBound("onDataBound"))
+            .DataSource(dataSource => dataSource
+                .Ajax()
+                .Model(model =>
+                {
+                    model.Id(o => o.Id);
+                    model.Field(o => o.Key).Editable(false);
+                    model.Field(o => o.Value).Editable(false);
+                })
+                .Events(events => events.Error("error_handler_users"))
+                .Read(read => read.Action("ReadMiscellanea", "SystemConfiguration"))
+                //.PageSize(50)
+            )
+        )
+</div>
+
+<script type="text/javascript">
+
+    @{
+       string editItemTitle = "Edit Miscellanea";
+       string newItemTitle = "Add_Item_PopUpWindow_Title";
+    }
+    var kndWnd;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                maxHeight:260,
+                title: '@DicSvc.XLate(editItemTitle)',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+
+        }
+
+    });
+
+
+    $(window).resize(function () {
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                for (var i = 0; i < kendoWindow.length; i++) {
+                    var win = $(kendoWindow[i]).data("kendoWindow");
+                    if (!win.element.is(":hidden")) {
+                        win.center();
+                        if (win.resize != undefined) {
+                            win.trigger('resize');
+                        }
+
+                    }
+                }
+            }
+        }, 100);
+    });
+    var _minLevel;
+    function displayItemDetail(itemID) {
+        var windowWidget = $(popUpWindowName).data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+        $.ajax({
+            url: '@Url.Action("GetMiscellanea", "SystemConfiguration")',
+            type: 'GET',
+            data: { id: itemID }
+        }).done(function (dataHtml) {
+            kendo.ui.progress(windowWidget.element, true);
+			var dialog = $(popUpWindowName ).data('kendoWindow');
+            if (itemID ==='') {
+                dialog.title('@DicSvc.XLate(newItemTitle)');
+            } else {
+                dialog.title('@DicSvc.XLate(editItemTitle)');
+            }
+            dialog.content(dataHtml).center().open();
+
+        });
+    }
+    function productsReadData() {
+        return {
+            minLevel: _minLevel
+    };
+    }
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem( $(e.target).closest('tr'));
+                
+                onGridKeyEnter(item);
+            });
+    }
+    function onGridKeyEnter(item) {
+        //TODO:replace Key
+
+        _minLevel = item.PriorityLevel;
+        displayItemDetail(item.Id);
+    };
+
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+
+</script>

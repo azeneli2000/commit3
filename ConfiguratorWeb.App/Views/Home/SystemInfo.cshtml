@@ -1,0 +1,115 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@inject IDigistatEnvironmentService envSvc
+
+
+@{
+   Layout = null;
+}
+<style>
+   #divSystemInfo .row {
+      margin-bottom: unset;
+   }
+</style>
+<div class="h-100 ">
+   <div class="card h-90 m-0 p-0 text-left" id="divSystemInfo">
+      <div class="row">
+         <div class="col-md-4 u-col-h-fixed">
+            @DicSvc.XLate("Message Dispatcher")
+         </div>
+         <div class="col-md-8 u-col-h-fixed">
+            @ViewBag.MessageCenter
+         </div>
+      </div>
+      @if (envSvc.IsHAEnabled)
+      {
+         <div class="row">
+            <div class="col-md-12 u-col-h-fixed">
+               @DicSvc.XLate("High Availability enabled")
+            </div>
+         </div>
+         <div class="row">
+            <div class="col-md-4 u-col-h-fixed">
+               @DicSvc.XLate("High Availability current Message Dispatcher")
+            </div>
+            <div class="col-md-8 u-col-h-fixed">
+               @ViewBag.HACurrMessageCenter
+            </div>
+         </div>
+      }
+      <div class="row">
+         <div class="col-md-4 u-col-h-fixed">
+            @DicSvc.XLate("Session Storage")
+         </div>
+         <div class="col-md-8 u-col-h-fixed">
+            @ViewBag.SessionStorage
+         </div>
+      </div>
+      <div class="row">
+         <div class="col-md-4 u-col-h-fixed">
+            @DicSvc.XLate("DB Server")
+         </div>
+         <div class="col-md-8 u-col-h-fixed">
+            @ViewBag.Server
+         </div>
+      </div>
+      <div class="row">
+         <div class="col-md-4 u-col-h-fixed">
+            @DicSvc.XLate("Database")
+         </div>
+         <div class="col-md-8 u-col-h-fixed">
+            @ViewBag.DB
+         </div>
+      </div>
+
+      <div class="row">
+            <div class="col-4 u-col-h-fixed">
+               @DicSvc.XLate("Host Name - Ip")
+            </div>
+            <div class="col u-col-h-fixed">
+               @ViewBag.ServerName
+               &nbsp;-&nbsp;
+               @ViewBag.ServerIP
+            </div>
+         </div>
+         <div class="row">
+            <div class="col-4 u-col-h-fixed">
+               @DicSvc.XLate("Client Name - Ip")
+            </div>
+            <div class="col u-col-h-fixed">
+               @ViewBag.HostName
+               &nbsp;-&nbsp;
+               @ViewBag.HostIP
+            </div>
+         </div>
+         @*<div class="row">
+
+            <div class="col-4 u-col-h-fixed">
+               @DicSvc.XLate("Current Culture")
+            </div>
+            <div class="col u-col-h-fixed">
+               @ViewBag.CurrentCulture
+            </div>
+         </div>*@
+      @*<div class="row">
+
+            <div class="col-4 u-col-h-fixed">
+               @DicSvc.XLate("date time in culture")
+            </div>
+            <div class="col u-col-h-fixed">
+               <div id="dtInCulture"></div>
+            </div>
+         </div>*@
+      <div class="row">
+         <div class="col-md-4 u-col-h-fixed text-white">
+            @DicSvc.XLate("Assembly File Version")
+         </div>
+         <div class="col-md-8 u-col-h-fixed text-white">
+            @ViewBag.CompiledVersion
+         </div>
+      </div>
+   </div>
+</div>
+
+<script>
+   //$('#dtInCulture').html(kendo.toString(new Date(),userDateTimeFormatShort))
+</script>

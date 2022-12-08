@@ -1,0 +1,272 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@using Digistat.FrameworkStd.Enums.Vitals;
+@inject IDictionaryService DicSvc
+@model ConfiguratorWeb.App.Models.StandardDatasetViewModel
+@{
+    Layout = null;
+}
+@{
+    var objIntervalOptions = new[] {
+        new SelectListItem("", ""),
+        new SelectListItem(DicSvc.XLate("10 minutes"), ((int)FixedTimingInterval._10min).ToString()),
+        new SelectListItem(DicSvc.XLate("15 minutes"), ((int)FixedTimingInterval._15min).ToString()),
+        new SelectListItem(DicSvc.XLate("20 minutes"), ((int)FixedTimingInterval._20min).ToString()),
+        new SelectListItem(DicSvc.XLate("30 minutes"), ((int)FixedTimingInterval._30min).ToString()),
+        new SelectListItem(DicSvc.XLate("1 hour"), ((int)FixedTimingInterval._60min).ToString()),
+        new SelectListItem(DicSvc.XLate("2 hours"), ((int)FixedTimingInterval._120min).ToString()),
+        new SelectListItem(DicSvc.XLate("3 hours"), ((int)FixedTimingInterval._180min).ToString()),
+        new SelectListItem(DicSvc.XLate("4 hours"), ((int)FixedTimingInterval._240min).ToString()),
+        new SelectListItem(DicSvc.XLate("6 hours"), ((int)FixedTimingInterval._360min).ToString()),
+        new SelectListItem(DicSvc.XLate("8 hours"), ((int)FixedTimingInterval._480min).ToString()),
+        new SelectListItem(DicSvc.XLate("12 hours"), ((int)FixedTimingInterval._720min).ToString()),
+        new SelectListItem(DicSvc.XLate("24 hours"), ((int)FixedTimingInterval._1440min).ToString())
+    };
+}
+<script>
+
+    function onChangeTimings() {
+        setTimingAndReminder();
+    }
+
+    function onChangeDatasetType() {
+        onDatasetType();
+    }
+
+    function onOcrCheckBoxChange() {
+        setOcrChange();
+    }
+
+</script>
+
+<div>
+
+
+    @Html.ValidationSummary()
+
+
+    <div class="row">
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.sd_Name, new { @class = "field-required" })
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            @Html.TextBoxFor(m => m.sd_Name, new { @class = "k-input k-textbox control-required", @maxlength = "50" })
+        </div>
+        <div class="col-md-2 u-col-h-fixed ml-5">
+            @Html.LabelFor(m => m.sd_Type)
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+             <div>
+                 @(Html.Kendo().DropDownListFor(m => m.sd_Type)
+                .HtmlAttributes(new { @style = "width:88%;", id = "VitalsDatasetType_" + Model.sd_ID })
+                .DataTextField("Text")
+                .DataValueField("Value")
+                .Events(e => e.Change("onChangeDatasetType"))
+                .DataSource(source =>
+                {
+                    source.Read(read =>
+                    {
+                        read.Action("GetAllDatasetTypes", "Vitals");
+                    });
+                }))
+
+            </div>
+
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.sd_HelpLink)
+        </div>
+        <div class="col-md-8 u-col-h-fixed">
+            <div>
+                @Html.TextBoxFor(m => m.sd_HelpLink, new { @class = "k-input k-textbox" })
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.sd_Timing)
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            <div>
+                @(Html.Kendo().DropDownListFor(m => m.sd_Timing)
+                                    .HtmlAttributes(new { @style = "width:88%;", id = "VitalsTimings_" + Model.sd_ID })
+                                    .DataTextField("Text")
+                                    .DataValueField("Value")
+                                    .Events(e => e.Change("onChangeTimings"))
+                                    .DataSource(source =>
+                                    {
+                                    source.Read(read => { read.Action("GetAllTimings", "Vitals"); });
+                                    }))
+
+           </div>
+        </div>
+        <div class="col-md-2 u-col-h-fixed ml-5">
+            @Html.LabelFor(m => m.sd_DefaultInterval)
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            <div>
+                 @(Html.Kendo().DropDownListFor(m => m.sd_DefaultInterval)
+                    .HtmlAttributes(new { @style = "width:88%;" })
+                    .BindTo(objIntervalOptions))
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row">
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.sd_Reminder)
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            <div>
+                 @Html.Kendo().CheckBoxFor(m => m.sd_Reminder).Label(" ")
+                 <small class="form-text text-muted">@DicSvc.XLate("Applies only on Mobile and Telligence")</small>
+            </div>
+        </div>
+        <div class="col-md-2 u-col-h-fixed ml-5">
+            @Html.LabelFor(m => m.sd_Ocr)
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            <div>
+                @Html.Kendo().CheckBoxFor(m => m.sd_Ocr).Label(" ").HtmlAttributes(new { onchange = "onOcrCheckBoxChange();" })
+            </div>
+
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.sd_IsPaged)
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            <div>
+                @Html.Kendo().CheckBoxFor(m => m.sd_IsPaged).Label(" ")
+                <small class="form-text text-muted" >@DicSvc.XLate("Applies only on Telligence")</small>
+            </div>
+
+        </div>
+
+        <div class="col-md-2 u-col-h-fixed ml-5">
+            @Html.LabelFor(m => m.UseOcrImage)
+
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            <div>
+                @Html.Kendo().CheckBoxFor(m => m.UseOcrImage).Label(" ")
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.sd_HL7_Score)
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            <div>
+                @Html.TextBoxFor(m => m.sd_HL7_Score, new { @class = "k-input k-textbox",@style = "width:88%;", @maxlength = "20" })
+
+            </div>
+        </div>
+        <div class="col-md-2 u-col-h-fixed ml-5">
+            @Html.LabelFor(m => m.sd_OcrDevice)
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            <div>
+                @(Html.Kendo().DropDownListFor(m => m.sd_OcrDevice)
+                               .HtmlAttributes(new { @style = "width:88%;", id = "VitalsOcrDevices_" + Model.sd_ID })
+                               .DataTextField("Text")
+                               .DataValueField("Value")
+                               .DataSource(source =>
+                               {
+                                    source.Read(read =>
+                                    {
+                                      read.Action("GetAllOcrDevices", "Vitals");
+                                    });
+                               })
+                               )
+            </div>
+        </div>
+    </div>
+    <div id="sdItemEditWindow"></div>
+    <div id="sdSubItemEditWindow"></div>
+    <div id="sdScoreDescriptionEditWindow"></div>
+
+    <script>
+        $(document).ready(function () {
+            $("#sdItemEditWindow").umsKendoWindow({
+                width: '90%',
+                title: 'Edit Item',
+                maxHeight: '550px',
+                height:'auto'
+            });
+            $("#sdSubItemEditWindow").umsKendoWindow({
+                width: '80%',
+                title: 'Edit SubItem',
+                maxHeight: '550px',
+                maxWidth: '800px',
+                height:'auto'
+            });
+            $("#sdScoreDescriptionEditWindow").umsKendoWindow({
+                width: '80%',
+                title: 'Edit Score description',
+                maxHeight: '550px',
+                maxWidth: '800px',
+                height:'auto'
+            });
+        });
+
+    </script>
+    @(Html.Kendo().Window()
+                             .Name("sdItemStandardParameter")
+                             .Title(DicSvc.XLate("Standard Parameter Selection"))
+                             .Width(900)
+                             .Height(500)
+                             //.Events(p => p.Close("closeSDItemDialog"))
+                             //.Draggable()
+                             //.Resizable()
+                             .Modal(true)
+                             //.Events(events => events.Close("closeSDItemDialog"))
+                             .Visible(false)
+
+
+    )
+    @(Html.Kendo().Window()
+                               .Name("sdItemStandardUnit")
+                               .Title(DicSvc.XLate("Standard Unit Selection"))
+                               .Width(900)
+                               .Height(500)
+                               //.Events(p => p.Close("closeSDItemDialog"))
+                               //.Draggable()
+                               //.Resizable()
+                               .Modal(true)
+                               //.Events(events => events.Close("closeSDItemDialog"))
+                               .Visible(false)
+
+
+    )
+    @(Html.Kendo().Window()
+                               .Name("scoreIDDialogList")
+                               .Title(DicSvc.XLate("Source Score Selection"))
+                               .Width(900)
+                               .Height(500)
+                               //.Events(p => p.Close("closeSDItemDialog"))
+                               //.Draggable()
+                               //.Resizable()
+                               .Modal(true)
+                               //.Events(events => events.Close("closeSDItemDialog"))
+                               .Visible(false)
+
+
+    )
+    @(Html.Kendo().Window()
+                             .Name("sdItemDefaultValue")
+                             .Title(DicSvc.XLate("Default value"))
+                             .Width(600)
+                             .Height(300)
+                             .Modal(true)
+                             .Visible(false)
+    )
+
+</div>

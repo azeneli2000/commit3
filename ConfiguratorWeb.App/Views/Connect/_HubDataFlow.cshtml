@@ -1,0 +1,24 @@
+﻿@model List<ConfiguratorWeb.App.Models.HubDataFlowViewModel>
+
+@if (Model != null && Model.Count>0 )
+{
+    <table class="k-widget k-grid k-display-block">
+        <tr class="k-grid-header">
+            <td style="text-align:center;">@DicSvc.XLate("Plugin")</td>
+            <td style="text-align:center;">@DicSvc.XLate("Measure")</td>
+        </tr>
+        @foreach (var el in Model)
+        {
+            <tr>
+                <td style="text-align:left;">@el.DataMeasure</td>
+                <td style="text-align:right;">@el.DataValue @el.DataUnit</td>
+            </tr>
+        }
+    </table>
+}
+else
+{
+    <span>@DicSvc.XLate("No data flow are present for this Hub")</span>
+}
+
+

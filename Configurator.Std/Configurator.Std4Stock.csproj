@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+    <GenerateAssemblyTrademarkAttribute>false</GenerateAssemblyTrademarkAttribute>
+    <NoWarn>1701;1702;NETSDK1138;CS0168</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="BL\Hubs\**" />
+    <EmbeddedResource Remove="BL\Hubs\**" />
+    <None Remove="BL\Hubs\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="BL\TherapyDataManager.cs.bak" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="BL\Hubs\IMessageCenterManager.cs" />
+    <Compile Include="BL\Hubs\MessageCenterManager.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AscomUMS.Digistat.Dal" Version="8.0.0" />
+    <PackageReference Include="AscomUMS.Digistat.DigistatWebComponents" Version="8.0.0" />
+    <PackageReference Include="AscomUMS.TelligenceXMLRPCClient" Version="8.0.0" />
+    <PackageReference Include="FastReport.Web" Version="2021.4.16-demo" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.0.1" />
+    <PackageReference Include="DotNetCore.NPOI" Version="1.2.3" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="NetCore.AutoRegisterDi" Version="2.1.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+  </ItemGroup>
+
+
+
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+</Project>

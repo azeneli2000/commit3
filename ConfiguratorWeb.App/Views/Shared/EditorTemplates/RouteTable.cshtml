@@ -1,0 +1,11 @@
+﻿@model ConfiguratorWeb.App.Models.Therapy.TherapyItemModel
+
+   <div class="editor-label">
+      <div class="col-md-1  u-col-h-fixed ">
+         <label for="Name">@DicSvc.XLate("Name")</label>
+      </div>
+   </div>
+   <div class="editor-field">
+     <input class="k-textbox" id="Name" data-bind="value:Name" maxlength="10"/>
+   </div>
+   <input type="hidden" id="Enabled"  data-bind="value:Enabled" style="display:none" />

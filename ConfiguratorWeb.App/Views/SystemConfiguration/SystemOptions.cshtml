@@ -1,0 +1,253 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@{
+    string gridName = "system-options-grid";
+   ViewBag.Title = DicSvc.XLate("System option");
+}
+<script>
+    var gridIdName = "@gridName";
+</script>
+
+<style>
+    
+
+    .k-grid td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+</style>
+
+<div class="h-100 text-center">
+
+   <div class="card h-100 m-1 p-2 text-left">
+
+      @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.SystemOptionViewModel>()
+         .Name(gridName)
+         .ToolBar(t => t.Excel().Text(DicSvc.XLate("Export to Excel")))
+         .Excel(excel => excel.AllPages(true).FileName("SystemOption_{0}.xlsx".FormatWith(DateTime.Now.ToString("s"))))
+         .UmsDefaultSettings(DicSvc)
+         .Navigatable(true)
+         .Columns(columns =>
+         {
+            columns.Bound(e => e.GUID).Visible(false);
+            columns.Bound(e => e.Name);
+            columns.Bound(e => e.Application).Width(150).Filterable(ftb => ftb.Multi(true).Search(true));
+            columns.Bound(e => e.HospitalUnitName).Title(DicSvc.XLate("Hospital Unit"));
+            columns.Bound(e => e.HostName);
+            columns.Bound(e => e.UserName).Width(120).Title(DicSvc.XLate("User"));
+            columns.Bound(e => e.Type);//.ClientTemplate("#debugger;##:Type#" );
+            columns.Bound(e => e.Value).Width("40%");
+
+         })
+         .UmsDefaultPager(DicSvc)
+         .Events(ev => ev.Cancel("onCancel").DataBound("onDataBound"))
+         .DataSource(dataSource => dataSource
+            .Ajax()
+            .Model(model =>
+            {
+               model.Id(o => o.GUID);
+               model.Field(o => o.Name).Editable(false);
+               model.Field(o => o.Application).Editable(false);
+               model.Field(o => o.HospitalUnitName).Editable(false);
+               model.Field(o => o.HostName).Editable(false);
+               model.Field(o => o.UserName).Editable(false);
+               model.Field(o => o.Type).Editable(false);
+               model.Field(o => o.Value).Editable(false);
+            }).PageSize(50)
+            .Events(events => events.Error("onGridError"))
+            .Read(read => read.Action("ReadSystemOptions", "SystemConfiguration")
+            )
+            .Create(create => create.Action("CreateSystemOption", "SystemConfiguration")
+            )
+
+         )
+
+         )
+      <div id="SystemOptionEditWindow"></div>
+   </div>
+</div>
+<kendo-window name="popupHospitalUnit"
+              draggable="true"
+              scrollable="false"
+              visible="false"
+              width="600"
+              modal="true"
+              title=@DicSvc.XLate("HOSPITAL UNIT SELECTION")
+              height="450"
+              resizable="true">
+    <popup-animation enabled="false" />
+</kendo-window>
+<script>
+
+
+    @{
+       string editItemTitle = DicSvc.XLate("Edit System Option");
+    }
+    var kndWnd ;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $('#SystemOptionEditWindow').usmKendoWindow({
+                close: function (e) {
+
+                },
+                title: '@editItemTitle',
+                height: 550,
+                width:'90%'
+            });
+        }
+    });
+    function displaySysOptDetail(itemID) {
+       var windowWidget = $("#SystemOptionEditWindow").data("kendoWindow");
+       kendo.ui.progress(windowWidget.element, true);
+         $.ajax({
+           url: '@Url.Action("GetSystemOption", "SystemConfiguration")',
+           type: 'GET',
+             data: { id: itemID },
+           async: false
+       }).done(function (dataHtml) {
+           kendo.ui.progress(windowWidget.element, true);
+           var itemDialog = kndWnd('kendoWindow');
+           itemDialog.content(dataHtml);
+           itemDialog.open();
+           itemDialog.center();
+       });
+    }
+
+    function onTLDeviceSelected(e) {
+        /*
+        var item = e.sender.dataItem(e.sender.select())
+        displaySysOptDetail(item.ID);
+        */
+    }
+
+    function deselectSystemOption() {
+        //$($('#system-options-grid').data('kendoGrid').select()).removeClass("k-state-selected");
+    }
+
+    function filterMenuInit(e) {
+        var firstValueDropDown = e.container.find("select:eq(0)").data("kendoDropDownList");
+
+        setTimeout(function () {
+            firstValueDropDown.wrapper.hide();
+        });
+    }
+    @*function sysOptApplicationFilter(element) {
+        element.kendoDropDownList({
+            dataSource: {
+                transport: {
+                    read: "@Url.Action("FilterGridApplications")"
+                }
+            },
+            optionLabel: '@DicSvc.XLate("ALL")'
+        });
+    }*@
+
+
+    function editSystemOptionDetail(e) {
+        e.preventDefault();
+        var dataItem = $("#system-options-grid").data("kendoGrid").dataItem(e.masterRow);
+        openDetail(dataItem);
+    }
+
+    function openDetail(dataItem) {
+        $.ajax({
+            type: "GET",
+            url: '@Url.Action("GetSystemOption", "SystemConfiguration")',
+            data: { id: dataItem.GUID }
+          }).done(  function (data) {
+              var wnd = kndWnd.data("kendoWindow");
+                wnd.content('');
+                wnd.content(data);
+                wnd.center().open();
+            }).fail(function (xhr, textStatus, errorThrown) {
+            }
+            );
+    }
+
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+        //removed according to directive
+        //setGridKendoTooltip(grid.element.closest('[data-role="grid"]').attr('id'));
+    }
+
+    function onCancel(e) {
+        var grid = e.sender;
+        grid.refresh();
+    }
+
+    function onGridError(e) {
+        if (e.errors) {
+            debugger;
+        }
+    }
+
+    //functions for detail
+    function OnSuccess(response) {
+        //debugger;
+        if (response.success) {
+
+            var grid = $("#system-options-grid").data("kendoGrid");
+            grid.dataSource.read();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+
+    function OnFailure(response) {
+        //debugger;
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+    
+    $(window).resize(function(){
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                var win = $(kendoWindow).data("kendoWindow");
+                win.center();
+                win.trigger('resize');
+                if (typeof(setMode) != "undefined") {
+                    setMode();
+                }
+            }
+        }, 100);
+    });
+    function onGridKeyEnter(item) {
+        openDetail(item);
+    };
+    function findDataItem(theGrid, dataItem) {
+        //get grid datasource
+        var ds = theGrid.dataSource;
+        //copy the datasource
+        var fakeDS = $.extend({}, ds);
+        //pagesize 10 gazillion, requery 
+        fakeDS.query({
+            pageSize: 10000
+        });
+        fakeDS.filter(ds.filter());
+        fakeDS.sort(ds.sort());
+        //var index = fakeDS.indexOf(dataItem); --this doesn't work, objects aren't equal
+        var view = fakeDS._view;
+        for (var x = 0; x < fakeDS._view.length; x++) {
+            if (fakeDS._view[x].GUID === dataItem) {
+                index = x;
+                break;
+            }
+        }
+
+        var page = Math.floor(index / theGrid.dataSource._pageSize);
+        var targetIndex = index - (page * theGrid.dataSource._pageSize) + 1;
+        //page is 1-based index 
+        theGrid.dataSource.page(++page);
+        //grid wants a html element. tr:eq(x) by itself searches in the first grid! 
+        var row =  $("#system-options-grid").find("tr:eq(" + targetIndex + ")");
+        theGrid.select(row);
+    }
+
+    
+</script>

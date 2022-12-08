@@ -1,0 +1,287 @@
+﻿@{
+    string gridName = "telligence-server-grid";
+   ViewBag.Title = DicSvc.XLate("Telligence Servers");
+}
+
+<script>
+    var gridIdName = "@gridName";
+</script>
+
+
+<div class="h-100 text-center ">
+    <div class="card h-100 m-1 p-2 text-left">
+
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.TelligenceServerViewModel>()
+                                            .UmsDefaultToolbar("create_telligenceServer", DicSvc.XLate("ADD NEW TELLIGENCE SERVER"), "openDetail();", DicSvc)
+                                            .Name(gridName)
+                                            .UmsDefaultSettings(DicSvc)
+                                            .Navigatable(true)
+                                            .Columns(columns =>
+                                            {
+                                                columns.Bound(e => e.ID).Visible(false);
+                                                columns.Bound(e => e.ServerURL);
+                                                columns.Bound(e => e.IMTBridgeUsername);
+                                                columns.Bound(e => e.IMTBridgePassword);
+                                            })
+
+                                                .UmsDefaultSettings(DicSvc)
+                                                .Events(ev => ev.Edit("onEdit").DataBound("onDataBound"))
+                                                .DataSource(dataSource => dataSource
+                                                    .Ajax()
+                                                    .Model(model =>
+                                                    {
+                                                        model.Id(o => o.ID);
+                                                        model.Field(o => o.ServerURL).Editable(false);
+                                                        model.Field(o => o.IMTBridgeUsername).Editable(false);
+                                                        model.Field(o => o.IMTBridgePassword).Editable(false);
+                                                    })
+                                                    //.Events(events => events.Error("error_handler_users"))
+                                                    .Read(read => read.Action("ReadTelligenceServers", "Telligence"))
+                                                    .Update(update => update.Action("UpdateServer", "Telligence"))
+                                                    .Create(create => create.Action("CreateServer", "Telligence"))
+                                                )
+                //.NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+        )
+    </div>
+    <div id="TelligenceServerEditWindow"></div>
+</div>
+<script id="delete-confirmation" type="text/x-kendo-template">
+    @{ await Html.RenderPartialAsync("_DeleteDialogConfirmWindow"); }
+</script>
+
+<script id="detail" type="text/kendo-tmpl">
+    <div class="telliservers-detail" data-uidparent="#=ID#" style="width: 99%;display: inline-block;padding: 15px 0;"></div>
+</script>
+
+
+<script>
+    @{
+       string editItemTitle = DicSvc.XLate("Edit Telligence Server");
+    }
+      var kndWnd ;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $('#TelligenceServerEditWindow').usmKendoWindow({
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                },
+                title: '@editItemTitle',
+                height: 490,
+             //   width:700,
+                width: '70%',
+               // width: '50%'
+            });
+        }
+    });
+
+
+
+    function openDetail(dataItem) {
+        var itemId = '0';
+        if (dataItem) {
+            itemId = dataItem.ID;
+        } else {
+            itemID = 0;
+        }
+        $.ajax({
+            type: "GET",
+            url: '@Url.Action("GetServer", "Telligence")',
+            data: { id: itemId }
+          }).done(  function (data) {
+              var wnd = kndWnd.data("kendoWindow");
+                wnd.content('');
+                wnd.content(data);
+                wnd.center().open();
+            }).fail(function (xhr, textStatus, errorThrown) {
+            }
+            );
+    }
+
+    function onGridKeyEnter(item) {
+        openDetail(item);
+    };
+
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+    }
+
+    function onConnCheck(e) {
+
+    }
+
+    function onInitDetailTLServer(e) {
+        e.preventDefault();
+        var dataItem = $("#telliservers-grid").data("kendoGrid").dataItem(e.masterRow);
+        $.ajax({
+            url: '@Url.Action("GetServer", "Telligence")',
+            type: 'GET',
+            data: { id: dataItem.ID },
+            async: false
+
+        }).done(function (data) {
+            var vntDetail = $(e.detailRow).find("td.k-detail-cell").find("div.telliservers-detail");
+            $(vntDetail).html(data);
+            if ($(e.detailRow).prev().attr("data-role") == "editable") {
+                editMode(vntDetail);
+            }
+            else {
+                previewMode(vntDetail);
+            }
+        });
+    }
+
+    function onEdit(e) {
+
+        e.preventDefault();
+        $("#telliservers-grid").find("tr.k-detail-row").each(function (index, item) {
+            if ($(e.container).closest("tr").next("tr.k-detail-row").find("div.telliservers-detail").attr("data-uidparent") != $(item).find("div.telliservers-detail").attr("data-uidparent")) {
+                $(item).remove();
+            }
+        });
+
+        //collapse all except the current one
+        var grid = $("#telliservers-grid").data("kendoGrid");
+        $(".k-master-row").each(function (index) {
+            if ($("#telliservers-grid").data("kendoGrid").dataItem($(e.container).closest("tr")).uid != $(this).attr("data-uid")) {
+                grid.collapseRow(this);
+            }
+        });
+
+        if (!$(e.container).closest("tr").next().find("td.k-detail-cell").is(":visible")) {
+            $(e.container).closest("tr").find(".k-hierarchy-cell>a.k-icon").click();
+        }
+
+        $(e.container).closest("tr").next().find("td.k-detail-cell").find(".modify-mode").show();
+        $(e.container).closest("tr").next().find("td.k-detail-cell").find(".view-mode").hide();
+
+        $(e.container).closest("tr").find(".k-grid-update").hide();
+        $(e.container).closest("tr").find("td:last-child").css({ "text-align": "center" });
+    }
+
+
+
+    function refreshGridScrolling() {
+        var grid = $("#telliservers-grid").data("kendoGrid")
+        //reset the cached rowHeight:
+        grid._rowHeight = undefined;
+        //refresh the virtualScrollable option
+        grid.virtualScrollable.refresh();
+    }
+
+
+    function onCollapse(e) {
+       // refreshGridScrolling();
+        $("#telliservers-grid").find("tr.k-detail-row").each(function (index, item) {
+            if ($(e.container).closest("tr").next("tr.k-detail-row").find("div.telliservers-detail").attr("data-uidparent") != $(item).find("div.telliservers-detail").attr("data-uidparent")) {
+                $(item).remove();
+            }
+        });
+    }
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+
+    function previewMode(detailEl) {
+        //$(detailEl).find(".close").hide();
+        //$(detailEl).find(".right-area").hide();
+        //$(detailEl).find(".left-area").addClass("form-card-preview");
+        //$(detailEl).find(".left-area").removeClass("form-card");
+        //$(detailEl).find(".PopupForm").hide();
+        //$(detailEl).find(".edit-card").hide();
+        //$(detailEl).find(".close-card").hide();
+    }
+    function editMode(detailEl) {
+
+        //$(detailEl).find(".close").show();
+        //$(detailEl).find(".right-area").show();
+        //$(detailEl).find(".left-area").addClass("form-card");
+        //$(detailEl).find(".left-area").removeClass("form-card-preview");
+        //$(detailEl).find(".PopupForm").hide();
+        //$(detailEl).find(".edit-card").show();
+        //$(detailEl).find(".close-card").show();
+
+        //var myWin = $(detailEl).find(".PopupForm");
+        //if (!myWin.data("kendoWindow")) {
+        //    $(".PopupForm").kendoWindow(
+        //       {
+        //           modal: true,
+        //           visible: false,
+        //           appendTo: "div.left-area",
+        //           pinned: true,
+        //           width: "40%",
+        //           actions: ["Close"]
+        //       });
+        //}
+    }
+
+    function onEditItem(e) {
+        e.preventDefault();
+        if (!$("#telliservers-grid").find("tr[data-role='editable']").next().find("td.k-detail-cell").is(":visible")) {
+            $("#telliservers-grid").find("tr[data-role='editable']").find(".k-hierarchy-cell>a.k-icon").click();
+        }
+    }
+
+    function onDeleteItem(e) {
+        //test
+        e.preventDefault();
+        //debugger;
+        var tr = $(e.target).closest("tr"); //get the row for deletion
+        var vntIdGrid = $(e.target).closest("div.k-grid").attr("id");
+        var data = this.dataItem(tr); //get the row data so it can be referred later
+        var kendoWindow = $("<div ></div>").kendoWindow({
+            title: "Confirm",
+            resizable: false,
+            modal: true
+        });
+        $("#delete-confirmation").find("p.delete-message").empty().append("Are you sure you want to delete the current item?");
+        kendoWindow.data("kendoWindow")
+            .content($("#delete-confirmation").html())
+            .center().open();
+        kendoWindow
+            .find(".delete-confirm,.delete-cancel")
+                .click(function () {
+                    if ($(this).hasClass("delete-confirm")) {
+
+                        var grid = $("#telliservers-grid").data("kendoGrid");
+                        $.ajax({
+                            url: '@Url.Action("DeleteServer", "Telligence")',
+                            type: 'POST',
+                            data: { id: data.ID },
+                            async: false
+
+                        }).done(function (ret) {
+                            if (ret.success) {
+                                grid.dataSource.read();
+                            } else {
+                                kendo.alert(ret.errorMessage);
+                            }
+
+                            }).fail(function (ret) {
+
+                            });;
+                       // grid.dataSource.sync();  //actually send the request (might be ommited if the autoSync option is enabled in the dataSource)
+                    }
+
+                    kendoWindow.data("kendoWindow").close();
+                })
+                .end();
+    }
+
+</script>

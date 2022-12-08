@@ -1,0 +1,533 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+
+@inject IDictionaryService DicSvc
+
+@model ConfiguratorWeb.App.Models.DasOutputStateViewModel
+
+
+@{
+   Layout = null;
+   string keyID = String.Format("{0}_{1}_{2}", Model.LocationId, Model.BedId, Model.PatientId);
+   //string keyEmptyValueID = "0";
+   string formId = "form_" + keyID;
+   string gridName = "outputstates-grid";
+}
+
+
+<style>
+    .input-group-append .btn {
+        padding: 1px 6px !important;
+    }
+</style>
+
+<script type="text/javascript">
+    function onActivate(e) {
+
+    }
+
+    function openLocation() {
+       // debugger;
+        if (isNew) {
+            $.ajax({
+                url: '@Url.Action("GetLocations", "Connect")',
+                type: 'GET',
+                async: false
+
+            }).done(function (data) {
+                var dialog = $("#locationSelectionDialog").data("kendoWindow");
+                dialog.title('@DicSvc.XLate("LOCATION SELECTION")');
+                dialog.content(data);
+                dialog.center().open();
+            });
+        }
+    }
+
+    function openBed() {
+        if(isNew){
+            kendo.ui.progress($("#outputstateEditWindow"), true); // progess bar will intiate
+            $.ajax({
+                type: "GET",
+                url: '@Url.Action("GetBedsLocations", "Connect")',
+                data: {},
+                dataType: "json",
+                success: function (data) {
+                    //  debugger;
+                    var wnd = $("#bedSelectionDialog").data("kendoWindow");
+                    wnd.content('');
+                    wnd.content(data.content.Result);
+                    wnd.center().open();
+                },
+                error: function () {
+                },
+                complete: function () {
+                    kendo.ui.progress($("#outputstateEditWindow"), false);
+                }
+            });
+        }
+    }
+
+    function removeLocation() {
+        $('#LocationDescription').val('');
+        $('#LocationId').val(0);
+        checkLocationBedButtons();
+    }
+
+
+    function removeBed() {
+        $('#BedDescription').val('');
+        $('#BedId').val(0);
+        checkLocationBedButtons();
+    }
+
+    //events used for location popup grid
+    function onChangeLocation(e) {
+        //var oldLocationID = $('#outputstateEditWindow #LocationId').val();
+        var mygrid = this;
+        var item = e.sender.dataItem(e.sender.select())
+        if (item) {
+            $('#outputstateEditWindow #LocationId').val(item.ID);
+            $('#outputstateEditWindow #LocationDescription').val(item.LocationName);
+
+           // if (oldLocationID != item.ID) {
+                //clear bed data
+                $('#BedDescription').val('');
+                $('#BedId').val(0);
+            //}
+
+            //disable bed button
+            checkLocationBedButtons();
+        }
+
+        var dialogWnd = $("#locationSelectionDialog");
+        dialogWnd.data("kendoWindow").close();
+    }
+
+    function onDataBoundLocation(e) {
+        var grid = $("#defloc-grid").data("kendoGrid");
+        var data = grid.dataSource.data();
+        for (var i = 0; i < data.length; i++) {
+            if (data[i].ID == $('#outputstateEditWindow #LocationId').val()) {
+                var select = grid.tbody.find('tr[data-uid="' + data[i].uid + '"]');
+                grid.select(select);
+            }
+        }
+    }
+
+    function checkLocationBedButtons() {
+        if ($('#BedId').val() == 0 && $('#LocationId').val() > 0) {
+            //disable Location edit btn
+            $("#btnLocation").attr('disabled', false);
+            $("#btnBed").attr('disabled', true);
+        }
+        else if ($('#LocationId').val() == 0 && $('#BedId').val() > 0) {
+            //disable Bed edit btn
+            $("#btnLocation").attr('disabled', true);
+            $("#btnBed").attr('disabled', false);
+        }
+        else {
+            $("#btnLocation").attr('disabled', false);
+            $("#btnBed").attr('disabled', false);
+        }
+    }
+
+</script>
+
+<div class="card h-85 m-0 p-0 text-left" id="divItemDetail">
+    <form asp-controller="Connect" asp-action="SaveOutputStateDetail" id="@formId"
+          data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+          data-ajax="true" data-ajax-method="POST">
+
+        <div asp-validation-summary="ModelOnly"></div>
+
+        <input asp-for="StartDateUtc" type="hidden" />
+        <input asp-for="StopDateUtc" type="hidden" />
+        <input asp-for="IsSystem" type="hidden" />
+        <input asp-for="IsNew" type="hidden" />
+        <input asp-for="PatientId" type="hidden" />
+
+        <div class="row mt-3">
+            <div class="col-sm-2">
+                <label asp-for="LocationDescription">@DicSvc.XLate("Location") **</label>
+            </div>
+            <div class="col-sm-10">
+                <div class="input-group">
+                    <input asp-for="LocationId" type="hidden" />
+                    <input asp-for="LocationDescription" class="form-control control-required" readonly="readonly" />
+                    <div class="input-group-append">
+                        <button id="btnLocation" onclick="openLocation();" class="btn border" type="button" title="@DicSvc.XLate("Set Location")">
+                            <span class="mdi mdi-pencil"></span>
+                        </button>
+                        <button id="btnRemoveLocation" onclick="removeLocation();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Remove Location")">
+                            <span class="mdi mdi-18px mdi-window-close "></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-2">
+                <label asp-for="BedDescription">@DicSvc.XLate("Bed") **</label>
+            </div>
+            <div class="col-sm-10">
+                <div class="input-group">
+                    <input asp-for="BedId" type="hidden" />
+                    <input asp-for="BedDescription" class="form-control control-required" readonly="readonly" />
+                    <div class="input-group-append">
+                        <button id="btnBed" onclick="openBed();" class="btn border" type="button" title="@DicSvc.XLate("Set Bed")">
+                            <span class="mdi mdi-pencil"></span>
+                        </button>
+                        <button id="btnRemoveBed" onclick="removeBed();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Remove Bed")">
+                            <span class="mdi mdi-18px mdi-window-close "></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-2">
+                @Html.LabelFor(m => m.TypeDescription)
+            </div>
+            <div class="col-sm-10">
+                @(Html.Kendo().DropDownListFor(m => m.Type)
+                     .HtmlAttributes(new { @style = "width:20%;", id = "Type_" + Guid.NewGuid().ToString() })
+                     .DataTextField("Text")
+                     .DataValueField("Value")
+                     .DataSource(source =>
+                     {
+                        source.Read(read =>
+                        {
+                           read.Action("GetCollectTypeList", "Generic");
+                        });
+                     })
+                     )
+
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-2">
+                @Html.LabelFor(m => m.SamplingSeconds)
+            </div>
+            <div class="col-sm-10">
+                @Html.Kendo().NumericTextBoxFor(m => m.SamplingSeconds).Decimals(0).Min(10).Max(3600).Format("#").HtmlAttributes(new { @class = "control-required", @style = "width:20%;" })
+                <span class="text-muted">@DicSvc.XLate("Seconds")</span>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-sm-12">
+                <label class="label-note">@DicSvc.XLate("** You can choose either the Location or Bed")</label>
+            </div>
+        </div>
+    </form>
+</div>
+<div class="card-footer h-10 p-0 m-0 mt-1 border-0">
+    @(Html.Kendo().ToolBar()
+                                .Name("toolbarDetail")
+                                .UmsDefaultErrors(DicSvc)
+                                .Items(
+                                items =>
+                                {
+                                    items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode");
+                                }
+                                )
+                                .UmsDefaultSettings(DicSvc, "")
+    )
+</div>
+
+@(Html.Kendo().Window()
+                     .Name("dialog_" + keyID)
+                     .Height(200)
+                     .Width(600)
+                     .Actions(act => act.Close())
+                     .Visible(false)
+                     .Resizable()
+                     .Title("Upload")
+)
+
+<script type="text/javascript">
+
+    function OnSuccessUpload(response) {
+        // debugger;
+        if (response.success) {
+
+            var grid = $("#devicedrivers-grid").data("kendoGrid");
+            grid.dataSource.read();
+
+            var popupWindow = $('#dialog_' + keyID).data("kendoWindow");
+            popupWindow.close();
+
+            window.umsAlert("Success", "Files successfully uploaded.");
+
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+
+    function OnFailureUpload(response) {
+        //debugger;
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+</script>
+
+<script type="text/javascript">
+
+   var isNew = @Model.IsNew.ToString().ToLower();
+   var consolelog = false;
+   var actualmode = 0;
+   var divName = '#divItemDetail';
+   var grid = $('#' + gridIdName).data("kendoGrid");
+    var dialog = $("#outputstateEditWindow").data("kendoWindow");
+
+    function changeToEditMode() {
+        //debugger;
+        actualmode = 2;
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("modify-mode");
+        var $input = $(divName + '   :input[type="hidden"]');
+        $input.attr('disabled', false);
+        
+        $(divName +' :input').each(function () {
+
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(true);
+            } else {
+                cb = $(this).data("kendoNumericTextBox");
+                if (cb) {
+                    cb.enable(true);
+                }
+            }
+        });
+        if (!isNew) {
+            $("#btnBed").attr('disabled', true);
+            $("#btnRemoveBed").attr('disabled', true);
+            $("#btnLocation").attr('disabled', true);
+            $("#btnRemoveLocation").attr('disabled', true);
+        }
+
+    }
+
+   function changeToViewMode() {
+      actualmode = 1;
+      $(".view-mode").show();
+      $(".modify-mode").hide();
+      umsHideAllEditSaveButton();
+      toolBarShowButtonByClass("view-mode");
+      $(divName + ' :input').attr('disabled', true);
+
+      $(divName +' :input').each(function () {
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+               cb.enable(false);
+         } else {
+               cb = $(this).data("kendoNumericTextBox");
+               if (cb) {
+                  cb.enable(false);
+               }
+         }
+      });
+    }
+    function checkMainRow() {
+       // debugger;
+        if ('@Model.IsSystem' === "False") {
+            $("#btnEdit").hide();
+            $("#btnCancel").hide();
+            $("#btnSave").hide();
+            $("#btnDelete").hide();
+        }
+        else if (($('#BedId').val() ==0 && $('#LocationId').val() ==0)) {
+            $("#btnDelete").hide();
+        }
+    }
+
+   function setWindowMode() {
+      //customize according model key
+      
+      if (isNew) {
+         actualmode = 2;
+      } else {
+         actualmode = 1;
+       }
+       
+   }
+
+    function setMode() {
+        checkMainRow();
+      if (actualmode === 2)
+         changeToEditMode();
+      else
+           changeToViewMode();
+   }
+
+   $(document).ready(function () {
+
+      //debugger;
+      umsHideAllEditSaveButton();
+      setWindowMode();
+
+      //set up condition to know if it's a new item
+       setMode();
+       checkMainRow();
+      $('#btnEdit').off('click').on('click', function () {
+         if(consolelog)console.log("btnEdit called");
+         changeToEditMode();
+      });
+      $('#btnCancel').off('click').on('click', function () {
+         if (consolelog)console.log("btnCancel called");
+
+         // IF is new add, close the dialog
+         if (isNew) {
+               dialog.close();
+               return;
+         }
+
+         //TODO: reload data
+         displayOutputStateDetailDialog(@Model.LocationId, @Model.BedId, @Model.PatientId);
+         changeToViewMode();
+      });
+
+      $('#btnSave').off('click').on('click', function() {
+         if (consolelog)console.log("btnSave called");
+         actionSave();
+      });
+
+      $('#btnDelete').off('click').on('click', function () {
+         if (consolelog)console.log("btnDelete called");
+         var deleteMessage = '@(DicSvc.XLate("Do you really want to delete current item "))?';
+         var location = '@Model.LocationDescription';
+         var bed = '@Model.BedDescription';
+         var all = '@(DicSvc.XLate("Not set"))';
+
+         if (location.length == 0)
+            location = all;
+         if (bed.length == 0)
+            bed = all;
+
+            deleteMessage += "<br/><li> @(DicSvc.XLate("location:"))  " + location + "</li>";
+            deleteMessage += "<li>  @(DicSvc.XLate("bed:"))" + bed + "</li>";
+         
+         
+             
+         umsConfirm('@DicSvc.XLate("Confirm delete")', deleteMessage, deleteItem, cancelDeleteItem);
+      });
+
+      $('#btnClose').off('click').on('click', function () {
+         if (consolelog)console.log("btnClose called");
+         dialog.close();
+      });
+
+      $("input[data-val-length-max]").each(function (index, element) {
+         element.setAttribute("maxlength", element.getAttribute("data-val-length-max"));
+      });
+    });
+
+
+    function actionSave()
+    {
+        if (OnValidation()) {
+            //uncomment for production
+            kendo.ui.progress.messages = {
+                loading: "Saving..."
+            };
+            kendo.ui.progress($("#@formId"),true);
+            setTimeout(function(){
+                $("#@formId").submit();
+                kendo.ui.progress($("#@formId"),false);
+            }, 2000)    ;
+
+        }
+    }
+        function OnValidation() {
+            //debugger;
+            var validator = $("#@formId").kendoValidator().data("kendoValidator");
+
+            var errorLocationBed = false;
+            var errors = validator.errors();
+
+            if (isNew) {
+                if (!(($('#LocationId').val() == 0 && $('#BedId').val() > 0) || ($('#BedId').val() == 0 && $('#LocationId').val() > 0))) {
+                    errorLocationBed = true;
+                    errors.push('@DicSvc.XLate("It's required that either one of the fields Location or Bed are filled out, not both or none at all.", Digistat.FrameworkStd.Enums.StringParseMethod.Js)');
+                }
+            }
+
+            if (!validator.validate() || errorLocationBed || ($('#SamplingSeconds').val().length == 0)) {
+                
+                @*if ($('#LocationId').val().length == 0 || $('#LocationId').val() < 0) {
+                    errors.push('@DicSvc.XLate("Location couldn't be empty", Digistat.FrameworkStd.Enums.StringParseMethod.Js)');
+                    $('#LocationDescription').addClass('k-invalid');
+                }
+                if ($('#BedId').val().length == 0 || $('#BedId').val() < 0) {
+                    errors.push('@DicSvc.XLate("Bed couldn't be empty", Digistat.FrameworkStd.Enums.StringParseMethod.Js)');
+                    $('#BedDescription').addClass('k-invalid');
+                }*@
+                if ($('#SamplingSeconds').val().length == 0) {
+                    errors.push('@DicSvc.XLate("Sampling couldn't be empty", Digistat.FrameworkStd.Enums.StringParseMethod.Js)');
+                    $('#SamplingSeconds').addClass('k-invalid');
+                }
+                $("#errors").html(buildValidationMessage(errors));
+                return false;
+            }
+            else {
+                $("#errors").html("");
+            }
+            return true;
+        }
+
+    function OnSuccess(response) {
+        if (response.success) {
+            grid.dataSource.read();
+            dialog.close();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+   }
+
+    function OnFailure(response) {
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+   }
+
+    function toolBarShowButtonByClass(clas) {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsShowButtonByClass(clas);
+   }
+
+    function umsHideAllEditSaveButton()
+    {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsHideAllEditSaveButton();
+    }
+
+    function deleteItem() {
+        $.ajax({
+            url: '@Url.Action("DeleteOutputState", "Connect")',
+            type: 'POST',
+           data: {
+              locationId: @Model.LocationId,
+              bedId: @Model.BedId,
+              patientId: @Model.PatientId
+           }
+        }).done(function (data) {
+            if (data.success != undefined && data.success) {
+                dialog.close();
+                grid.dataSource.read();
+            } else {
+                $('#errors').html('not saved. reason:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+
+    }
+
+    function cancelDeleteItem() {
+
+        /* do nothing */
+   }
+</script>

@@ -1,0 +1,216 @@
+﻿@{
+
+   ViewBag.Title = DicSvc.XLate("Port Server");
+   string gridName = "portserver-grid";
+   string popUpWindowName = "portServerEditWindow";
+   int selectedID = ViewBag.DetailId ?? 0;
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+</script>
+
+<div class="card h-100 m-1 p-2 border-0" id="gridContainer">
+   <div id="@popUpWindowName"></div>
+    <div id="divPortServerStatus"></div>
+
+   @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.PortServerViewModel>()
+          .Name(gridName)
+          .UmsDefaultSettings(DicSvc)
+
+          .Columns(columns =>
+          {
+              columns.Bound(e => e.ID).Visible(true).Width(70).HtmlAttributes(new { style = "text-align: right;" });
+              columns.Bound(e => e.Address);
+              columns.Bound(e => e.IDBED).Width(100).HtmlAttributes(new { style = "text-align: right;" }).Hidden(true);
+              columns.Bound(e => e.BedName).Width(120).Filterable(false);
+              columns.Bound(e => e.DASBroker);
+              columns.Bound(e => e.TypeDescription).Title("Type");
+              columns.Bound(e => e.ID)
+                  .ClientTemplate(@"<a href='\#' onclick='showPSstatus(#=ID#);' class='btn border' ><i class='mdi mdi-magnify'></i>" + DicSvc.XLate("STATUS") + "</a>")
+                  .Title("&nbsp;")
+                  .Width(120).Filterable(false);
+
+
+          })
+          .UmsDefaultToolbar("btnNewPortServer", "ADD NEW PORT SERVER", "displayItemDetail('');", DicSvc)
+          .UmsDefaultPager(DicSvc)
+
+          .Events(ev => ev.DataBound("onDataBound"))
+          .DataSource(dataSource => dataSource
+              .Ajax()
+              .Model(model =>
+              {
+                  model.Id(o => o.ID);
+
+              })
+              .Read(read => read.Action("ReadPortServers", "ConnectPlus"))
+              //.PageSize(20)
+          //.Destroy(destroy => destroy.Action("DeletePortServer", "ConnectPlus"))
+          )
+
+   )
+
+   @(Html.Kendo().Window()
+                         .Name("portServerStatusWindow")
+                         .Title(DicSvc.XLate("Port Server Status"))
+                         .Width(950)
+                         .Height(550)
+                         .Modal(true)
+                         .Visible(false)
+   )
+</div>
+<div id="dasBrokerSelectionDialog"></div>
+
+<div id="bedSelectionDialog"></div>
+<script type="text/javascript">
+    var wndPSdeleteConfirm = null;
+    function showPSstatus(itemID) {
+        //debugger;
+           $.ajax({
+            url: '@Url.Action("GetPortServerStatusView", "ConnectPlus")',
+            type: 'GET',
+            data: { ID: itemID },
+            async: false
+        }).done(function (dataHtml) {
+            var dialog = $('#divPortServerStatus' ).data('kendoWindow');
+            dialog.title('@DicSvc.XLate("Port Server Status")');
+            dialog.content(dataHtml).center().open();
+        });
+    }
+
+    function confirmDeletePortServer(e) {
+        e.preventDefault();
+        var grid = this;
+        var row = $(e.currentTarget).closest("tr");
+        wndPSdeleteConfirm.center().open();
+        $("#btnDeletePSYes").click(function () {
+            grid.removeRow(row);
+            wndPSdeleteConfirm.close();
+        });
+
+        $("#btnDeletePSNo").click(function () {
+            wndPSdeleteConfirm.close();
+        });
+    }
+
+    @{
+       string editItemTitle = "Edit Port Server";
+       string newItemTitle = "Add Port Server";
+    }
+    var kndWnd;
+    var kndStatusWnd;
+    var dasBrokerWnd;
+    $(document).ready(function() {
+        var grid = $("#@gridName").getKendoGrid();
+        grid.thead.kendoTooltip({
+           filter: "th",
+           content: function(e) {
+              var target = $(e.target);
+              return target[0].dataset.title;
+           }
+        });
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                maxHeight: 500,
+                height: '470px',
+                title: '@DicSvc.XLate(editItemTitle)',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+        }
+        if (!kndStatusWnd) {
+            kndStatusWnd = $('#divPortServerStatus').usmKendoWindow({
+                maxHeight: 500,
+                height: '490px',
+                title: '@DicSvc.XLate("Port Server Status")',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+        }
+        if (!dasBrokerWnd) {
+            dasBrokerWnd = $('#dasBrokerSelectionDialog').usmKendoWindow({
+                height: '550px',
+                width: '700px'
+            }).getKendoWindow();
+        }
+        if ('@selectedID'!=='0') {
+           displayItemDetail(@selectedID);
+        }
+    });
+
+
+    $(window).resize(function () {
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                for (var i = 0; i < kendoWindow.length; i++) {
+                    var win = $(kendoWindow[i]).data("kendoWindow");
+                    if (!win.element.is(":hidden")) {
+                        win.center();
+                        if (win.resize != undefined) {
+                            win.trigger('resize');
+                        }
+
+                    }
+                }
+            }
+        }, 100);
+    });
+
+    function displayItemDetail(itemID) {
+        var windowWidget = $(popUpWindowName).data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+        var id = '0';
+        if (itemID != '') {
+            id = itemID;
+        }
+        $.ajax({
+            url: '@Url.Action("Get", "ConnectPlus")',
+            type: 'GET',
+            data: { ID: id }
+        }).done(function (dataHtml) {
+            //debugger;
+            kendo.ui.progress(windowWidget.element, true);
+			var dialog = $(popUpWindowName ).data('kendoWindow');
+            if (itemID ==='') {
+                dialog.title('@DicSvc.XLate(newItemTitle)');
+            } else {
+                dialog.title('@DicSvc.XLate(editItemTitle)');
+            }
+            dialog.content(dataHtml).center().open();
+
+        });
+    }
+    //
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem( $(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+    }
+    function onGridKeyEnter(item) {
+        //replace Key
+        displayItemDetail(item.ID);
+    };
+
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+</script>
+

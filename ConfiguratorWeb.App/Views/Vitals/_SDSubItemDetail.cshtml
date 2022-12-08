@@ -1,0 +1,147 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@model ConfiguratorWeb.App.Models.SDSubItemViewModel
+@inject IDictionaryService DicSvc
+@{
+    Layout = null;
+}
+
+<div class="card pt-1 pb-2" id="divVitalsSubItemDetail">
+    <form asp-controller="Vitals" id="form_DatasetSubItem_@Model.ID" asp-action="SaveDatasetSubItem" class="h-85"
+          data-ajax-failure="OnFailure" data-ajax-success="OnSuccessSubItemDetail" kendo-auto-scroll="true"
+          data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+
+        @Html.HiddenFor(x => x.ID)
+        @Html.HiddenFor(x => x.ItemID)
+
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-3 u-col-h-fixed">
+                    @Html.LabelFor(m => m.Code, new { @class = "field-required" })
+                </div>
+                <div class="col-md-3 u-col-h-fixed">
+                    @Html.TextBoxFor(m => m.Code, new { @class = "k-input k-textbox control-required", @maxlength = "10" })
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3 u-col-h-fixed">
+                    @Html.LabelFor(m => m.Label, new { @class = "field-required" })
+                </div>
+                <div class="col-md-9 u-col-h-fixed">
+                    @Html.TextBoxFor(m => m.Label, new { @class = "k-input k-textbox control-required", @maxlength = "250" })
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3 u-col-h-fixed">
+                    @Html.LabelFor(m => m.SubItemValue, new { @class = "field-required" })
+                </div>
+                <div class="col-md-3 u-col-h-fixed">
+                    @Html.TextBoxFor(m => m.SubItemValue, new { @class = "k-input k-textbox control-required", @maxlength = "3" })
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3 u-col-h-fixed">
+                    @Html.LabelFor(m => m.SubItemIndex)
+                </div>
+                <div class="col-md-3u-col-h-fixed">
+                    @Html.TextBoxFor(m => m.SubItemIndex, new { type = "number", @class = "k-input k-textbox" })
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3 u-col-h-fixed">
+                    @Html.LabelFor(m => m.ColorCode)
+                </div>
+                <div class="col-md-3u-col-h-fixed">
+                    @Html.TextBoxFor(m => m.ColorCode, new { @class = "k-input k-textbox control-required", @maxlength = "10" })
+                </div>
+
+            </div>
+        </div>
+    </form>
+</div>
+<div class="card-footer p-0 m-0 mt-1 border-0">
+    @(Html.Kendo().ToolBar()
+              .Name("toolbarDetailSubItem")
+              .UmsDefaultErrors(DicSvc)
+              .Items(
+                  items =>
+                  {
+                      if (Model.ID != Guid.Empty)
+                      {
+                          items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDeleteSubItem").UmsHtmlButtonGeneric("modify-mode-item");
+                      }
+                      items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Save")).Id("btnSaveSubItem").UmsHtmlButtonGeneric("modify-mode-item btnRed");
+                      items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnCancelSubItem").UmsHtmlButtonGeneric("modify-mode-item");
+                  }
+              )
+        )
+</div>
+
+<script type="text/javascript">
+    $(function () {
+        $('#btnCancelSubItem').off('click').on('click', function (e) {
+            var dialog = $('#sdSubItemEditWindow').data('kendoWindow');
+            dialog && dialog.close();
+       });
+
+        $('#btnDeleteSubItem').click(function () {
+           umsConfirm('@DicSvc.XLate("Confirm Delete", Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+               '@DicSvc.XLate("Do you really want to delete this SubItem?",Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+               deleteSubItem, function () { });
+        });
+
+        $('#btnSaveSubItem').click(function () {
+            kendo.ui.progress($("#sdSubItemEditWindow"), true);
+           if (OnValidationSubItem()) {
+               $("#form_DatasetSubItem_@Model.ID").submit();
+           }
+            kendo.ui.progress($("#sdSubItemEditWindow"), false);
+        });
+    });
+
+    function OnValidationSubItem() {
+        var validator = $("#form_DatasetSubItem_@Model.ID").kendoValidator().data("kendoValidator");
+         if (!validator.validate()) {
+            var errors = validator.errors();
+             $("#toolbarDetailSubItem #errors").html(buildValidationMessage(errors));
+            return false;
+         }
+         else {
+             $("#toolbarDetailSubItem #errors").empty();
+         }
+         return true;
+       }
+
+    function deleteSubItem() {
+        kendo.ui.progress($("#sdSubItemEditWindow"), true);
+        $.ajax({
+            url: '@Url.Action("DeleteDatasetSubItem", "Vitals")',
+            type: 'POST',
+            data: { id: '@Model.ID' },
+            async: false
+
+        }).done(function (data) {
+            $('#sdSubItemEditWindow').data('kendoWindow').close();
+            var grid = $("#vitalsDatasetSubItem_grid_@(Model.ItemID)").data("kendoGrid");
+            grid.dataSource.read();
+        }).fail(function (response) {
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+        kendo.ui.progress($("#sdSubItemEditWindow"), false);
+    }
+
+    function OnSuccessSubItemDetail(response) {
+        if (response.success) {
+            var grid = $(".k-grid[id^='vitalsDatasetSubItem_grid_']").data("kendoGrid");
+            grid.dataSource.read();
+
+            $('#sdSubItemEditWindow').data('kendoWindow').close();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+</script>

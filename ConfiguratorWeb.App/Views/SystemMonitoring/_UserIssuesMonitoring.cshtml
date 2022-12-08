@@ -1,0 +1,164 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@{
+   ViewData["Title"] = "View";
+   var gridName = "userissues-grid";
+   var strDetailsDivIdf = "UserIssuesDetail";
+
+}
+
+
+<script>
+
+function openDetail(item) {
+
+         var windowWidget = $("#@strDetailsDivIdf").data("kendoWindow");
+         kendo.ui.progress(windowWidget.element, true);
+         $.ajax({
+            url: '@Url.Action("CurrentUiItem", "SystemMonitoring")',
+            type: 'GET',
+               data: { selectedItem: item },
+
+         })
+         .done(function (dataHtml) {
+               var itemDialog = $('#@strDetailsDivIdf').data('kendoWindow');
+               itemDialog.content('');
+               itemDialog.content(dataHtml);
+            if (itemDialog.element.is(":hidden")) {
+               itemDialog.center();
+                     itemDialog.open();
+
+               }
+            })
+            .fail(function (dataHtml) {
+                  var itemDialog = $('#@strDetailsDivIdf').data('kendoWindow');
+               itemDialog.content('');
+               itemDialog.content(dataHtml);
+               if (itemDialog.element.is(":hidden")) {
+                     itemDialog.open();
+                     itemDialog.center();
+               }
+            });
+         kendo.ui.progress(windowWidget.element, false);
+}
+
+
+ var kndWndf;
+      $(document).ready(function () {
+         //if (!kndWndf) {
+            kndWndf = $('#@strDetailsDivIdf').usmKendoWindow({
+               title: '@DicSvc.XLate("Details")',
+               height: 550,
+               width: 1000,
+               minWidth: 600,
+               maxHeight: 550
+
+            });
+         //}
+
+   });
+
+
+
+   function onGridKeyEnter(item) {
+      var strItem = '0';
+      if (item) {
+         strItem = item.Id;
+      }
+      openDetail(strItem);
+   };
+
+   function onDataBoundMonitoring(e) {
+      var grid = this;
+      grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+         function (e) {
+            var item = grid.dataItem($(e.target).closest('tr'));
+            onGridKeyEnter(item);
+         });
+   };
+
+   function NumericFilter(control) {
+      $(control).kendoNumericTextBox({ "format": "n0", "decimals": 0 });
+   }
+
+   function GridDateTimeFilter(control) {
+      $(control).kendoDateTimePicker({ format: "dd/MM/yy HH:mm:ss", timeFormat: "HH:mm:ss" });
+   }
+
+</script>
+
+<div id="@strDetailsDivIdf">
+
+</div>
+<div class="h-100 text-center">
+   <div class="card h-100 m-1 p-2 text-left resizeOffsetGrids">
+
+      @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.UserReportViewModel>
+   ()
+   .Name(gridName)
+
+   .UmsDefaultSettings(DicSvc)
+   .Navigatable(true)
+   .Columns(columns =>
+   {
+
+      columns.Bound(e => e.Id).Visible(true).Filterable(x => x.UI("NumericFilter"));
+      columns.Bound(e => e.IssuedOnUTC).Title(DicSvc.XLate("Issue Date")).Format("{0:dd/MM/yy HH:mm:ss}").Filterable(x => x.UI("GridDateTimeFilter"));
+      columns.Bound(e => e.HU).Title(DicSvc.XLate("Hospital Unit"));
+      columns.Bound(e => e.LocationName).Title(DicSvc.XLate("Location"));
+      columns.Bound(e => e.Hostname).Title(DicSvc.XLate("Hostname"));
+      columns.Bound(e => e.PatientName).Title(DicSvc.XLate("Patient"));
+      columns.Bound(e => e.Description).Title(DicSvc.XLate("Description"));
+      columns.Bound(e => e.Status).Title(DicSvc.XLate("Status")).ClientTemplate("#: StatusText#").HtmlAttributes(new { style = "font-weight: bold; text-align: center;" }).Filterable(ftb => ftb.Multi(true).CheckAll(true));
+
+
+
+   })
+   .Filterable(filterable => filterable
+        .Extra(true)
+        .Operators(operators => operators
+            .ForDate(str => str.Clear()
+
+            .IsGreaterThan("Is after")
+                .IsGreaterThanOrEqualTo("Is after or equal to")
+                .IsLessThan("Is before")
+                .IsLessThanOrEqualTo("Is before or equal to")
+            ))
+        ).Sortable()
+   .Navigatable(true)
+   .UmsDefaultPager(DicSvc)
+   .UmsDefaultSettings(DicSvc)
+   .LoaderType(GridLoaderType.LoadingPanel)
+   .Events(ev => ev.DataBound("onDataBoundMonitoring"))
+   .DataSource(dataSource => dataSource
+   .Ajax()
+   .PageSize(25)
+   .Filter(f => f.Add(a => a.Status).IsEqualTo(Status.OPENED))
+
+   .Model(model =>
+   {
+      model.Id(o => o.Id);
+      model.Field(o => o.IssuedOnUTC).Editable(false);
+      model.Field(o => o.LocationName).Editable(false);
+      model.Field(o => o.HU).Editable(false);
+      model.Field(o => o.Hostname).Editable(false);
+      model.Field(o => o.PatientName).Editable(false);
+      model.Field(o => o.Description).Editable(false);
+      model.Field(o => o.Status).Editable(false);
+   })
+   .Events(events => events.Error("onGridError"))
+   .Read(read => read.Action("ReadFilteredUiItems", "SystemMonitoring"))
+
+   ).HtmlAttributes((new { style = "max-height: 1500px; min-width: 700px;" }))
+   )
+
+
+
+
+
+</div>
+</div>
+<script>
+   
+
+   resizeGrid("userissues-grid");
+</script>

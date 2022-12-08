@@ -1,0 +1,102 @@
+﻿@model ConfiguratorWeb.App.Models.DriverViewModel
+@{
+    Layout = null;
+}
+
+<div style="height:270px" id="info-div_@Model.Id">
+    <div class="row">
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.Manufacturer)
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            @Html.Kendo().TextBoxFor(m => m.Manufacturer).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "100" })
+        </div>
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.DriverVersionBuild)
+        </div>
+        <div class="col-md-3 u-col-h-fixed pt-2 label-important" id="DriverVersionBuild">
+            @Model.DriverVersionBuild
+        </div>
+
+    </div>
+    <div class="row">
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.DriverModel)
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            @Html.Kendo().TextBoxFor(m => m.DriverModel).Value(Model.DriverModel).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "100" })
+        </div>
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.HardwareRelease)
+        </div>
+        <div class="col-md-3 u-col-h-fixed pt-2 label-important">
+            @Model.HardwareRelease
+        </div>
+
+    </div>
+    <div class="row">
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.Device)
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            @Html.TextBoxFor(m => m.Device, new { @class = "k-input k-textbox", @maxlength = "100" })
+        </div>
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.SoftwareRelease)
+        </div>
+        <div class="col-md-3 u-col-h-fixed pt-2 label-important">
+            @Model.SoftwareRelease
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-2 u-col-h-fixed">
+
+            @Html.LabelFor(m => m.DeviceTypeDesc)
+        </div>
+        <div class="col-md-3 u-col-h-fixed pt-2 label-important">
+            @Model.DeviceTypeDesc
+        </div>
+
+
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.UseDynamicParameters)
+        </div>
+        <div class="col-md-2 u-col-h-fixed" style="padding-top: 0px;">
+            @Html.Kendo().CheckBoxFor(m => m.UseDynamicParameters).Checked(Model.UseDynamicParameters).Label(" ").Enable(false)
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.DriverVersion)
+        </div>
+        <div class="col-md-3 u-col-h-fixed pt-2 label-important">
+            @Html.DisplayFor(m => m.DriverVersion)
+        </div>
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.AlarmSupport)
+        </div>
+        <div class="col-md-3 u-col-h-fixed pt-2 label-important">
+            @Html.DisplayFor(m => m.AlarmSupportDescription)
+            @Html.HiddenFor(m => m.AlarmSupport)
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-2 u-col-h-fixed">
+            
+        </div>
+        <div class="col-md-3 u-col-h-fixed label-important">
+            
+        </div>
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.LabelFor(m => m.AlarmSystemType)
+        </div>
+        <div class="col-md-3 u-col-h-fixed pt-2 label-important">
+            @Html.DisplayFor(m => m.AlarmSystemTypeDescription)
+            @Html.HiddenFor(m=>m.AlarmSystemType)
+
+        </div>
+    </div>
+
+</div>
+
+

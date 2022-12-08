@@ -1,0 +1,16 @@
+﻿
+@{
+
+   List<DropDownListItem> listType = new List<DropDownListItem>()
+   {
+
+      new DropDownListItem(){Text = "Text",Value = "0"},
+      new DropDownListItem(){Text = "List",Value = "1"},
+      new DropDownListItem(){Text = "Integer",Value = "2"},
+      new DropDownListItem(){Text = "Decimal",Value = "3"},
+      new DropDownListItem(){Text = "Xml",Value = "4"},
+      new DropDownListItem(){Text = "Bool",Value = "5"}
+   };
+}
+@(Html.Kendo().DropDownListFor(m => m).BindTo(listType).AutoWidth(true)
+   .DataTextField("Text").DataValueField("Value").ValuePrimitive(true))

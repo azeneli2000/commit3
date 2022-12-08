@@ -1,0 +1,610 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@using  Digistat.FrameworkStd.Enums
+@model TherapyItemModel
+@{
+   ViewData["Title"] = "_TabClassificationDetail";
+
+   var gridName1 = "PrescriptionFilter";
+   var gridName2 = "QuickActionFilter";
+
+
+   List<SelectListItem> searchLevels = Enum
+    .GetValues(typeof(Classification.SearchLevelTherapy))
+    .Cast<int>()
+    .Select(i => new SelectListItem
+    {
+       Value = i.ToString(),
+       Text = Enum.GetName(typeof(Classification.SearchLevelTherapy), i),
+    }
+    )
+    .ToList();
+
+}
+
+<style>
+   .clasificationGrid {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      margin-top: 50px;
+   }
+
+   .mainClassificationContainer {
+      margin-right: auto;
+   }
+
+   .classificationForm {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      margin: 1em;
+   }
+
+   .rowClassification {
+      margin: 10px;
+      display: flex;
+      width: 100%;
+      height: 30px;
+   }
+
+
+   #coverPrescription {
+      position: absolute;
+      top: 232px;
+      width: 545px;
+      height: 201px;
+      z-index: 2;
+      cursor: not-allowed;
+      display:none;
+   }
+
+   #coverQuick {
+      position: absolute;
+      top: 232px;
+      width: 545px;
+      height: 201px;
+      z-index: 2;
+      cursor: not-allowed;
+      display:none;
+      left: 693px;
+   }
+</style>
+<script>
+    function ClassOpenLocationErrorPopup()
+      {
+          debugger;
+            $("#Classification_LocationName").val(initLocName);
+            $("#Classification_LocationRef").val(initLocValue);
+            var dialog = $('#dialogLocationError').data("kendoWindow");
+            dialog.center();
+            dialog.open();
+      }
+   function onDataBound(e) {
+      var category = '@Model.Classification.Category';
+      var categoryArray = category.split(',');
+      var rows = e.sender.tbody.children();
+   
+      for (let i = 0; i < rows.length; i++)
+      {
+         let row = $(rows[i]);
+         let data = e.sender.dataItem(row);
+         let checkbox = $(row).find('.k-checkbox')[0];
+         if (!enableGrids) {
+            $(checkbox).attr('disabled', true);//fix for the second grid enabled checkboxes when viewmode
+         }
+         else {
+            $(checkbox).attr('disabled', false);
+         }
+         if(categoryArray.includes(data.Name))
+         {
+            
+            if (enableGridCat) {
+               checkbox.checked = true;
+            }
+            else {
+               checkbox.checked = false;
+            }
+         }
+      }
+   }
+</script>
+<div id="dialogLocationError" style="display: none;">
+            <div>
+               <div>@DicSvc.XLate("Invalid operation. You can't modify location because there're associated items with different location Id")</div>
+            </div>
+      </div>
+<div class="mainClassificationContainer">
+   <div class="classificationForm">
+      <div style="display:flex; flex-direction:row;width:100%;">
+         <div style="display:flex; flex-direction:column;justify-content: space-between;height: 110px;width: 45%;">
+            <div class="rowClassification ">
+               <label for="Classification.ClassCat" style="font-weight:bold;margin-top: auto;">@DicSvc.XLate("Class")*</label>
+               @(Html.Kendo().DropDownListFor(m => m.Classification.ClassCat)
+                  .HtmlAttributes(new { @style = "margin-left:30px;width:100%;" })
+                  .DataTextField("Description")
+                  .DataValueField("Name")
+                  .OptionLabel(@DicSvc.XLate(" "))
+                  .DataSource(source =>
+                  {
+                     source.Read(read =>
+                     {
+                        read.Action("ReadClassificationFilters", "Therapy", new { filterType = 3 });
+                     });
+                  })
+
+               )
+               
+            @Html.HiddenFor(m => m.Classification.Category)
+
+            </div>
+
+            <div class="rowClassification">
+               <label for="Classification.LocationRef" style="font-weight:bold;margin-top: auto;">@DicSvc.XLate("Location") </label>
+
+               <div class="input-group">
+                  <input type="text" asp-for="Classification.LocationName" class=" label-name form-control control-required" readonly="readonly" style="margin-left:16px;" />
+                  <span class="input-group-append">
+                     <button id="btnLocation" onclick="openLocationsGrid();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Set Location">
+                        <span class="mdi mdi-pencil"></span>
+                     </button>
+                     <button id="btnClearLocation" onclick="clearLocationField();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Clear Location">
+                        <span class="mdi mdi-close"></span>
+                     </button>
+                  </span>
+                  @Html.HiddenFor(m => m.Classification.LocationRef)
+               </div>
+            </div>
+            @*@{
+                           if (Model.ItemType == Digistat.FrameworkStd.Enums.TherapyItemType.Action)
+                           {
+                        <div class="rowClassification">
+                           <label for="Classification_CanBeMixtureComponent" style="padding-right: 11px;">@DicSvc.XLate("Can be part of a Mixture")</label>
+                           @Html.Kendo().CheckBoxFor(m => m.Classification.CanBeMixtureComponent).Label("")
+
+                        </div>
+
+                           }
+               }*@
+         </div>
+         <div style="display: flex; flex-direction: column; position: relative; left: 9%; bottom: 10px;">
+            <div class="rowClassification" style="margin-top:20px;">
+               <label for="Classification_EnumSearchLevel" style="padding-right: 11px; width: 97px;">@DicSvc.XLate("Search Level")</label>
+               @(Html.Kendo().DropDownListFor(m => m.Classification.EnumSearchLevel)
+                                           .BindTo(Enum.GetNames(typeof(Classification.SearchLevelTherapy)))
+                                           .HtmlAttributes(new { style = " width: 250px;bottom: 3px;position: relative; " })
+               .OptionLabel(@DicSvc.XLate(" "))
+                                     //.DataTextField("Name")
+                                     //.DataValueField("Name")
+                                     .BindTo(searchLevels)
+                                     .Height(310)
+
+
+         )
+
+
+            </div>
+            <div class="rowClassification">
+               <label for="classIncomplete" style="padding-right: 11px;">@DicSvc.XLate("Incomplete")</label>
+               @Html.Kendo().CheckBoxFor(m => m.Classification.Incomplete).Label("").HtmlAttributes(new { @style = "position: relative;left: 8px;" })
+            </div>
+            @if ((!(Model.ItemType.Equals(TherapyItemType.Mixture))) && (!(Model.ItemType.Equals(TherapyItemType.Protocol))))
+                    {
+               <div class="rowClassification" style="position: relative; top: 10px;">
+                  <label for="classNurse" style="padding-right: 20px;">@DicSvc.XLate("Nurse Only") </label>
+                  @Html.Kendo().CheckBoxFor(m => m.Classification.Obsolete).Label("").HtmlAttributes(new { @style = "position: relative;left: 5px;" })
+
+               </div>
+            }
+               @*@if (Model.ItemType == Digistat.FrameworkStd.Enums.TherapyItemType.Action)
+         {
+            <div class="rowClassification">
+               <label for="Classification_ForProtocolOnly" style="padding-right: 11px;">@DicSvc.XLate("For Protocol Only")</label>
+               @Html.Kendo().CheckBoxFor(m => m.ForProtocolOnly).Label("")
+
+            </div>
+
+         }*@
+
+            </div>
+      </div>
+      <div class="clasificationGrid">
+         <div id="coverPrescription"></div>
+         <div id="coverQuick"></div>
+         @(Html.Kendo().Grid(Model?.Classification?.Prescription)
+                                      .Name(gridName1)
+                                      .Navigatable(true)
+                                      .Columns(columns =>
+                                      {
+                                         columns.Select().Width("40px").HtmlAttributes(new { style = "text-align:center;", @class = "checkBoxPrescriptions" });
+                                         columns.Bound(e => e.Name).Hidden();
+                                         columns.Bound(e => e.Description).Title(DicSvc.XLate("Prescription Filter"));
+
+                                      })
+                                           .Events(e => e.DataBound("onDataBound"))
+
+                                         .Scrollable()
+                                         .DataSource(dataSource => dataSource
+                                                        .Ajax()
+                                                         .Read(read => read.Action("ReadClassificationFilters", "Therapy", new { filterType = 1 }))
+
+                                         )
+                                         .HtmlAttributes(new { @class = "subGridsClassification" })
+                                         .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+         )
+         @if ((Model.ItemType.Equals(TherapyItemType.Action)) )
+         {
+            @(Html.Kendo().Grid(Model?.Classification?.QuickAction)
+                                    .Name(gridName2)
+                                    .Navigatable(true)
+                                    .Columns(columns =>
+                                    {
+                                       columns.Select().Width("40px").HtmlAttributes(new { style = "text-align:center;", @class = "checkBoxQuick" });
+                                       columns.Bound(e => e.Name).Hidden();
+                                       columns.Bound(e => e.Description).Title(DicSvc.XLate("Quick Action Filter"));
+
+                                    })//.AutoBind(false)
+                              .Scrollable()
+                                            .Events(e => e.DataBound("onDataBound"))
+
+                                       .DataSource(dataSource => dataSource
+                                                      .Ajax()
+                                                      .Read(read => read.Action("ReadClassificationFilters", "Therapy", new { filterType = 2 }))
+
+                                       )
+                                       .HtmlAttributes(new { @class = "subGridsClassification", @style = "left:10px;" })
+                                       .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+         )
+         }
+         </div>
+   </div>
+</div>
+
+
+
+<kendo-window name="popupLocations"
+              draggable="false"
+              scrollable="false"
+              visible="false"
+              width="600"
+              modal="true"
+              title="LOCATIONS"
+              height="500"
+              resizable="true">
+   <popup-animation enabled="false" />
+</kendo-window>
+
+<script>
+   var componentskndWnd;
+          var temp_loc = '@Model.Classification.LocationRef';
+
+   var associatedItemArray = new Array();
+   var keyVal2, KeyId2;
+    var id_Loc_toRemove = [];
+    var id_Loc_toRemoveProfile = [];
+    var id_Loc_toRemoveMixtures = [];
+   function GetAssociatedId() {
+
+        if ('@Model.ItemTypeString' == "@TherapyItemType.Mixture.ToString()") {
+
+           var components;
+           components = $('#MixtureComponents').getKendoGrid().dataSource.data();
+           if (components != null) {
+              for (var i = 0; i < components.length; i++) {
+                 associatedItemArray.push(components[i].IdChild)
+
+              }
+      }
+
+      }
+
+            if ('@Model.ItemTypeString' == "@TherapyItemType.Protocol.ToString()") {
+
+            var components;
+            components = $('#itemsGrid').getKendoGrid().dataSource.data();
+            if (components != null) {
+                for (var i = 0; i < components.length; i++) {
+                    associatedItemArray.push(components[i].IdChild)
+
+                }
+            }
+            }
+
+  
+
+   }
+
+         var initLocValue =       $("#Classification_LocationRef").val();
+     var initLocName =  $("#Classification_LocationName").val();
+   $(document).ready(function () {
+ 
+      GetAssociatedId();
+
+   });
+
+   function openLocationsGrid() {
+        $.ajax({
+            url: '@Url.Action("GetLocations", "SystemConfiguration")',
+            type: 'GET',
+            data: { id: '@Model.Classification.LocationRef' }
+        }).done(function (data) {
+
+              var dialogAbout = $("#popupLocations");
+              dialogAbout.data("kendoWindow").content(data);
+              dialogAbout.data("kendoWindow").center().open();
+
+
+
+        });
+   }
+      function RemoveAsscoiations()
+         {
+
+         var components
+         if ('@Model.ItemTypeString' == "@TherapyItemType.Mixture.ToString()") {
+            components = $('#MixtureComponents').getKendoGrid().dataSource.data();
+         }
+         else    if ('@Model.ItemTypeString' == "@TherapyItemType.Protocol.ToString()") {
+
+            components = $('#itemsGrid').getKendoGrid().dataSource.data();
+         }
+         var temArray = [];
+
+         temp_loc = KeyId2.toString();
+
+         if (components != null) {
+            for (var i = 0; i < components.length; i++) {
+               if (components[i].LocationRef != null) {
+                  if (components[i].LocationRef.toString() != temp_loc) {
+                     temArray.push(components[i]);
+                     associatedItemArray.pop(components[i].IdChild);
+                  }
+
+               }
+
+            }
+
+            components = temArray;
+            for (var y = 0; y < components.length; y++) {
+               if ('@Model.ItemTypeString' == "@TherapyItemType.Mixture.ToString()") {
+                  $('#MixtureComponents').getKendoGrid().dataSource.remove(components[y]);
+               }
+               if ('@Model.ItemTypeString' == "@TherapyItemType.Protocol.ToString()") {
+                  $('#itemsGrid').getKendoGrid().dataSource.remove(components[y]);
+               }
+            }
+
+
+               $("#Classification_LocationName").val(KeyVal2);
+               $("#Classification_LocationRef").val(KeyId2);
+               if ( '@Model.ItemTypeString' == "@TherapyItemType.Mixture.ToString()" ||'@Model.ItemTypeString' == "@TherapyItemType.Protocol.ToString()" ) {
+
+                   var gridObject = $("#MixtureComponentsSelection").data("kendoGrid");
+                   //gridObject.dataSource.transport.options.read.url = "/Therapy/ReadFilteredStandardActions?LocationID=" + temp_loc;
+                   gridObject.dataSource.transport.options.read.url =  "@Url.Action("ReadFilteredStandardActions", "Therapy")"+"?LocationID=" + temp_loc;
+                   gridObject.dataSource.read();
+
+            }
+            if( '@Model.ItemTypeString' != "@TherapyItemType.Protocol.ToString()")
+            {
+                ProfileSelection_LoadProfilesLocation();
+            }
+            }
+      }
+
+   function CancelRemove() {
+      $("#Classification_LocationName").val($("#Classification_LocationName").val());
+      $("#Classification_LocationRef").val($("#Classification_LocationRef").val());
+      $('#popupLocations').data("kendoWindow").close();
+   }
+   function RemoveAsscoiationsPr()
+   {
+   //    debugger;
+   //     if ('@Model.ItemTypeString' != "@TherapyItemType.Protocol.ToString()") {
+   //    var grid = $('#Protocols').data("kendoGrid");
+   //    var datasource = $('#Protocols').data("kendoGrid").dataSource;
+   //     var  components = $('#Protocols').getKendoGrid().dataSource.data();
+   //     if (id_Loc_toRemove.length > 0 ) {
+   //   for (var i = 0; i < components.length; i++) {
+   //        for(var j=0 ; j <id_Loc_toRemove.length;j++ )
+   //         { if(components[i].IdChild == id_Loc_toRemove[j])
+   //             {
+   //                 //grid.removeRow(components[i]);
+   //                 datasource.remove(components[i]);
+   //             }
+   //        }
+   //     }
+   //     }
+   //        id_Loc_toRemove = [];
+   //     }
+   // if ('@Model.ItemTypeString' == "@TherapyItemType.Action.ToString()") {
+   //     var datasource2 = $('#ProfilesLink').data("kendoGrid").dataSource;
+   //     var components2 = $('#ProfilesLink').getKendoGrid().dataSource.data();
+   //     if (id_Loc_toRemoveProfile.length > 0 ) {
+   //     for (var i = 0; i < components2.length; i++) {
+   //        for(var j=0 ; j <id_Loc_toRemoveProfile.length;j++ )
+   //         { if(components2[i].IdProfile == id_Loc_toRemoveProfile[j])
+   //             {
+   //                 //grid.removeRow(components[i]);
+   //                 datasource2.remove(components2[i]);
+   //             }
+   //        }
+   //     }
+   //     }
+   //         id_Loc_toRemoveProfile = [];
+   //     }
+    
+ 
+   }
+      function onDataBoundLoc(e) {
+         var that = this;
+      var grid = $("#loc-grid").data("kendoGrid");
+         if ($('#Classification_LocationRef').val() != '') {
+         grid.items().each(function () {
+            var data = grid.dataItem(this);
+            if (data.ID == $('#Classification_LocationRef').val()) {
+               grid.select(this);
+
+            }
+         });
+      }
+
+  
+
+
+      function CheckLocationForLink(temp_loc)
+      {
+            var result = true
+            ProfileSelection_LoadProfilesLocation();
+            var  components =[] ;
+            if ('@Model.ItemTypeString' != "@TherapyItemType.Protocol.ToString()") 
+            {
+                    components = $('#Protocols').getKendoGrid().dataSource.data();
+                    if (components != null) {
+                        for (var i = 0; i < components.length; i++) {
+                            debugger;
+                       
+                            if(temp_loc != components[i].LocationRef && (components[i].LocationRef!=null))
+                            {
+                                id_Loc_toRemove.push(components[i].IdChild);
+
+                            }
+                        }
+                    }
+
+            }
+            var  components2 = $('#ProfilesLink').getKendoGrid().dataSource.data();
+            if (components2 != null) {
+                for (var i = 0; i < components2.length; i++) {
+                       
+                    if(temp_loc != components2[i].LocationRef && (components2[i].LocationRef!=null) )
+                    {
+                        id_Loc_toRemoveProfile.push(components2[i].IdProfile);
+
+                    }
+                }
+            }
+
+            if(id_Loc_toRemove.length > 0 || id_Loc_toRemoveProfile.length > 0 )
+            {    
+                var dialog = $('#dialogLocationError').data("kendoWindow");
+                dialog.center();
+                dialog.open();             
+
+                $("#Classification_LocationName").val(initLocName);
+                $("#Classification_LocationRef").val(initLocValue);
+                id_Loc_toRemoveMixtures=[];
+                id_Loc_toRemoveProfile=[];
+                id_Loc_toRemove=[];
+                    //if ('@Model.ItemTypeString' == "@TherapyItemType.Mixture.ToString()") {
+                    //          var gridObject = $("#MixtureComponentsSelection").data("kendoGrid");
+                    //          //gridObject.dataSource.transport.options.read.url = "/Therapy/ReadFilteredStandardActions?LocationID=" + temp_loc;
+                    //          gridObject.dataSource.transport.options.read.url = "@Url.Action("ReadFilteredStandardActions", "Therapy")"+"?LocationID=" + initLocValue;
+                    //          gridObject.dataSource.read();
+            
+                    //  }
+                result = false;
+            }
+            $('#popupLocations').data("kendoWindow").close();
+            return result ;
+      }
+
+    $(that.tbody).off("click", "tr").on("click", "tr", function (e) {
+
+         //save grid and current search form state and current url
+         //var dataSource = grid.dataSource;
+       
+        var keyVal = grid.dataItem($(e.currentTarget).closest("tr"))['LocationName'];
+        var keyId = grid.dataItem($(e.currentTarget).closest("tr"))['ID'];
+        KeyVal2 = keyVal;
+        KeyId2 = keyId;
+        temp_loc = keyId.toString();
+        $("#Classification_LocationName").val(keyVal);
+        $("#Classification_LocationRef").val(keyId);
+        var result = CheckLocationForLink(temp_loc)
+        if(result)
+        {
+             $.ajax({
+                    url: '@Url.Action("CheckAsscoiatedLocations", "Therapy")',
+                    type: 'POST',
+                    data: {  tempLoc: keyId, associatedItems :associatedItemArray }
+                    }).done(function (data) {
+                        if (data.data == false) {
+                            ClassOpenLocationErrorPopup();
+                            
+                        }
+                        else {
+                            temp_loc = keyId.toString();
+                            $("#Classification_LocationName").val(keyVal);
+                            $("#Classification_LocationRef").val(keyId);
+                            if ('@Model.ItemTypeString' != "@TherapyItemType.Action.ToString()") {
+                                var gridObject = $("#MixtureComponentsSelection").data("kendoGrid");
+                                //gridObject.dataSource.transport.options.read.url = "/Therapy/ReadFilteredStandardActions?LocationID=" + temp_loc;
+                                gridObject.dataSource.transport.options.read.url = "@Url.Action("ReadFilteredStandardActions", "Therapy")"+"?LocationID=" + temp_loc;
+                                gridObject.dataSource.read();
+                            }
+                        }
+                    });
+
+            $('#popupLocations').data("kendoWindow").close();
+        }
+    });
+
+    }
+     $("#dialogLocationError").kendoWindow({
+         width: "371px",
+         height: "140px",
+         modal: true,
+         title: "Error",
+         resizable: false,
+         actions: ["Close"],
+         open: function () {
+
+         },
+         close: function () {
+
+         },
+      animation: {
+         open: { effects: "fade:in" },
+         close: { effects: "fade:out" }
+      }
+
+   });
+
+    function clearLocationField() {
+
+          var keyVal =null;
+          var keyId = '';
+          KeyVal2 = keyVal;
+          KeyId2 = keyId;
+          $.ajax({
+          url: '@Url.Action("CheckAsscoiatedLocations", "Therapy")',
+          type: 'POST',
+             data: {  tempLoc: keyId, associatedItems :associatedItemArray }
+          }).done(function (data) {
+            if (data.data == false) {
+
+                ClassOpenLocationErrorPopup();
+            }
+            else {
+                temp_loc = keyId.toString();
+                $("#Classification_LocationName").val(null);
+                $("#Classification_LocationRef").val('');
+                if ('@Model.ItemTypeString' != "@TherapyItemType.Action.ToString()") {
+                    var gridObject = $("#MixtureComponentsSelection").data("kendoGrid");
+                    //gridObject.dataSource.transport.options.read.url = "/Therapy/ReadFilteredStandardActions?LocationID=" + temp_loc;
+                    gridObject.dataSource.transport.options.read.url =  "@Url.Action("ReadFilteredStandardActions", "Therapy")"+"?LocationID=" + temp_loc;
+                    gridObject.dataSource.read();
+                }
+            }
+
+            if ('@Model.ItemTypeString' != "@TherapyItemType.Protocol.ToString()")
+            {
+                initLocValue = '';
+                initLocName = '';
+                ProfileSelection_LoadProfilesLocation();
+            }
+        });
+    }
+</script>

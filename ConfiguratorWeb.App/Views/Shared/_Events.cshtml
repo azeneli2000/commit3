@@ -1,0 +1,41 @@
+﻿@model IEnumerable<ConfiguratorWeb.App.Models.DriverRepositoryEventCatalogViewModel>
+@{
+    Layout = null;
+}
+
+<input type="hidden" id="driverId" value="@((string)ViewBag.driver)" />
+
+<div style="text-align:center;">
+   @(
+      Html.Kendo().Grid(Model)
+         .Name("events-grid")
+         .HtmlAttributes(new { style = "height:420px;" })
+         .Columns(columns =>
+         {
+            columns.Bound(e => e.Id).HtmlAttributes(new { @style = "text-align:left;" });
+            columns.Bound(e => e.DescriptionLong).HtmlAttributes(new { @style = "text-align:left;" });
+            columns.Bound(e => e.DescriptionShort).HtmlAttributes(new { @style = "text-align:left;" });            
+         })
+         .Pageable(pager => { 
+            pager
+               .Input(false)
+               .Numeric(true)
+               .Info(true)
+               .PreviousNext(true)
+               .Refresh(false)
+               .PageSizes(false);
+         })
+         .Sortable(true)
+         .Filterable()
+         .Selectable()
+         .Scrollable()
+         .Events(ev => ev.DataBound("onDataBoundEvent")) 
+         .DataSource(dataSource => {
+            dataSource
+               .Ajax()
+               .ServerOperation(false)
+               .PageSize(20);
+         })
+         .NoRecords(x => x.Template("<div class='text-center'>" + DicSvc.XLate("No records found") + "</div>"))
+    )
+</div>

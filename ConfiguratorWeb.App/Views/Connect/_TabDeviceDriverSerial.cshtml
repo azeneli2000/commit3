@@ -1,0 +1,234 @@
+﻿@model ConfiguratorWeb.App.Models.DeviceDriverViewModel
+@{
+   Layout = null;
+}
+
+<script>
+            defaultBitsPerSeconds = '@Model.SerialPort.BitsPerSeconds';
+            function addNew(widgetId, value) {
+               var widget = $("#" + widgetId).getKendoDropDownList();
+               var dataSource = widget.dataSource;
+               if (isNaN(value)) {
+                  alert('@DicSvc.XLate("value is not numeric")');
+                  return;
+               }
+               if (value > 2147483647) {
+                  alert('@DicSvc.XLate("max value is 2147483647")');
+                  return;
+               }
+               if (value < 1) {
+                  alert('@DicSvc.XLate("min value is 1")');
+                  return;
+               }
+               if (confirm("@DicSvc.XLate("Are you sure?")")) {
+                  dataSource.add({
+                     Text: value,
+                     Value: value
+                  });
+
+                  dataSource.one("sync", function() {
+                     widget.select(dataSource.view().length - 1);
+                  });
+                  defaultBitsPerSeconds = value;
+                  dataSource.sync();
+                  widget.value(value);
+
+               }
+            };
+            function onBitsPerSecondsDataBound() {
+
+               if (defaultBitsPerSeconds.length>0) {
+
+                  var widget = $("#SerialPort_BitsPerSeconds").getKendoDropDownList();
+                  var dataSource = widget.dataSource;
+                  //debugger;
+                  if (dataSource) {
+
+                     //dataSource.filter( { field: "Value", operator: "startswith", value: defaultBitsPerSeconds });
+                     //var view = dataSource.view();
+                     if (! dataSource.data().some(function (elem, i) {
+                           return elem.Text == defaultBitsPerSeconds ? (index = i, true) : false;
+                        })) {
+
+                        dataSource.add({
+                           Text: defaultBitsPerSeconds,
+                           Value: defaultBitsPerSeconds
+                        });
+
+                        dataSource.one("sync", function() {
+                           widget.select(dataSource.view().length - 1);
+                        });
+
+                        dataSource.sync();
+                        widget.select(function(dataItem) {
+                           return dataItem.Text === defaultBitsPerSeconds;
+                        });
+                     }
+                  }
+
+               }
+
+            };
+
+</script>
+<div style="height:130px">
+   <div class="row mt-3">
+      <div class="col-md-1 u-col-h-fixed" style="text-align: right;">
+         <label asp-for="SerialPort.SerialPort" class="label-name margin10">@DicSvc.XLate("Serial Port")</label>
+      </div>
+      <div class="col-2 px-0">
+         <div class="input-group mb-3">
+            <div class="input-group-prepend border-0">
+               <span class="input-group-text bg-white">COM</span>
+            </div>
+            @(Html.Kendo().NumericTextBoxFor(m => m.SerialPort.SerialPort)
+                  .HtmlAttributes(new { @style = "width:50%;", @class = "form-control" })
+                  .Format("#")
+                  .Min(0)
+                  .Max(2048)
+                  //.HtmlAttributes(new { @style = "width:100%;" })
+            )
+
+            @*<div class="comPortDiv">*@
+            @*<label>COM</label>*@
+            @*Admitted numbers from 1 to 2048*@
+            @*<input asp-for="SerialPort.SerialPort" class="k-input k-textbox" type="number" min="0" max="2048" style="width:100%" />*@
+         </div>
+         @*@(Html.Kendo().NumericTextBox<int>().Name("SerialPort_" + Model.Id).Value(Model.SerialPort.SerialPort).Decimals(0).Format("#").Min(1).Max(2048).HtmlAttributes(new { @style = "width:100%;" }))*@
+         <span asp-validation-for="SerialPort.SerialPort"></span>
+      </div>
+
+      <div class="col-md-1 u-col-h-fixed" style="text-align: right;">
+         <label asp-for="SerialPort.StopBits" class="label-name margin10">@DicSvc.XLate("Stop Bits")</label>
+      </div>
+      <div class="col-md-2 u-col-h-fixed">
+         @(Html.Kendo().DropDownListFor(m => m.SerialPort.StopBits)
+                                     .HtmlAttributes(new { @style = "width:100%;" })
+                                     .DataTextField("Text")
+                                     .DataValueField("Value")
+                                 .DataSource(source =>
+                                 {
+                                    source.Read(read =>
+                                   {
+                                      read.Action("GetStopBitsList", "Generic");
+                                   });
+                                 })
+         )
+         <span asp-validation-for="SerialPort.StopBits"></span>
+      </div>
+      <div class="col-md-1 u-col-h-fixed" style="text-align: right;">
+         <label asp-for="SerialPort.BitsPerSeconds" class="label-name margin10">@DicSvc.XLate("Bits/sec")</label>
+      </div>
+      <div class="col-md-2 u-col-h-fixed">
+         <script id="noDataBitsPerSecondsTemplate" type="text/x-kendo-tmpl">
+            <div>
+               @DicSvc.XLate("Do you want to add new item ")- '#: instance.filterInput.val() #' ?
+            </div>
+            <br />
+            <button class="k-button" onclick="addNew('#: instance.element[0].id #', '#: instance.filterInput.val() #')">Add new item</button>
+         </script>
+
+         @(Html.Kendo().DropDownListFor(m => m.SerialPort.BitsPerSeconds)
+            .HtmlAttributes(new { @style = "width:100%;" })
+            .DataTextField("Text")
+            .DataValueField("Value")
+            .Filter(FilterType.Contains)
+            .NoDataTemplateId("noDataBitsPerSecondsTemplate")
+            //.AutoBind(false)
+            .DataSource(source =>
+            {
+               source.Read(read =>
+               {
+                  read.Action("GetBitsPerSecondList", "Generic");
+               });
+               source.ServerFiltering(false);
+               //source.Events(e=>e.RequestEnd("onBitsPerSecondsDataBound"));
+            })
+            .Events(e => e.DataBound("onBitsPerSecondsDataBound"))
+         )
+         <span asp-validation-for="SerialPort.BitsPerSeconds"></span>
+      </div>
+      <div class="col-md-1 u-col-h-fixed" style="text-align: right;">
+         <label asp-for="SerialPort.Handshake" class="label-name margin10">@DicSvc.XLate("Handshake")</label>
+      </div>
+      <div class="col-md-2 u-col-h-fixed">
+         @(Html.Kendo().DropDownListFor(m => m.SerialPort.Handshake)
+                                     .HtmlAttributes(new { @style = "width:100%;" })
+                                     .DataTextField("Text")
+                                     .DataValueField("Value")
+                                 .DataSource(source =>
+                                 {
+                                    source.Read(read =>
+                                   {
+                                      read.Action("GetHandshakeList", "Generic");
+                                   });
+                                 })
+         )
+         <span asp-validation-for="SerialPort.Handshake"></span>
+      </div>
+   </div>
+   <div class="row">
+      <div class="col-md-1 u-col-h-fixed" style="text-align: right;">
+         <label asp-for="SerialPort.Parity" class="label-name margin10">@DicSvc.XLate("Parity")</label>
+      </div>
+      <div class="col-md-2 u-col-h-fixed">
+         @(Html.Kendo().DropDownListFor(m => m.SerialPort.Parity)
+                              .HtmlAttributes(new { @style = "width:100%;" })
+                              .DataTextField("Text")
+                              .DataValueField("Value")
+                          .DataSource(source =>
+                          {
+                             source.Read(read =>
+                            {
+                                 read.Action("GetParityList", "Generic");
+                              });
+                          })
+         )
+         <span asp-validation-for="SerialPort.Parity"></span>
+      </div>
+      <div class="col-md-1 u-col-h-fixed" style="text-align: right;">
+         <label asp-for="SerialPort.DataModeId" class="label-name margin10">@DicSvc.XLate("Data Mode")</label>
+      </div>
+      <div class="col-md-2 u-col-h-fixed">
+         @(Html.Kendo().DropDownListFor(m => m.SerialPort.DataModeId)
+                              .HtmlAttributes(new { @style = "width:100%;" })
+                              .DataTextField("Text")
+                              .DataValueField("Value")
+                          .DataSource(source =>
+                          {
+                             source.Read(read =>
+                            {
+                                 read.Action("GetDataModelList", "Generic");
+                              });
+                          })
+         )
+
+         <span asp-validation-for="SerialPort.DataModeId"></span>
+      </div>
+      <div class="col-md-1 u-col-h-fixed" style="text-align: right;">
+         <label asp-for="SerialPort.DataBits" class="label-name margin10">@DicSvc.XLate("Data Bits")</label>
+      </div>
+      <div class="col-md-2 u-col-h-fixed">
+
+         @(Html.Kendo().DropDownListFor(m => m.SerialPort.DataBits)
+                                      .HtmlAttributes(new { @style = "width:100%;" })
+                                      .DataTextField("Text")
+                                      .DataValueField("Value")
+                                  .DataSource(source =>
+                                  {
+                                     source.Read(read =>
+                                    {
+                                         read.Action("GetDataBitsList", "Generic");
+                                      });
+                                  })
+         )
+         <span asp-validation-for="SerialPort.DataBits"></span>
+      </div>
+      <div class="col-md-1 u-col-h-fixed" style="text-align: right;">
+         <label asp-for="SerialPort.SmartCableID" class="label-name margin10">@DicSvc.XLate("SmartCableID")</label>
+      </div>
+      <div class="col-md-2 u-col-h-fixed">
+         <input asp-for="SerialPort.SmartCableID" class="k-input k-textbox" style="width:100%" />
+      </div>
+   </div>
+</div>

@@ -1,0 +1,19 @@
+﻿@model DriverEventLevelViewModel
+
+@(Html.Kendo().DropDownListFor(m => m)
+                                  .HtmlAttributes(new { @style = "width:100%;" })
+                                  .DataValueField("LevelId")
+                                  .DataTextField("LevelName")
+
+                                  .Events(ev => ev.Change("onChangeDriverEventLevel"))
+                              .DataSource(source =>
+                              {
+                                  source.Read(read =>
+                                  {
+                                      read.Action("GetDriverEventLevelList", "Generic");
+                                  });
+                              })
+)
+
+
+@Html.ValidationMessageFor(m => m)

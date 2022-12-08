@@ -1,0 +1,121 @@
+﻿@{
+    string gridName = "cdssrules-grid";
+   ViewBag.Title = DicSvc.XLate("CDSS Rules");
+}
+
+<script>
+    var gridIdName = "@gridName";
+    var kndWnd;
+</script>
+<style>
+   .row {
+      margin-bottom: 10px;
+   }
+</style>
+
+<div class="h-100 text-center">
+    <div class="card h-100 m-1 p-2 text-left">
+
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.CDSSRuleViewModel>()
+                    .ToolBar(t=>
+                    {
+                       t.Custom().UmsGridButtonGeneric("create_cdssRuleByDll", DicSvc.XLate("ADD NEW DLL RULE"), "openDetail(-1);");
+                    })
+                   .UmsDefaultToolbar("create_cdssRuleByScript", DicSvc.XLate("ADD NEW SCRIPT RULE"), "openDetail(-2);", DicSvc)
+                   
+                   .Name(gridName)
+                   .UmsDefaultSettings(DicSvc)
+                   .Columns(c =>
+                   {
+                      c.Bound(m => m.ID).Width(60).Hidden(true); 
+                      c.Bound(m => m.Name);
+                      c.Bound(m => m.IsActive);
+                      c.Bound(m => m.RuleTypeDescr).Filterable(f=>f.Multi(true));
+                      c.Bound(m => m.TriggerTypeDescr).Filterable(f=>f.Multi(true));
+                      c.Bound(m => m.IsGenericDescr).Filterable(f=>f.Multi(true));
+                      c.Bound(m => m.AutoActivate);
+                      c.Bound(m => m.ExecuteAtStartup);
+                      c.Bound(m => m.KillTimeout);
+                      //TODO: da decidere come gestirla
+                      //c.Bound(m => m.PatientID);
+                   } )
+                   //.Filterable(f=>f.)
+                   //.Events(ev => ev.Edit("onEdit").Cancel("onCancel").DetailInit("onInitDetailStandardDataset"))
+                   .Events(ev => ev.DataBound("onDataBound"))
+                   .DataSource(dataSource => dataSource
+                      .Ajax()
+                      .Read(read => read.Action("GetAllCDSSRules", "CDSS"))
+
+                   )
+
+
+        )
+
+    </div>
+    <div id="divCDSSRuleEditWindow"></div>
+</div>
+<script id="delete-confirmation" type="text/x-kendo-template">
+    @{ await Html.RenderPartialAsync("_DeleteDialogConfirmWindow"); }
+</script>
+
+<script id="detail" type="text/kendo-tmpl">
+    <div class="vitalsStandardDataset-detail" data-uidparent="#=sd_ID#" style="width: 99%;display: inline-block;padding: 15px 0;"></div>
+</script>
+<script>
+      @{
+       string editItemTitle = DicSvc.XLate("Edit CDSS Rule");
+    }
+    
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $('#divCDSSRuleEditWindow').usmKendoWindow({
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                },
+                title: '@editItemTitle',
+                height: 660,
+                minWidth:'90%'
+            });
+        }
+    });
+
+
+
+    function openDetail(dataItemId) {
+        kendo.ui.progress($("#cdssrules-grid"), true);
+        var itemId = '0';
+        if (dataItemId) {
+            itemId = dataItemId;
+        } else {
+            itemId = 0;
+        }
+        $.ajax({
+            type: "GET",
+            url: '@Url.Action("GETCDSSRule", "CDSS")',
+            data: { id: itemId }
+          }).done(  function (data) {
+              var wnd = kndWnd.data("kendoWindow");
+                wnd.content('');
+                wnd.content(data);
+                wnd.center().open();
+                
+            }).fail(function (xhr, textStatus, errorThrown) {
+            }
+        );
+        kendo.ui.progress($("#cdssrules-grid"), false);
+    }
+
+    function onGridKeyEnter(item) {
+        openDetail(item.ID);
+    };
+
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+    }
+
+</script>

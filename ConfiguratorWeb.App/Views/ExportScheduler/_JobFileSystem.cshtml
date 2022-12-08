@@ -1,0 +1,93 @@
+﻿@using Digistat.FrameworkStd.Interfaces
+@model Digistat.FrameworkStd.Model.Export.ExportJobs
+@inject IDictionaryService DicSvc
+
+<div class="row">
+   <div class="col-12 mt-3">
+      <div class="row">
+         <div class="col-3">
+            <label asp-for="exj_FileSystemRootPath" class=" field-required">@DicSvc.XLate("Base Directory")</label>
+         </div>
+         <div class="col-9">
+            <input asp-for="exj_FileSystemRootPath" class="form-control control-required"    data-message="@DicSvc.XLate("Base Directory is required")"/>
+         </div>
+      </div>
+      <div class="row">
+         <div class="col-3">
+            <label asp-for="exj_FileSystemSubFolder" class="">@DicSvc.XLate("Sub Directory")</label>
+         </div>
+         <div class="col-9">
+             <div class="input-group">
+                 <input asp-for="exj_FileSystemSubFolder" class="form-control " style="height: auto;" />
+                 
+                 <span class="input-group-append">
+                     <span onclick="openSubfolderInfo();" class="btn border ig-18px"  title="@DicSvc.XLate("Information")">
+                         <span class="mdi mdi-information-outline mdi-18px"></span>
+                     </span>
+                 </span>
+             </div>
+         </div>
+      </div>
+      <div class="row">
+         <div class="col-3">
+            <label asp-for="exj_FileSystemDaysToLive">@DicSvc.XLate("Remove files after")</label>
+         </div>
+         <div class="col-9">
+            @(Html.Kendo().NumericTextBoxFor(m => m.exj_FileSystemDaysToLive)
+               .Min(0).Max(32000).Decimals(0).RestrictDecimals(true).Format("n0")
+               .HtmlAttributes(new { @class="k-align-right w-15"})
+             )
+            <small class="form-text text-muted">@DicSvc.XLate("0 -> never remove files")</small>
+         </div>
+      </div>
+
+      
+
+      <div class="row">
+
+         <div class="col-3">
+            <label asp-for="exj_FileSystemUsername">@DicSvc.XLate("User")</label>
+         </div>
+         <div class="col-9">
+
+            <input asp-for="exj_FileSystemUsername" class="form-control " maxlength="100" autocomplete="one-time-code" />
+            <small class="form-text text-muted">@DicSvc.XLate("Applies  to network shared folders only")</small>
+         </div>
+      </div>
+      <div class="row">
+
+         <div class="col-3">
+            <label asp-for="exj_FileSystemPassword">@DicSvc.XLate("Password")</label>
+         </div>
+         <div class="col-9">
+            <div class="input-group" id="pwdShowHide">
+               @Html.Kendo().TextBoxFor(m => m.exj_FileSystemPassword).HtmlAttributes(new { @class = "form-control", type = "password", @disabled = "disabled", maxlength = "100" })
+               <div class="input-group-append">
+                  <button class="btn border" type="button" style="padding: 0.05em 0.55em;"><i class="mdi mdi-18px mdi-eye-off" aria-hidden="true"></i></button>
+               </div>
+
+            </div>
+            <small class="form-text text-muted">@DicSvc.XLate("Applies to network shared folders only")</small>
+         </div>
+      </div>
+      
+
+   </div>
+</div>
+<script>
+   $(document).ready(function() {
+      $('#exj_FileSystemPassword').attr("autocomplete", "new-password");
+      $("#pwdShowHide button").on('click', function(event) {
+         event.preventDefault();
+         if($('#pwdShowHide input').attr("type") == "text"){
+            $('#pwdShowHide input').attr('type', 'password');
+            $('#pwdShowHide i').addClass( "mdi-eye-off" );
+            $('#pwdShowHide i').removeClass( "mdi-eye" );
+         } else if ($('#pwdShowHide input').attr("type") == "password"){
+            $('#pwdShowHide input').attr('type', 'text');
+            $('#pwdShowHide i').removeClass( "mdi-eye-off" );
+            $('#pwdShowHide i').addClass( "mdi-eye" );
+         }
+      });
+   })
+</script>

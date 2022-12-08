@@ -1,0 +1,589 @@
+﻿@{
+   Layout = null;
+}
+@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@using ConfiguratorWeb.App.Controllers
+@using Newtonsoft.Json
+@model ConfiguratorWeb.App.Models.SimpleChoiceGroupedViewModel
+
+@{
+   StringBuilder objSbDelete = new StringBuilder();
+   objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete the list \"{0}\" "),Model.Group);
+   objSbDelete.Append("?");
+}
+@{
+   Layout = null;
+   string keyID = ViewBag.ChoiseGroup;
+   string keyEmptyValueID = "";
+   string formId = "form_0";// + keyID;
+}
+<style>
+   /*.k-ie11 .k-dialog-buttongroup .k-button :not(#umsConfirmDialogDIV) {
+      width: 100% !important;
+      max-width: 100%; 
+   }
+   html.k-ie11 > div.k-widget.k-window.k-dialog > div.k-button-group.k-dialog-buttongroup.k-dialog-button-layout-stretched ,
+   .k-ie11 .k-button-group.k-dialog-buttongroup.k-dialog-button-layout-stretched :not(#umsConfirmDialogDIV){
+      position: absolute !important; top: 80% !important; width: 100% !important;
+   }*/
+   
+</style>
+<script>
+   var uids = [];
+   var selectedOrders = [];
+   var idField = "ID";
+   function onGridDataBound(e) {
+      
+      var grid = e.sender;
+      var items = grid.items();
+      var itemsToSelect = [];
+      items.each(function (idx, row) {
+         var dataItem = grid.dataItem(row);
+         if (selectedOrders[dataItem[idField]]) {
+            itemsToSelect.push(row);
+         }
+      });
+   
+      e.sender.select(itemsToSelect);
+      toggleScrollbar(e);
+   }
+   function toggleScrollbar(e) {
+      var gridWrapper = e.sender.wrapper;
+      var gridDataTable = e.sender.table;
+      var gridDataArea = gridDataTable.closest(".k-grid-content");
+   
+      gridWrapper.toggleClass("no-scrollbar", gridDataTable[0].offsetHeight < gridDataArea[0].offsetHeight);
+   }
+   function onBeforeEditCell(e) {
+      if ($('#@formId').hasClass('readonly-mode')) {
+         e.preventDefault();
+      }
+   }
+   function onEditedGridOption(e) {
+      if (!e.model.dirty) {
+         return;
+      }
+      var gridWrapper = e.sender.wrapper;
+      var oldOption = $('#Options').val();
+      var newOption = "";
+      try {
+         //debugger;
+         if (gridWrapper && gridWrapper.getKendoGrid()) {
+            gridWrapper.getKendoGrid().dataSource.data().forEach(function (row) {
+               newOption += row.Name + ":" + row.Value + ";";
+            });
+         }
+      } catch (e) {
+   
+      }
+      $('#Options').val(newOption);
+   }
+   
+   function noEdit(parameters) {
+   
+   }
+   
+   function onGridChange(e, args) {
+      var grid = e.sender;
+      var items = grid.items();
+
+      items.each(function (idx, row) {
+         var idValue = grid.dataItem(row).get(idField);
+         if (row.className.indexOf("k-state-selected") >= 0) {
+            selectedOrders[idValue] = true;
+         } else if (selectedOrders[idValue]) {
+            delete selectedOrders[idValue];
+         }
+      });
+   }
+   /* move up */
+   $("#moveItemUp").on("click", function (idx, elem) {
+      var selected = visibleGrid.select();
+      if (selected.length > 0) {
+
+         $.each(selected, function (idx, elem) {
+            var dataItem = visibleGrid.dataItem($(this));
+            var index = visibleGrid.dataSource.indexOf(dataItem);
+
+            if (index > 0) {
+               var newIndex = index - 1;
+               visibleGrid.dataSource.remove(dataItem);
+               visibleGrid.dataSource.insert(newIndex, dataItem);
+            }
+         });
+      }
+
+      movingItems = false;
+   });
+   
+   /* move to top */
+   $("#moveItemToTop").on("click", function (idx, elem) {
+      var selected = visibleGrid.select();
+      var firstIndex = -1;
+
+      if (selected.length > 0) {
+         $.each(selected, function (idx, elem) {
+
+            if (firstIndex < 0)
+            {
+               firstIndex = 0;
+            }
+            else
+            {
+               firstIndex++;
+            }
+
+            var dataItem = visibleGrid.dataItem($(this));
+            var index = visibleGrid.dataSource.indexOf(dataItem);
+            var newIndex = firstIndex;
+
+            if (newIndex != index) {
+               visibleGrid.dataSource.remove(dataItem);
+               visibleGrid.dataSource.insert(newIndex, dataItem);
+            }
+         });
+      }
+
+      return false;
+   });
+   
+   /* move down */
+   $("#moveItemDown").on("click", function (idx, elem) {
+      var selected = visibleGrid.select();
+      if (selected.length > 0) {
+
+         $.each(selected, function (idx, elem) {
+            var dataItem = visibleGrid.dataItem($(this));
+            var index = visibleGrid.dataSource.indexOf(dataItem);
+            var maxIndex = visibleGrid.dataSource._data.length - 1;
+
+            if (index < maxIndex) {
+               var newIndex = index + 1;
+
+               visibleGrid.dataSource.remove(dataItem);
+               visibleGrid.dataSource.insert(newIndex, dataItem);
+            }
+         });
+      }
+
+      return false;
+   });
+   
+   /* move to bottom */
+   $("#moveItemToBottom").on("click", function (idx, elem) {
+      var selected = visibleGrid.select();
+      var lastIndex = -1;
+
+      if (selected.length > 0) {
+
+         if (lastIndex < 0) {
+            lastIndex = visibleGrid.dataSource._data.length - 1;
+         }
+         else {
+            lastIndex--;
+         }
+
+         $.each(selected, function (idx, elem) {
+            var dataItem = visibleGrid.dataItem($(this));
+            var index = visibleGrid.dataSource.indexOf(dataItem);
+            var newIndex = lastIndex;
+
+            if (newIndex != index) {
+               visibleGrid.dataSource.remove(dataItem);
+               visibleGrid.dataSource.insert(newIndex, dataItem);
+            }
+         });
+      }
+
+      return false;
+   });
+
+   function editRow(e) {
+         //debugger;
+         var cellElement = e;
+         var cell = $(cellElement);
+         var grid = $("#Choices").getKendoGrid();
+
+         grid.editRow(cell);
+   }
+</script>
+<div class="h-100 ">
+   <div class="card h-90 m-0 p-0 border-bottom-0 text-left" id="divItemDetail">
+      <form asp-controller="ClinicalConfiguration" id="@formId" asp-action="SaveDetails"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+            data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+         <div asp-validation-summary="ModelOnly"></div>
+
+         <div class="row mt-3">
+            <div class="col-3">
+               @DicSvc.XLate("Group")
+            </div>
+            <div class="col-9">
+               <input asp-for="Group" class="form-control control-required" readonly="readonly"  />
+            </div>
+
+         </div>
+         <div class="row">
+            <div class="col-3">
+               @DicSvc.XLate("Choice")
+               @Html.Hidden("stringifyOld" )
+               @Html.Hidden("stringifyGrid")
+            </div>
+            <style>
+               .ieflex {
+                  display: -ms-inline-flexbox;
+                  justify-content: flex-start;
+                  /* align-items: center; you might not need this */
+                  height: 2em;
+               }
+               /*display:inline-flex !important;*/
+               .ieflex>* {
+                  height: 100%;
+                  margin: 5px;
+               }
+            </style>
+            <div class="col-9 ieflex">
+               <div class="d-flex flex-row">
+                  <div class="p-0">
+                     @(Html.Kendo().Grid<SimpleChoiceViewModel>()
+                        .Name("Choices")
+                        .UmsDefaultSettings(DicSvc)
+                        //.UmsDefaultToolbar("", "",  DicSvc)
+                        .HtmlAttributes(new { @style = "height:310px; " })
+                        .Editable(e => e.Mode(GridEditMode.InCell))
+                        //.Events(ev => ev./*.DataBound("onDataBound")*/)
+                        .Sortable(false)
+                        .Filterable(f=>f.Enabled(false))
+                        .Resizable(r=>r.Columns(false))
+                        
+                        .Columns(columns =>
+                        {
+                           columns.Bound(e => e.ID).Hidden(true).Editable("noEdit").Width(45);
+                           columns.Bound(e => e.Choice).HtmlAttributes(new { @class = "col-editable" });
+                           columns.Bound(e => e.Index).Hidden(true).Editable("noEdit");
+                           columns.Template("").Width(20);
+
+                           //columns.Template("<span class='mdi mdi-pencil' onclick='editRow(this);'></span>").Width(40);
+                           //(c => c.Edit().CancelText(" ").Text(" ").UpdateText(" ")).Width(40);
+                        })
+                        .EnableCustomBinding(true)
+                        .BindTo(Model.Choices)
+                        .DataSource(d=>d.Custom().Batch(true))
+                        .Events(e => e.DataBound("onGridDataBound").BeforeEdit("onBeforeEditCell").Edit("onEditedGridOption").Change("onGridChange"))
+                     )
+
+                  </div>
+                  <div class="p-0">
+                     <div class="d-flex flex-column">
+                        <button id="btnChoiceNew"     type="button" class="btn border mdi mdi-24px ig-24px lh-1-0 mdi-plus  " onClick="onClickChoiceNew();" title="@DicSvc.XLate("Add new choice")"></button>
+                        <button id="btnChoiceDel"     type="button" class="btn border mdi mdi-24px ig-24px lh-1-0 mdi-minus " onClick="onClickChoiceDel();" title="@DicSvc.XLate("Delete selected choice")"></button>
+                        <button id="moveItemToTop"    type="button" class="btn border mdi mdi-24px ig-24px lh-1-0 mdi-chevron-double-up"                    title="@DicSvc.XLate("Move to top")"></button>
+                        <button id="moveItemUp"       type="button" class="btn border mdi mdi-24px ig-24px lh-1-0 mdi-chevron-up"                           title="@DicSvc.XLate("Move up")"></button>
+                        <button id="moveItemDown"     type="button" class="btn border mdi mdi-24px ig-24px lh-1-0 mdi-chevron-down"                         title="@DicSvc.XLate("Move down")"></button>
+                        <button id="moveItemToBottom" type="button" class="btn border mdi mdi-24px ig-24px lh-1-0 mdi-chevron-double-down"                  title="@DicSvc.XLate("Move to bottom")"></button>
+                        
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </form>
+
+   </div>
+   <div class="card-footer h-10 p-0 m-0 border-top bg-white">
+
+      @{
+         string postId = ""; //use in case of multi toolbar
+      }
+      @(Html.Kendo().ToolBar()
+            .Name("toolbarDetail")
+            .UmsDefaultErrors(DicSvc, "errors")
+            .Items(items =>
+            {
+                items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+                //items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode").Hidden(true);
+            })
+            .UmsDefaultSettings(DicSvc, postId)
+      )
+   </div>
+</div>
+<script>
+   //$("#Choices tbody").on("dblclick", "td", function(e) {
+   //   var cellElement = this;
+   //   var cell = $(cellElement);
+   //   var grid = $("#Choices").getKendoGrid();
+
+   //   grid.editCell(cell);
+   //});
+
+   $("#Choices tbody").on("blur", "td", function(e) {
+      var cellElement = this;
+      var cell = $(cellElement);
+      var grid = $("#Choices").getKendoGrid();
+      grid.closeCell(cell);
+   });
+   function onClickChoiceNew() {
+      debugger;
+      var grid = $("#Choices").data("kendoGrid");
+      var grp = grid.dataSource.data()[0].Group;
+      var item = grid.addRow();
+      grid.dataSource.data()[0].Group = grp;
+      //grid.dataSource.data()[0].Choice = "-";
+      var idx = Math.max.apply(Math, grid.dataSource.data().map(function(o) { return o.Index; }));
+      if (!isNaN(idx)) {
+         idx ++;
+      } else {
+         idx = 1;
+      }
+      grid.dataSource.data()[0].Index = idx;
+      //grid.dataSource.sync();
+      //grid.editRow(grid.dataSource.data()[0]);
+   }
+   function onClickChoiceDel() {
+      var grid = $("#Choices").data("kendoGrid");
+      if (grid.dataSource.data().length<2) {
+         window.umsAlert("@DicSvc.XLate("Warning")","@DicSvc.XLate("Last item can not be deleted")");
+         return;
+      }
+      var row = grid.select();
+      if (row) {
+         var data = grid.dataItem(row);
+         if (data == null) {
+            window.umsAlert("@DicSvc.XLate("Warning")","@DicSvc.XLate("No item is selected")");
+            return;
+         }
+         grid.removeRow(row);
+      }
+
+   }
+
+   var consolelog = false;
+   var actualmode=0;
+   var divName = '#divItemDetail';
+   var dialog = $(popUpWindowName).data("kendoWindow");
+   var grid = $('#' + gridIdName).data("kendoGrid");
+   function changeToEditMode() {
+      actualmode = 2;
+      $('#@formId').removeClass('readonly-mode');
+      $(".modify-mode").show();
+      $(".view-mode").hide();
+      umsHideAllEditSaveButton();
+      toolBarShowButtonByClass("modify-mode");
+
+      $(divName +' :input').attr('disabled', false);
+      $(divName +' :input').each(function () {
+         //var cb = $(this).data("kendoDropDownList");
+         //if (cb) {
+         //    cb.enable(true);
+         //}
+         //cb = $(this).data("kendoNumericTextBox");
+         //if (cb) {
+         //    cb.enable(true);
+         //}
+      });
+   }
+
+   function changeToViewMode() {
+      actualmode = 1;
+      $('#@formId').addClass('readonly-mode');
+      //debugger;
+      $(".view-mode").show();
+      $(".modify-mode").hide();
+      umsHideAllEditSaveButton();
+      toolBarShowButtonByClass("view-mode");
+
+      $(divName +' :input').attr('disabled', true);
+      $(divName +' :input').each(function () {
+         //var cb = $(this).data("kendoDropDownList");
+         //if (cb) {
+         //    cb.enable(false);
+         //}
+         //cb = $(this).data("kendoNumericTextBox");
+         //if (cb) {
+         //    cb.enable(false);
+         //}
+      });
+   }
+   function setWindowMode() {
+      //customize according model key
+      if ('@keyID' !== '@keyEmptyValueID') {
+         actualmode = 1;
+      } else {
+         //$('#BedName').attr('readonly', false);
+         actualmode = 2;
+      }
+   }
+
+   function setMode() {
+      if (actualmode === 2)
+         changeToEditMode();
+      else
+         changeToViewMode();
+   }
+
+   var visibleGrid;
+   $(document).ready(function() {
+      visibleGrid = $('#Choices').getKendoGrid();
+      umsHideAllEditSaveButton();
+      setWindowMode();
+      //set up condition to know if it's a new item
+      setMode();
+      if (isJustCreated) {
+         changeToEditMode();
+         var grid = $("#Choices").getKendoGrid();
+         var row = grid.tbody.find('tr:first');
+         grid.editRow(row);
+         isJustCreated = false;
+      }
+      $('#btnEdit' + '@postId').off('click').on('click', function () {
+         if(consolelog)console.log("btnEdit called");
+         changeToEditMode();
+      });
+      $('#btnCancel' + '@postId').off('click').on('click', function () {
+         if (consolelog)console.log("btnCancel called");
+         // IF is new add, close the dialog
+         if ('@keyID'=='@keyEmptyValueID') {
+            dialog.close();
+            return;
+         }
+
+         //TODO: reload data
+         displayItemDetail('@keyID');
+         changeToViewMode();
+      });
+      $('#btnSave'+'@postId').off('click').on('click', function() {
+         if (consolelog)console.log("btnSave called");
+         actionSave();
+      });
+      $('#btnDelete').off('click').on('click', function () {
+         if (consolelog)console.log("btnDelete called");
+         umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteItem, cancelDeleteItem);
+      });
+      //$('#btnCopy').off('click').on('click', function () {
+      //    if (consolelog) console.log("btnCopy called");
+      //    $("#BedId").val("0");
+      //    $('#BedName').attr('readonly', false);
+      //    changeToEditMode();
+      //});
+      $('#btnClose' + '@postId').off('click').on('click', function () {
+         if (consolelog)console.log("btnClose called");
+         dialog.close();
+      });
+      $("input[data-val-length-max]").each(function (index, element) {
+         element.setAttribute("maxlength", element.getAttribute("data-val-length-max"));
+      });
+   });
+
+
+
+   function actionSave()
+   {
+      
+      if (OnValidation()) {
+         //uncomment for production
+         $("#@formId").submit();
+
+      }
+   }
+
+   function OnValidation() {
+      //debugger;
+      var retValue = true;
+      var customFieldValidation = function() {
+         var retFV = true;
+         //Only if we have field not validable by Model
+         try {
+            var grid = $("#Choices").data("kendoGrid");
+            var items = grid.items();
+            items.each(function (idx, row) {
+               var dataItem = grid.dataItem(row);
+               dataItem.Index = idx+1;
+            });
+            $('#stringifyGrid').val(kendo.stringify(grid.dataSource.data()));
+            //debugger;
+            var data = grid.dataSource.data();
+            for (var i = 0; i < data.length; i++) {
+               if (data[i].Choice == null  || data[i].Choice.length==0) {
+                  retFV = false;
+                  break;
+               }
+            }
+            
+            
+
+            //retFV = $('#Location_LocationName').val().length === 0;
+         } catch (e) {
+            //
+         }
+         return retFV;
+      }
+      var validator = $("#@formId").kendoValidator().data("kendoValidator");
+      var cv = customFieldValidation();
+      if (!validator.validate() || !cv ) {
+         retValue = false;
+         try {
+            var errors = validator.errors();
+            if (!cv) {
+               errors.push("choice empty");
+            }
+            $("#errors").html(buildValidationMessage(errors));
+         } catch (e) {
+            $("#errors").html(e);
+         }
+      }
+      else {
+         $("#errors").html("");
+         retValue = true;
+      }
+
+      return retValue;
+   }
+   function OnSuccess(response) {
+      if (response.success) {
+         grid.dataSource.read();
+         dialog.close();
+      }
+      else {
+         window.umsAlert("Error occured", response.errorMessage, 400, 300);
+      }
+   }
+   function OnFailure(response) {
+      window.umsAlert("Error occured", response.errorMessage, 400, 300);
+   }
+   function toolBarShowButtonByClass(clas) {
+      var tb = $("#toolbarDetail").data("kendoToolBar");
+      tb.umsShowButtonByClass(clas);
+   }
+   function umsHideAllEditSaveButton()
+   {
+      var tb = $("#toolbarDetail").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+
+
+   function deleteItem() {
+      $.ajax({
+         url: '@Url.Action("DeleteGroup", "ClinicalConfiguration")',
+         type: 'POST',
+         data: { groupId: '@keyID' }
+      
+      }).done(function (data) {
+         if (data.success != undefined && data.success) {
+            dialog.close();
+            grid.dataSource.read();
+         } else {
+            $('#errors').html('not saved. reason:' + data.errorMessage);
+         }
+      }).fail(function (response) {
+         umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+      });
+
+   }
+
+   function cancelDeleteItem() {
+      /* do nothing */
+   }
+</script>
+

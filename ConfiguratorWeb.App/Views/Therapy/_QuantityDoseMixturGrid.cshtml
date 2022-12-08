@@ -1,0 +1,126 @@
+﻿
+@model ConfiguratorWeb.App.Models.Therapy.TherapyItemModel
+@using System.Text.Json;
+@{
+   var gridName = "MixtureComponents";
+   //<ConfiguratorWeb.App.Models.Therapy.BoolStringPair>
+   var mixtureSelectWnd = "ComponentSelectionWindow";
+}
+
+<script>
+
+   function MixtureDataBound(e) {
+      //GetAssociatedId(associatedItemArray);
+   }
+</script>
+@(Html.Kendo().Grid(Model.ComponentsFormVal)
+                                                                        .Name(gridName)
+                                                                        .Navigatable(true)
+                                                                        .Columns(columns =>
+                                                                        {
+                                                                           columns.Bound(e => e.Index).Visible(false);
+                                                                           columns.Bound(e => e.IdChild).Visible(false);
+                                                                           columns.Bound(e => e.IdFather).Visible(false);
+                                                                           columns.Bound(e => e.Name);
+                                                                           columns.Bound(e => e.Concentration);
+                                                                           columns.Bound(e => e.Amount);
+                                                                           columns.Bound(e => e.Volume);
+                                                                           columns.Bound(e => e.LocationRef).Visible(false);
+                                                                           columns.Bound(e => e.LocationName);
+                                                                           
+
+
+
+                                                                        })
+                                                                        .Events(ev => ev.DataBound("MixtureDataBound"))
+                                                                        //.Editable(e => e.Mode(GridEditMode.InCell))
+                                                                        .Selectable(s => s.Mode(GridSelectionMode.Single))
+                                                                        .Scrollable()
+
+                                                                        .DataSource(dataSource => dataSource
+                                                                                       .Ajax()
+                                                                                       .ServerOperation(true)
+                                                                                       .Model(model =>
+                                                                                       {
+                                                                                          model.Field(o => o.IdChild);
+                                                                                          model.Field(o => o.Concentration);
+                                                                                          model.Field(o => o.Amount);
+                                                                                          model.Field(o => o.Volume);
+                                                                                          model.Field(o => o.IdFather);
+                                                                                          model.Field(o => o.Index);
+                                                                                          model.Field(o => o.LocationRef);
+                                                                                          model.Field(o => o.LocationName);
+
+                                                                                       })
+                                                                         )
+                                                                         .HtmlAttributes(new { style = "height:150px; order:0;" })
+                                                                          .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+)
+
+
+
+
+<div id="@mixtureSelectWnd" style="height:400px; display:flex;flex-direction:row;">
+  @{ await Html.RenderPartialAsync("_MixtureComponentSelection"); }
+</div>
+
+<script>
+         var componentskndWnd = $('#@mixtureSelectWnd').usmKendoWindow({
+
+            title: $("#typeTherapy").val() + ' Component Selection',
+            height: 400,
+            width: 700,
+            modal: true,
+            visible: false,
+            close: function (e) {
+               $("#errorInsertAction").css("display", "none");
+               $("#moveMAsscoiationUp").attr('disabled', true);
+               $("#moveMAsscoiationDown").attr('disabled', true);
+               $("#moveMAsscoiationDownP").attr('disabled', true);
+               $("#moveMAsscoiationUpP").attr('disabled', true);
+               $("#removeMixtureGridRow").css("display", "none");
+               $("#removeProtocolItems").css("display", "none");
+            }
+            });
+
+
+   $('#addMixtureGridRow').off('click').on('click', function (e) {
+            e.preventDefault();
+
+            ShowStandardActionMixtureComponent();
+            return false;
+   });
+
+   $('#removeMixtureGridRow').off('click').on('click', function (e) {
+         e.preventDefault();
+         var grid = $("#@gridName").data("kendoGrid");
+         var rows = grid.select();
+      var datasource = $("#@gridName").data("kendoGrid").dataSource;
+      associatedItemArray.pop(rows);
+         //var row = datasource.get(item);
+         grid.removeRow(rows);
+
+         datasource.remove(rows);
+         $("#removeMixtureGridRow").css("display", "none");
+         orderMixtureAssociationIndex("MixtureComponents");
+      //checkAssociationIndex("MixtureComponents",1);
+      $("#moveMAsscoiationUp").attr('disabled', true);
+      $("#moveMAsscoiationDown").attr('disabled', true);
+   });
+
+   $("#MixtureComponents").on("click", "tr.k-state-selected", function () {
+      if (enableGrids) {
+         $("#removeMixtureGridRow").css("display", "inherit");
+         $(".arrowMixture").attr('disabled', false);
+         $(".arrowMixture").css("display", "flex");
+         $(".arrowMixture").css("direction", "column");
+         checkAssociationIndex("MixtureComponents", 1);
+      }
+      
+
+   });
+
+
+</script>
+

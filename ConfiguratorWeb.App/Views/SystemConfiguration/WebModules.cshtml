@@ -1,0 +1,96 @@
+﻿@using Digistat.FrameworkStd.DictionaryTerms
+@{
+   string gridName = "WebModules";
+   string popUpWindowName = "EditWebModule";
+}
+
+
+<style>
+   .link-color {
+       color: #0000EE !important;
+   }
+</style>
+
+<script>
+   var gridIdName = "@gridName";
+   var popUpWindowName = "#@popUpWindowName";
+
+   function error_handler_webmodules(e) {
+      if (e.errors) {
+         var message = "Errors:\n";
+         $.each(e.errors,
+            function(key, value) {
+               if ('errors' in value) {
+                  $.each(value.errors,
+                     function() {
+                        message += this + "\n";
+                     });
+               }
+            });
+         //alert(message);
+         window.umsAlert("Error Occured", message, 400, 300);
+      }
+   }
+
+   function CheckModuleStatus(moduleUrl, moduleName) {
+      //debugger;
+      if (moduleUrl != 'null' && moduleUrl != '') {
+         $.ajax({
+            type: "GET",
+            url: '@Url.Action("HealthCheck", "DigistatModule")',
+            data: { moduleURL: moduleUrl, moduleName: moduleName },
+            success: function(data) {
+               if (data.Success) {
+                  umsErrorDialog('@DicSvc.XLate(GeneralDictionaryTerms.Success)', '@DicSvc.XLate(GeneralDictionaryTerms.ModuleOnlineStatus)');
+               } else {
+                  umsErrorDialog('@DicSvc.XLate(GeneralDictionaryTerms.Status)', data.ErrorMessage);
+               }
+            },
+            error: function(xhr, textStatus, errorThrown) {
+               umsErrorDialog('@DicSvc.XLate(GeneralDictionaryTerms.Status)', '@DicSvc.XLate(GeneralDictionaryTerms.WrongURLConfigOrNotOnline)');
+            }
+         });
+      } else {
+         umsErrorDialog('@DicSvc.XLate(GeneralDictionaryTerms.MissingURL)', '@DicSvc.XLate(GeneralDictionaryTerms.SetURL)');
+      }
+   }
+
+</script>
+
+<div class="card h-100 m-1 p-2 border-0" id="gridContainer">
+   <div id="@popUpWindowName"></div>
+   @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.General.WebModuleViewModel>
+   ()
+   .Name(gridName)
+   .UmsDefaultSettings(DicSvc)
+   .UmsDefaultPager(DicSvc)
+   .Columns(columns =>
+   {
+      columns.Bound(e => e.ModuleName);
+      columns.Bound(e => e.ModuleURL).ClientTemplate("#if(ModuleURL != '' && ModuleURL !== null) {#<a href=\"#= ModuleURL#\" target='_blank' class='link-color'>#= ModuleURL#</a> #}#");
+      columns.Template("<button class='btn btn-info' onclick='CheckModuleStatus(\"#= ModuleURL#\", \"#= ModuleName#\")'>Test</button>").Width(65);
+      columns.Command(command =>
+      {
+         command.Edit().Text(" ").UpdateText(" ").CancelText(" ").UpdateIconClass("mdi mdi-content-save mdi-18px text-dark");
+      }).HtmlAttributes(new { @style = "text-align:center;" }).Width(100);
+
+   })
+   
+   .DataSource(dataSource => dataSource
+   .Ajax()
+   .Model(model =>
+   {
+   model.Id(o => o.Id);
+   model.Field(o => o.Id).Editable(false);
+   model.Field(o => o.ModuleName).Editable(false);
+   model.Field(o => o.Active).Editable(false);
+   model.Field(o => o.ModuleURL);
+   })
+   //.ServerOperation(false)
+   //Uncomment for use Pager
+   .PageSize(20) //if pager is not enabled, remove this row
+   .Events(events => events.Error("error_handler_webmodules"))
+   .Read(read => read.Action("ReadWebModules", "SystemConfiguration"))
+   .Update(update => update.Action("UpdateWebModules", "SystemConfiguration"))
+   ))
+</div>

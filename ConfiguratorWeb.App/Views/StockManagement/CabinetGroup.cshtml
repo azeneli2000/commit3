@@ -1,0 +1,153 @@
+﻿
+<form id="CabinetGroupForm" class="card-body h-90 p-0 border-0" style="display:none">
+
+    <div class="container-fluid">
+        <div class="row mt-3">
+            @*stockroomShortName*@
+            <div class="col-sm-1 u-col-h-fixed">
+                <label class="label-name field-required" for="CabinetGroupShortNameTxt">Shortname</label>
+            </div>
+            <div class="col-sm-3 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" data-val="true" data-val-required="The StockRoom Short Name field is required." id="CabinetGroupShortNameTxt" disabled>
+                </div>
+            </div>
+            @*stockroomName*@
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+                <label class="label-name field-required" for="CabinetGroupNameTxt">Name</label>
+            </div>
+            <div class="col-sm-5 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" id="CabinetGroupNameTxt" name="CabinetGroupNameTxt" data-val-required="The StockRoom Name field is required." disabled>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            @*index*@
+            <div class="col-sm-1 u-col-h-fixed">
+                <label class="label-name" for="CabinetGroupIndexTxt">Index</label>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" id="CabinetGroupIndexTxt" disabled>
+                </div>
+            </div>
+
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                </div>
+            </div>
+
+            @*description*@
+            <div class="col-sm-1 u-col-h-fixed ml-1">
+                <label class="label-name" for="CabinetGroupDescriptionTxt">Description</label>
+            </div>
+            <div class="col-sm-5 u-col-h-fixed">
+                <div class="input-group">
+                    <textarea class="k-input k-textbox" type="text" id="CabinetGroupDescriptionTxt" disabled></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<script>
+    function populateCabinetGroupForm() {
+
+        $('#CabinetGroupShortNameTxt').val(dataItem.CabinetGroupShortName);
+        $('#CabinetGroupNameTxt').val(dataItem.CabinetGroupName);
+        $('#CabinetGroupDescriptionTxt').val(dataItem.CabinetGroupDescription);
+        $('#CabinetGroupIndexTxt').val(dataItem.CabinetGroupIndex);
+        dataItem.Mode = 'Update';
+        console.log(dataItem)
+    }
+    function onCancelCabinetGroup() {
+        debugger;
+        $("#CabinetGroupForm").hide();
+        $("#StockRoomForm").show();
+    }
+    function UpdateCabineGroup() {
+        debugger
+        console.log(dataItem.Mode)
+        var cabinetGroupModel =
+        {
+            StockRoomId: dataItem.StockRoomId,
+            CabinetId: dataItem.CabinetId,
+            CabinetGroupId: dataItem.CabinetGroupId,
+            CabinetGroupShortName: $('#CabinetGroupShortNameTxt').val(),
+            CabinetGroupName: $('#CabinetGroupNameTxt').val(),
+            CabinetGroupDescription: $('#CabinetGroupDescriptionTxt').val(),
+        }      
+            $.ajax({
+                url: '@Url.Action("UpdateCabinetGroup", "StockManagement")',
+                type: 'POST',
+                data: {
+                    model: cabinetGroupModel
+                }
+            }).done(function (data) {
+                if (data.success != undefined && data.success) {
+                    console.log('cabinet group Updated');
+                } else {
+                    $('#errors').html('not saved. reason:' + data.errorMessage);
+                }
+            }).fail(function (response) {
+                console.log(response)
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            });    
+    }
+    function InsertCabinetGroup(){
+        debugger
+        var cabinetGroupModel =
+        {
+            StockRoomId: dataItem.StockRoomId,
+            CabinetId: dataItem.CabinetId,
+            CabinetGroupId: dataItem.CabinetGroupId,
+            CabinetGroupShortName: $('#CabinetGroupShortNameTxt').val(),
+            CabinetGroupName: $('#CabinetGroupNameTxt').val(),
+            CabinetGroupDescription: $('#CabinetGroupDescriptionTxt').val(),
+        }
+        $.ajax({
+            url: '@Url.Action("InsertNewCabinetGroup", "StockManagement")',
+            type: 'POST',
+            data: {
+                model: cabinetGroupModel
+            }
+        }).done(function (data) {
+            if (data.success != undefined && data.success) {
+                console.log('cabinet group Inserted');
+            } else {
+                $('#errors').html('not saved. reason:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            console.log(response)
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+    }
+    function DeleteCabinetGroup() {
+        debugger
+        $.ajax({
+            url: '@Url.Action("RemoveCabinetGroup", "StockManagement")',
+            type: 'POST',
+            data: {
+                cabinetGroupId: dataItem.CabinetGroupId,
+            }
+        }).done(function (data) {
+            if (data.success != undefined && data.success) {
+                console.log('cabinet group deleted');
+            } else {
+                $('#errors').html('not deleted. reason:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            console.log(response)
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+    }
+    function clearCabinetGroupForm() {
+        $('#CabinetGroupShortNameTxt').val('')
+        $('#CabinetGroupNameTxt').val('');
+        $('#CabinetGroupDescriptionTxt').val('');
+        $('#CabinetGroupIndexTxt').val(0);
+
+    }
+</script>

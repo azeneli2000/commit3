@@ -1,0 +1,81 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+
+@inject IDictionaryService DicSvc
+
+@model ConfiguratorWeb.App.Models.StandardDatasetViewModel
+
+@{
+   Layout = null;
+}
+<div class="row " style="height: 365px">
+   <div class="col-9 pt-1 text-center">
+     
+      <textarea asp-for="sd_ScoreDescriptionScript" class="c-sharp"
+                style="width:98%;max-width:98%;margin-top:5px;height: 95%;max-height:95%;border-color: #e4e4e4;padding:10px;"></textarea>
+   </div>
+    <div class="col-3">
+        <div >
+            <div>
+                @DicSvc.XLate("Script for calculation of Score Description")
+               <ul>
+                  <li>
+                     @DicSvc.XLate("Script language : C#")
+                  </li>
+                  <li>
+                     @DicSvc.XLate("The script MUST RETURN a number")
+                  </li>
+                  <li>
+                     @DicSvc.XLate("To be effective, a Score Description must exists with adequate range.")
+                  </li>
+                  <li>
+                     @DicSvc.XLate("Placeholder @score must be used to refer to result of score calculation")
+                  </li>
+                  <li>
+                     <a href="javascript:toggleScoreDescriptionScriptExamples();">@DicSvc.XLate("Show/Hide Example/s")</a>
+                     <div id="divScoreDescriptionScriptExamples" style="display:none;">
+                        <small>
+                           <b>Example</b>
+                           Given a dataset with two items, @@p1 and @@p2, both numeric. Given a simple score formula (sum of @@p1 and @@p2). Given a set of score descriptions as follows:
+                           <ul>
+                              <li>Between 0 and 1 -> LOW</li>
+                              <li>Between 2 and 3 -> MEDIUM</li>
+                              <li>More than 4 -> HIGH</li>
+                           </ul>
+                           
+                           
+                           
+                           The description could be related to the result of the score only. For example, a score of 3 corresponds to the description “MEDIUM”.<br />
+                           Consider a special case: the score calculation remains the same, but a special description (“Item 1 too high!”) is required if parameter @@p1 has a value of “10”.<br />
+                           To face this issue the following steps must be taken:
+                           <ul>
+                              <li>
+                                 Add a new description, with a “magic number”, for example, -999, as follows: <br />
+                                    Min :- 999  Max: -999 – Description “Item 1 too high!”
+                              </li>
+                              <li>
+                                 Add a score description script as follows:
+                              </li>
+                           </ul>
+                           <pre><code>
+   if(@@p1>10)
+   {
+      return -999;
+   }
+   else
+   {
+      return @@score;
+   }
+
+
+                        </code></pre>
+                        </small>
+                     </div>
+                  </li>
+               </ul>
+             
+                
+              
+            </div>
+        </div>
+   </div>
+</div>

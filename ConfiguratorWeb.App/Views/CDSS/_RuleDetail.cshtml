@@ -1,0 +1,3207 @@
+﻿@using Digistat.FrameworkStd.Enums
+@using Digistat.FrameworkStd.Interfaces;
+@using Digistat.FrameworkStd.Model
+@using Digistat.FrameworkStd.Model.CDSS
+@using Newtonsoft.Json
+@model ConfiguratorWeb.App.Models.CDSSRuleViewModel
+
+
+
+@inject IDictionaryService DicSvc
+@{
+   Layout = null;
+   string keyID = Model.ID.ToString();
+   string keyEmptyValueID = "0";
+   string formId = "form_CDSSRule_" + keyID;
+   bool isNewRecord = (keyID == keyEmptyValueID);
+   bool isDll = (Model.RuleType == 0);
+   Dictionary<string, string> iov = new Dictionary<string, string>();
+   List<CDSSRuleOption> cro = new List<CDSSRuleOption>();
+   bool hasPatientOption = false;
+   //cro.Add(new CDSSRuleOption() { Name = "One or more parameters are missing in Standard PArameters", Value = "-1" });
+   if (Model.Options != null && Model.Options.Length > 0)
+   {
+      try
+      {
+         cro = JsonConvert.DeserializeObject<List<CDSSRuleOption>>(Model.Options);
+         var cdssRuleOption = cro.Find(o => o.PatientID != 0);
+         if (cdssRuleOption != null)
+         {
+            hasPatientOption = true;
+            cro.RemoveAll(o => o.PatientID != 0);
+         }
+      }
+      catch (Exception e)
+      {
+
+      }
+
+   }
+   List<DropDownListItem> listType = new List<DropDownListItem>()
+   {
+
+      new DropDownListItem(){Text = "Text",    Value = "0" },
+      new DropDownListItem(){Text = "List",    Value = "1" },
+      new DropDownListItem(){Text = "Integer", Value = "2" },
+      new DropDownListItem(){Text = "Decimal", Value = "3" },
+      new DropDownListItem(){Text = "Xml",     Value = "4" },
+      new DropDownListItem(){Text = "Bool",    Value = "5" }
+   };
+
+}
+
+<style type="text/css" media="screen">
+   .k-checkbox-label {
+      margin-top: 6px;
+   }
+   #popupEdit .k-invalid-msg {
+      display: inline;
+   }
+   .ace_editor {
+      width: 100%;
+      height: 220px;
+   }
+
+   .k-multiselect-wrap li {
+      border-radius: 2px !important;
+      margin: 1px !important;
+      background-color: #21252920 !important;
+      border-color: #939393 !important;
+      padding: 2px 0.40em 2px 0.25em !important;
+   }
+
+   .k-multiselect-wrap .k-button .k-select {
+      margin-left: 0.5rem;
+   }
+
+   .k-numeric-wrap .k-input {
+      text-align: right;
+      padding-right: 15px;
+   }
+
+   .k-widget > span.k-invalid, input.k-invalid {
+      border: 1px solid red !important;
+   }
+
+   .k-widget > span.k-invalid, select.k-invalid {
+      border: 1px solid red !important;
+   }
+
+   #gridInputOptionDll > div.k-header.k-grid-toolbar > a.k-button.k-button-icontext {
+      padding-top: 0px;
+      padding-bottom: 0px;
+   }
+
+   #gridInputOptionDll .k-grid-header .k-header,
+   #gridInputOptionScript .k-grid-header .k-header {
+      padding-top: 1px;
+      padding-bottom: 1px;
+   }
+
+   .no-scrollbar .k-grid-header {
+      padding: 0 !important;
+   }
+
+   .no-scrollbar .k-grid-content {
+      overflow-y: visible;
+   }
+
+   #msOutputParametersDll_taglist > li {
+      opacity: .65 !important;
+      pointer-events: none;
+   }
+
+   .maxheight300 {
+      max-height: 400px !important;
+      overflow-y: auto;
+   }
+
+   #gridInputOptionDll td,
+   #gridInputOptionScript td {
+      white-space: nowrap;
+   }
+
+   td > a.k-button.k-button-icontext.k-primary.k-grid-update {
+      color: #4a90e2;
+   }
+
+/*   .k-popup-edit-form .k-edit-form-container .k-edit-buttons.k-state-default {
+      width: 470px;
+   }*/
+</style>
+<script src="~/lib/ace/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/mode-csharp.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/mode-xml.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/ext-language_tools.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/ext-error_marker.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/ext-keybinding_menu.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script>
+   var ruleOptType = {
+      "0": "Text",
+      "1": "List",
+      "2": "Integer",
+      "3": "Decimal",
+      "4": "Xml",
+      "5": "Bool"
+   };
+
+   var dialogItem = $('#divCDSSRuleEditWindow');
+   var iDefaultPatient = 0;
+   var editor;
+   var originalOption=@Html.Raw(Json.Serialize(cro));
+   var actualOption= originalOption || [];
+   //debugger;
+   if (actualOption.length ) {
+      actualOption.sort(function(a, b) {
+         return (a.Index > b.Index) ? 1 : ((b.Index > a.Index) ? -1 : 0);
+      });
+      actualOption.forEach(function(op, i) {
+         op.Index = i;
+      });
+      actualOption.sort(function(a, b) {
+         return (a.Index > b.Index) ? 1 : ((b.Index > a.Index) ? -1 : 0);
+      });
+   }
+
+   var dsRuleOption = new kendo.data.DataSource({
+      //data: originalOption,,
+      //autoSync: true ,
+      transport: {
+         read: function (o) {
+            //pass the date
+            o.success(actualOption);
+         },
+         create: function (o) {
+            //debugger;
+            //console.log(2);
+            var item = o.data;
+            ////assign a unique ID and return the record
+            //counter++;
+            //item.Id = counter;
+            o.success(item);
+         },
+         update: function (o) {
+            //debugger;
+            //console.log(1);
+            o.success(o.data);
+         },
+         destroy: function (o) {
+            //debugger;
+            o.success(o.data);
+         },
+         submit: function(e) {
+            //debugger;
+            var data = e.data;
+            //console.log(data);
+
+            // send batch update to desired URL, then notify success/error
+
+            e.success(data.updated,"update");
+            e.success(data.created,"create");
+            e.success(data.destroyed,"destroy");
+            e.error(null, "customerror", "custom error");
+         },
+         error: function (o) {
+            debugger;
+            //o.success(o.data);
+         }
+
+      },
+      schema: {
+         "model": {
+            "id": "Index",
+            "fields": {
+               "RuleID": {
+                  "type": "number",
+                  "defaultValue": 0
+               },
+               "PatientID": {
+                  "type": "number",
+                  "defaultValue": 0
+               },
+               "Name": {
+                  "type": "string", validation: { required: true }
+               },
+
+               "Index": {
+                  "type": "number",
+                  "defaultValue": 0
+               },
+               "Value": {
+                  "type": "string"
+               },
+               "Type": {
+                  "type": "number",
+                  "defaultValue": 0
+               },
+               "MinLimit": {
+                  "type": "number",
+                  "defaultValue": null
+               },
+               "MaxLimit": {
+                  "type": "number",
+                  "defaultValue": null
+               },
+               "ListItems": {
+                  "type": "string"
+               },
+               "Description": {
+                  "type": "string"
+               },
+               "IsVisibleOnClient": {
+                  "type": "boolean",
+                  "defaultValue": false
+               },
+               "Label": {
+                  "type": "string"
+               }
+            }
+         }
+      }
+   });
+   $(document).ready(function() {
+      var requestUrl = '@Url.Action("GetCDSSRuleDefaultValues", "Generic")' ;
+      $.ajax({
+            url: requestUrl,
+            type: 'GET',
+            dataType: "json"
+         })
+         .done(function(data) {
+            //debugger;
+            if (data.success) {
+               var ddl = $("#DllRuleType_@Model.ID.ToString()").data("kendoDropDownList");
+               if (ddl) {
+                  ddl.setDataSource(data.SupportedRuleTypes);
+                  if ('@Model.RuleType'!=='') {
+                     ddl.select(@Model.RuleType);
+                     enableRuleTab(@Model.RuleType);
+                     enableLocationTab(@Model.IsGeneric.ToString().ToLower());
+                  }
+               }
+
+            }
+         })
+         .fail(function(jqXhr, textStatus, thrownError) {
+            $("#errors").html("An error occurred while retriving  defaults (" +
+               requestUrl +"): " + jqXhr.status + ' ' + thrownError);
+         });
+      requestUrl = '@Url.Action("GetCDSSDataTypeDefaultValues", "Generic")' ;
+      $.ajax({
+            url: requestUrl,
+            type: 'GET',
+            dataType: "json"
+         })
+         .done(function(data) {
+            //debugger;
+            if (data.success) {
+               var ddl = $("#DllDataType_@Model.ID.ToString()").data("kendoDropDownList");
+               if (ddl) {
+                  ddl.setDataSource(data.SupportedRuleDataTypes);
+                  if ('@Model.IsGeneric'!=='False') {
+                     ddl.select(0);
+                     //enableRuleTab(@Model.RuleType);
+                  } else {
+                     ddl.select(1);
+                  }
+               }
+
+            }
+         })
+         .fail(function(jqXhr, textStatus, thrownError) {
+            $("#errors").html("An error occurred while retriving  defaults (" +
+               requestUrl +
+               "): " +
+               jqXhr.status +
+               ' ' +
+               thrownError);
+         });
+      var ruleType = "@Model.RuleType";
+      //$("#tabstrip_ItemDetail_@Model.ID").data("kendoTabStrip").select(0);
+      setAceEditor();
+      $('#tabstrip_ItemDetail_@Model.ID-3').addClass("p-0");
+   });
+   function setAceEditor() {
+      //ace.require("ace/ext/language_tools");
+      editor = ace.edit('aceEditor');
+      editor.setOptions({
+         autoScrollEditorIntoView: true,
+         copyWithEmptySelection: true,
+         readOnly: true,
+         displayIndentGuides: true,
+         enableBasicAutocompletion: true,
+         enableSnippets: true,
+         enableLiveAutocompletion: false,
+         printMargin: false
+      });
+
+      editor.setTheme("ace/theme/chrome");
+      var codeMode = "ace/mode/csharp";
+      editor.session.setMode(codeMode);
+
+      var textarea = $("#MethodCode").hide();
+      editor.getSession().setValue(textarea.val());
+      editor.getSession().on('change', function () {
+         textarea.val(editor.getSession().getValue());
+         //debugger;
+         if (textarea.val().length===0) {
+            $('#' + editor.container.id).addClass("border-danger");
+         } else {
+            $('#' + editor.container.id).removeClass("border-danger");
+         }
+      });
+
+   }
+
+   var editorOptions;
+   function setAceEditorForOption() {
+      editorOptions = ace.edit('ValueXml');
+      editorOptions.setOptions({
+         autoScrollEditorIntoView: true,
+         copyWithEmptySelection: true,
+         readOnly: false,
+         displayIndentGuides: true,
+         enableBasicAutocompletion: true,
+         enableSnippets: false,
+         enableLiveAutocompletion: false,
+         printMargin: false
+      });
+
+      editorOptions.setTheme("ace/theme/chrome");
+      var codeMode = "ace/mode/xml";
+      editorOptions.session.setMode(codeMode);
+
+      var textarea = $("#Value").hide();
+      editorOptions.getSession().setValue(textarea.val());
+      editorOptions.getSession().on('change', function () {
+         textarea.val(editorOptions.getSession().getValue());
+         textarea.trigger('change');
+         //debugger;
+         if (textarea.val().length===0) {
+            $('#' + editorOptions.container.id).addClass("border-danger");
+         } else {
+            $('#' + editorOptions.container.id).removeClass("border-danger");
+         }
+      });
+
+   }
+
+   function onChangeDataType(e) {
+      //debugger;
+
+      var dtItem = $("#DllDataType_@Model.ID.ToString()").data("kendoDropDownList").dataItem();
+      //debugger;
+      if (dtItem) {
+         $('#IsGeneric')[0].value = dtItem.Value=="1"?"False":"True";
+         if (dtItem.Value=="0") {
+            $('#AutoActivate').prop('checked', false);;
+            $('#AutoActivate').prop('disabled', true);;
+         } else {
+            $('#AutoActivate').prop('disabled', false);;
+         }
+         enableLocationTab(dtItem.Value == "0");
+      }
+   }
+
+   function enableLocationTab(isGeneric) {
+      var tabStrip = $("#tabstrip_ItemDetail_@Model.ID").data("kendoTabStrip");
+      if (isGeneric) {
+         
+         tabStrip.tabGroup.children().eq(4).hide();
+      } else {
+         tabStrip.tabGroup.children().eq(4).show();
+            
+      }
+   }
+   function onChangeRuleType(e) {
+      //debugger;
+      var dtItem = $("#DllRuleType_@Model.ID.ToString()").data("kendoDropDownList").dataItem();
+
+      if (dtItem) {
+         var newVal = dtItem.Value;
+         enableRuleTab(newVal);
+      }
+   }
+   function enableRuleTab(rule) {
+      var tabStrip = $("#tabstrip_ItemDetail_@Model.ID").data("kendoTabStrip");
+      //debugger;
+      if (rule=="1") {
+         //tabStrip.disable(tabStrip.tabGroup.children().eq(1));
+         tabStrip.enable(tabStrip.tabGroup.children().eq(2));
+         //
+         //tabStrip.tabGroup.children().eq(2).show();
+         tabStrip.tabGroup.children().eq(1).hide();
+      } else {
+         //tabStrip.disable(tabStrip.tabGroup.children().eq(2));
+         tabStrip.enable(tabStrip.tabGroup.children().eq(1));
+         //tabStrip.tabGroup.children().eq(1).show();
+         tabStrip.tabGroup.children().eq(2).hide();
+      }
+   }
+   function onTimesChanged(e) {
+      //debugger;
+      var widget = $("#multiselectTimes" ).getKendoMultiSelect();
+      $('#Times').val(widget.value().join(";"));
+   }
+   function onShow(e) {
+      if (e.sender.getNotifications().length == 1) {
+         var element = e.element.parent(),
+            eWidth = element.width(),
+            eHeight = element.height(),
+            wWidth = $(window).width(),
+            wHeight = $(window).height(),
+            newTop, newLeft;
+
+         newLeft = Math.floor(wWidth / 2 - eWidth / 2);
+         newTop = Math.floor(wHeight / 2 - eHeight / 2);
+
+         e.element.parent().css({ top: newTop, left: newLeft });
+      }
+   }
+
+   function initilizeOPS(sender) {
+      try {
+         $('#msOutputParametersScript').getKendoMultiSelect().value($('#OutputParameters').val().split(';'));
+      } catch (e) {
+
+      }
+
+   }
+   function onChangeOPS(sender) {
+      //debugger;
+      var textArea = $('#msOutputParametersScript').getKendoMultiSelect().value();
+      $('#OutputParameters').val(textArea.join(';'));
+   }
+   function initilizeOPD(sender) {
+      try {
+         $('#msOutputParametersDll').getKendoMultiSelect().value($('#OutputParameters').val().split(';'));
+      } catch (e) {
+
+      }
+
+   }
+
+   function onChangeOPD(sender) {
+      //debugger;
+      var textArea = $('#msOutputParametersDll').getKendoMultiSelect().value();
+      $('#OutputParameters').val(textArea.join(';'));
+   }
+
+   var overwriteSettings = null;
+   function TestOverWrite(overwriteType) {
+      var response = {success : true,errorMessage :
+         kendo.stringify({"IsTimeout":true,"Name":"EarlyWarningScoreRule","IsGeneric":false,"KillTimeout":10,"ValidityTimeout":60,"IsExecuteAtStartup":true,"IsAutoActivate":false
+            ,"TriggerType":1,"Interval":5000,"Times":["09:29","17:19:34"],"MessageType":"test","OutputParams":["20000","20001"]
+            ,"Options":{"1":{"33":"55"},"0":{"22":"44","221":"pippo"}}})
+      };
+      //debugger;
+      parseCdssResponse(overwriteType,response);
+   }
+   function getDllInputOutputDefaultFromCDSS(overwriteType) {
+      clearErrors();
+      if (overwriteType == undefined || isNaN(overwriteType)) {
+         overwriteType = 1;
+      }
+      var dllName = $('#DllFile').val();
+      var ruleMetodh = $('#DllRuleName').val();
+
+      var actualData = {
+         id: '@Model.ID',
+         dllName: dllName,
+         ruleMetodh:ruleMetodh,
+
+      };
+      if (dllName.length === 0 || ruleMetodh.length == 0 ) {
+         if (overwriteType!=0) {
+            window.umsAlert("@DicSvc.XLateJs("Warning")","@DicSvc.XLateJs("Check DLL File name and DLL Rule name")");
+         }
+
+         return;
+      }
+      kendo.ui.progress($("#divCDSSRuleDetail"), true);
+      $.ajax({
+         url: '@Url.Action("GetAllSettingsByMessage", "CDSS")',
+         type: 'POST',
+         data: actualData,
+         async: true
+
+      }).done(function(response) {
+         if (response.success) {
+            //debugger;
+            $("#toolbarItemDetail #errors").html('');
+            parseCdssResponse(overwriteType,response);
+
+         } else {
+
+            $("#toolbarItemDetail #errors").html(buildValidationMessage(response.errorMessage.split("\r\n")));
+            //window.umsAlert("Error occured", response.errorMessage, 400, 300);
+         }
+      }).fail(function(response) {
+         window.umsAlert("Error occured", response.errorMessage, 200, 200);
+      }).always(function() { kendo.ui.progress($("#divCDSSRuleDetail"), false); });
+   };
+   function parseCdssResponse(overwriteType,response) {
+      var divMsg = "";
+
+      var settings = null;
+      try {
+         settings = JSON.parse(response.errorMessage);
+         if (settings) {
+            if (settings.IsTimeout != undefined) {
+               if (settings.IsTimeout != false)
+                  divMsg += "<div class='badge badge-dark'>is in timeout</div>";
+            }
+            divMsg += "<div class='maxheight300'>";
+            divMsg += "<table class='table table-sm table-striped ' style='max-height:200px'>";
+            if (overwriteType == 1 || overwriteType == 3 ) {
+               //debugger;
+
+               divMsg +=
+                  "<tr><td colspan='4' class='border bg-light font-weight-bold' >General Settings</td></tr>";
+               divMsg += "<tr><td>Kill timeout</td>";
+               if (settings.KillTimeout != undefined) {
+                  divMsg += "<td>" + settings.KillTimeout + " sec</td>";
+               }
+               divMsg += "</tr>";
+               divMsg += "<tr><td>Validity Timeout</td>";
+               if (settings.ValidityTimeout != undefined) {
+                  divMsg += "<td>" + settings.ValidityTimeout + " sec</td>";
+               }
+               divMsg += "</td>";
+               divMsg += "<tr><td>Execute at startup</td>";
+               if (settings.IsExecuteAtStartup != undefined) {
+                  divMsg += "<td>" + settings.IsExecuteAtStartup + " </td>";
+               }
+               divMsg += "</td>";
+               divMsg += "<tr><td>Auto Activate</td>";
+               if (settings.IsAutoActivate != undefined) {
+                  divMsg += "<td>" + settings.IsAutoActivate + " </td>";
+               }
+               divMsg += "</td>";
+               //debugger;
+               divMsg += "<tr><td>Data Type Rule</td>";
+               if (settings.IsGeneric != undefined) {
+                  if (!settings.IsGeneric)
+                     if (settings.Options.PatientID != 0)
+                        divMsg += "<td>@DicSvc.XLateJs("Patient")</td>";
+                     else
+                        divMsg += "<td>@DicSvc.XLateJs("Generic")</td>";
+               }
+               divMsg += "</td>";
+               divMsg += "</td>";
+               divMsg += "<tr><td colspan='4' class='border bg-light font-weight-bold' >Trigger Settings</td></tr>";
+               if (settings.TriggerType != undefined) {
+                  if (settings.TriggerType == 0) {
+                     divMsg += "<tr><td>Periodic</td>";
+                     if (settings.Interval != undefined) {
+                        divMsg += "<td>interval</td><td>" + settings.Interval + " millisec</td>";
+                     }
+                     divMsg += "</td>";
+                  }
+                  if (settings.TriggerType == 1) {
+                     divMsg += "<tr><td>Schedule</td>";
+                     if (settings.Times != undefined) {
+                        divMsg += "<td>Times</td><td>" + settings.Times + " </td>";
+                     }
+                     divMsg += "</td>";
+                  }
+                  if (settings.TriggerType == 2) {
+                     divMsg += "<tr><td>Message Rule</td>";
+                     if (settings.MessageType != undefined) {
+                        divMsg += "<td>Message Type</td><td>" + settings.MessageType + "</td>";
+                     }
+                     divMsg += "</td>";
+                  }
+               }
+            }
+
+            //debugger;
+            if (overwriteType == 1 || overwriteType == 2 || overwriteType == 5) {
+               divMsg += "<tr><td colspan='4' class='border bg-light font-weight-bold' >Option Values</td></tr>";
+               //debugger;
+               if (settings.Options != undefined &&
+                  settings.Options[iDefaultPatient] != undefined
+               ) {
+                  var p = settings.Options[iDefaultPatient];
+                  for (var key in p) {
+                     if (p.hasOwnProperty(key)) {
+                        //console.log(key + " -> " + p[key]);
+                        if (typeof (p[key]) == typeof ({}))
+                           divMsg += "<tr><td>" + p[key].Name + "</td><td>" + p[key].Value + "</td></tr>";
+                        else
+                           divMsg += "<tr><td>" + key + "</td><td>" + p[key] + "</td></tr>";
+                     }
+                  }
+                  //settings.Options[0].forEach(function(item) {
+                    //debugger;
+                    //divMsg += "<tr><td>" + item[0] + "</td><td>" + item[1] + "</td></tr>";
+                  //});
+
+               } else {
+                  divMsg += "<tr><td></td><td>@DicSvc.XLateJs("Empty")</td></tr>";
+               }
+            }
+            if (overwriteType == 1 || overwriteType == 4 || overwriteType == 5) {
+               divMsg +=
+                  "<tr><td colspan='4' class='border bg-light font-weight-bold' >Output Parameters</td></tr>";
+               if (settings.OutputParams != undefined &&
+                  settings.OutputParams.length > 0) {
+
+                  settings.OutputParams.forEach(function(item) {
+                     divMsg += "<tr><td></td><td>" + item + "</td></tr>";
+                  });
+
+               } else {
+                  divMsg += "<tr><td></td><td>@DicSvc.XLateJs("Empty")</td></tr>";
+               }
+            }
+            divMsg += "<tr><td colspan='4' class='d-none' >" +
+               response.errorMessage +
+               "</td></tr>";
+            divMsg += "</table>";
+            divMsg += "</div>";
+         }
+      } catch (e) {
+
+      }
+      overwriteSettings = settings;
+      divMsg = "@DicSvc.XLate("The following settings and / or output parameters will be imported from the DLL:")<br/>" + divMsg;
+
+      divMsg += "<br/>@DicSvc.XLateJs("Do you confirm the overwriting of the settings")?";
+      //debugger;
+      switch (overwriteType) {
+      case 0:
+         confirmOverwriteAll();
+         break;
+      case 1:
+         window.umsConfirm("DLL Settings",divMsg,confirmOverwriteAll ,cancelDeleteItem);
+         break;
+      case 2:
+         window.umsConfirm("DLL Settings",divMsg,confirmOverwriteOV  ,cancelDeleteItem);
+         break;
+      case 3:
+         window.umsConfirm("DLL Settings",divMsg,confirmOverwriteSett,cancelDeleteItem);
+         break;
+      case 4:
+         window.umsConfirm("DLL Settings",divMsg,confirmOverwriteOP  ,cancelDeleteItem);
+         break;
+      case 5:
+         window.umsConfirm("DLL Settings",divMsg,confirmOverwriteOPOV,cancelDeleteItem);
+         break;
+      }
+   }
+   function confirmOverwriteAll() {
+      if (overwriteSettings != undefined && overwriteSettings != null) {
+         //debugger;
+         overwriteOutputParameters(overwriteSettings);
+         overwriteOptionValues(overwriteSettings);
+         overwriteRuleSettings(overwriteSettings);
+      }
+   }
+   function confirmOverwriteOPOV() {
+      if (overwriteSettings != undefined && overwriteSettings != null) {
+         //debugger;
+         overwriteOutputParameters(overwriteSettings);
+         overwriteOptionValues(overwriteSettings);
+      }
+   }
+
+   function overwriteOutputParameters(s) {
+      if (s == undefined) {
+         return;
+      }
+      //debugger;
+      try {
+         $('#msOutputParametersDll').getKendoMultiSelect().value(s.OutputParams);
+         onChangeOPD();
+         if ($('#msOutputParametersDll').getKendoMultiSelect().value().length != s.OutputParams.length) {
+            var objList = $('#msOutputParametersDll').getKendoMultiSelect().value();
+            //debugger;
+            var absentParam = "";
+            for (var i = 0; i < s.OutputParams.length; i++) {
+               var a = s.OutputParams[i];
+               if (objList.indexOf(a)<0) {
+                  absentParam += a + ";";
+               }
+            }
+            var arr = $('#msOutputParametersDll').getKendoMultiSelect().value();
+            arr.push("-1");
+            if (dataSourceStandardParameters && dataSourceStandardParameters.total()>0) {
+               try {
+                  dataSourceStandardParameters.pushInsert({ Id: -1, Description: "@DicSvc.XLate("Missing Standard Parameters")" });
+               } catch (e) {}
+            }
+            $('#msOutputParametersDll').getKendoMultiSelect().value(arr);
+            onChangeOPD();
+            window.umsAlert("Alert!","@DicSvc.XLateJs("At least one output parameter is not present in Standard Parameter.<br/><br/>[{0}] will not be set")".replace("{0}",absentParam ));
+         }
+      } catch (e) {
+
+      }
+
+      //alert('To be defined');
+   }
+
+   function overwriteOptionValues(s) {
+      if (s == undefined) {
+         return;
+      }
+      //debugger;
+      dsRuleOption.data( [] );
+      var grid = $("#gridInputOptionDll").data("kendoGrid");
+      var newOption = "";
+
+      if (s.Options != undefined &&
+         s.Options[iDefaultPatient] != undefined) {
+         try {
+
+
+            var p = s.Options[iDefaultPatient];
+            var counter =0;
+            for (var key in p) {
+               if (p.hasOwnProperty(key)) {
+                  //console.log(key + " -> " + p[key]);
+                  //debugger;
+                  if (typeof (p[key]) == typeof ({})) {
+                     //divMsg += "<tr><td>" + p[key].Name + "</td><td>" + p[key].Value + "</td></tr>";
+                     var it = $.extend({}, p[key], { RuleID: 0, PatientID: 0 });
+                     if (!it.Index) {
+                        it.Index = counter;
+                        counter++;
+                     }
+                     dsRuleOption.add(it);
+
+                     newOption = kendo.stringify(dsRuleOption.data().toJSON());
+                  }
+                  else {
+                     dsRuleOption.add({
+                        RuleID: 0,
+                        PatientID: 0,
+                        Name: key,
+                        Value: p[key],
+                        Index: dsRuleOption.length+1
+                     });
+                     newOption += key + ":" + p[key] + ";";
+                  }
+
+               }
+            }
+
+
+         } catch (e) {
+
+         }
+      }
+      $('#Options').val(newOption);
+      actualOption = dsRuleOption.data().toJSON();
+      //dsRuleOption.save
+      grid.setDataSource(dsRuleOption);
+      grid.saveChanges();
+      //debugger;
+   }
+
+   function overwriteRuleSettings(s) {
+      if (s == undefined) {
+         return;
+      }
+      if (s.IsGeneric != undefined) {
+         var dropdownlist = $('#DllDataType_@Model.ID.ToString()').data("kendoDropDownList");
+         dropdownlist.value(s.IsGeneric ? 0 : 1);
+         dropdownlist.trigger("change");
+      }
+
+      //killTimeout: $('#KillTimeout').val(), //KillTimeout      =
+      if (s.KillTimeout != undefined && kendo.parseInt(s.KillTimeout)>0 ) {
+         $('#KillTimeout').data("kendoNumericTextBox").value(kendo.parseInt(s.KillTimeout));
+         if ($('#KillTimeout').data("kendoNumericTextBox").value() != kendo.parseInt(s.KillTimeout)) {
+            window.umsAlert("Alert", "@DicSvc.XLate("Kill Timeout value [")"+s.KillTimeout+"@DicSvc.XLate("] is out of range(1 - 30) and could not be set")");
+         }
+      }
+
+      //validityTimeout: $('#ValidityTimeout').val(), //ValidityTimeout  =
+      if (s.ValidityTimeout != undefined && kendo.parseInt(s.ValidityTimeout)>0 ) {
+         $('#ValidityTimeout').data("kendoNumericTextBox").value(kendo.parseInt(s.ValidityTimeout));
+         if ($('#ValidityTimeout').data("kendoNumericTextBox").value() != kendo.parseInt(s.ValidityTimeout)) {
+            window.umsAlert("Alert", "@DicSvc.XLate("Validity Timeout value[")" + s.ValidityTimeout + "@DicSvc.XLate("]is out of range(1 - 86400) and could not be set")");
+         }
+      }
+      //isExecuteAtStartup: $('#ExecuteAtStartup').is(":checked"), //ExecuteAtStartup =
+      if (s.IsExecuteAtStartup != undefined ) {
+         $('#ExecuteAtStartup').prop('checked', s.IsExecuteAtStartup); //(s.IsExecuteAtStartup?1:0);
+      }
+      //isAutoActivate: $('#AutoActivate').is(":checked"), //AutoActivate     =
+      if (s.IsAutoActivate != undefined ) {
+         $('#AutoActivate').prop('checked', s.IsAutoActivate);
+      }
+      function setTriggerPeriodic() {
+         $('#triggerTypePeriodic').prop('checked', true);
+         if (s.Interval != undefined ) {
+            $("#Interval").data("kendoNumericTextBox").value(kendo.parseInt(s.Interval));
+            if ($('#Interval').data("kendoNumericTextBox").value() != kendo.parseInt(s.Interval)) {
+               window.umsAlert("Alert", "@DicSvc.XLate("Periodic Interval value[")"+s.Interval+"] is out of range (500-86400000) and could not be set");
+            }
+         }
+      }
+      function setTriggerScheduler() {
+         $('#triggerTypeScheduled').prop('checked',true);
+         if (s.Times != undefined ) {
+            var widget = $("#multiselectTimes" ).getKendoMultiSelect();
+            var times = [];
+            widget.value(times);
+            for (var t = 0; t < s.Times.length; t++) {
+               try {
+                  times.push(s.Times[t].substr(0,5));
+                  addNew(widget.element[0].id, times[times.length - 1], false);
+               } catch (e) {
+
+               }
+
+            }
+            //widget.value(times);
+         }
+      }
+      function setTriggerMessage() {
+         $('#triggerTypeMessage').prop('checked', true);
+         if (s.MessageType != undefined ) {
+            $('#MessageType').val(s.MessageType);
+         }
+      }
+
+      if (s.TriggerType != undefined ) {
+         //debugger;
+         $('input:radio[name=triggerTypeRadio]').prop('checked', false);
+         var trigger = s.TriggerType.toString();
+         trigger = '3'; //bug #5461: now is always multi
+         setTriggerType(trigger);
+         switch (trigger) {
+
+         case '0' /*'Periodic'*/:
+            setTriggerPeriodic();
+            break;
+         case '1' /*'Scheduled'*/:
+            setTriggerScheduler();
+            break;
+         case '2' /*'Message'*/:
+            setTriggerMessage();
+            break;
+         case '3' /*'Message'*/:
+
+            setTriggerPeriodic();
+            setTriggerScheduler();
+            setTriggerMessage();
+            $('#triggerTypeMulti').prop('checked', true);
+            break;
+         }
+      }
+
+   }
+   function confirmOverwriteOV() {
+      if (overwriteSettings != undefined && overwriteSettings != null) {
+         overwriteOptionValues(overwriteSettings);
+      }
+   }
+   function confirmOverwriteOP() {
+      if (overwriteSettings != undefined && overwriteSettings != null) {
+         overwriteOutputParameters(overwriteSettings);
+      }
+   }
+   function confirmOverwriteSett() {
+      if (overwriteSettings != undefined && overwriteSettings != null) {
+         overwriteRuleSettings(overwriteSettings);
+      }
+   }
+   function nonEditor(container, options) {
+      //container.text(options.model[options.field]);
+      //container.removeClass("k-edit-cell");
+      //container.preventDefault();
+   }
+   function toggleScrollbar(e) {
+      var gridWrapper = e.sender.wrapper;
+      var gridDataTable = e.sender.table;
+      var gridDataArea = gridDataTable.closest(".k-grid-content");
+
+      gridWrapper.toggleClass("no-scrollbar", gridDataTable[0].offsetHeight < gridDataArea[0].offsetHeight);
+
+
+   }
+   function onDataboundOptions(e) {
+      toggleScrollbar(e);
+      var gridT = e.sender;
+      gridT.thead.kendoTooltip({
+         filter: "th",
+         content: function (e) {
+            var element = e.target[0];
+            e.sender.popup.element.css("visibility", "hidden");
+            if (element.clientWidth < element.scrollWidth) {
+               e.sender.popup.element.css("visibility", "visible");
+               return e.target.text();
+            } else {
+               return "";
+            }
+         }
+      });
+      gridT.tbody.kendoTooltip({
+         filter: "td",
+         content: function (e) {
+
+            e.sender.popup.element.css("visibility", "hidden");
+            var element = e.target[0];
+            //debugger;
+            if (!element.classList.contains("k-command-cell") && element.clientWidth < element.scrollWidth) {
+
+               e.sender.popup.element.css("visibility", "visible");
+               var template = kendo.template("#: title #");
+               var data = { title: e.target.text() }; //Data with HTML tags
+               var result = template(data);
+               return result;
+            } else {
+               return "";
+            }
+         }
+      });
+      initRuleOptionGridSortable(e.sender.wrapper[0].id);
+   }
+   function onBeforeEditCell(e) {
+      if ($('#divCDSSRuleDetail').hasClass('readonly-mode')) {
+         e.preventDefault();
+      }
+   }
+   function onChangeGridOption(e) {
+      //debugger;
+   }
+   function onSaveGridOption(e) {
+      //debugger;
+      try {
+         e.model.ListItems = $('#ListItems').val();
+      } catch (e) {
+
+      }
+
+   }
+   function onSaveChangesGridOption(e) {
+      //debugger;
+      try {
+         e.model.ListItems = $('#ListItems').val();
+      } catch (e) {
+
+      }
+
+   }
+   function onCancelGridOption(e) {
+      //debugger;
+      // Not sure why this is needed but otherwise removes row...
+      e.preventDefault();
+      e.container.data("kendoWindow").close();
+      try {
+         var grid = $("#gridInputOptionDll").data("kendoGrid");
+         grid.dataSource.read()
+
+         //e.model.ListItems = $('#ListItems').val();
+      } catch (e) {
+
+      }
+
+   }
+   function onEditedGridOption(e) {
+      //debugger;
+      var gridWrapper = e.sender.wrapper;
+      actualOption = gridWrapper.getKendoGrid().dataSource.data().toJSON();
+      //if (!e.model.dirty) {
+      //   return;
+      //}
+
+      //var oldOption = $('#Options').val();
+      //var newOption = "";
+      //try {
+      //   //debugger;
+      //   if (gridWrapper && gridWrapper.getKendoGrid()) {
+      //      gridWrapper.getKendoGrid().saveChanges();
+      //      //gridWrapper.getKendoGrid().dataSource.data().forEach(function (row) {
+      //      //   //newOption += row.Name + ":" + row.Value + ";";
+      //      //   newOption = kendo.stringify(gridWrapper.getKendoGrid().dataSource.data().toJSON());
+      //      //});
+      //   }
+      //} catch (e) {
+
+      //}
+      //$('#Options').val(newOption);
+   }
+   function updateOptions(gridName) {
+      var gridWrapper = $("#" + gridName);
+      var oldOption = $('#Options').val();
+      var newOption = "";
+      try {
+         //debugger;
+         if (gridWrapper && gridWrapper.getKendoGrid()) {
+            //gridWrapper.getKendoGrid().dataSource.data().forEach(function (row) {
+            //   newOption += row.Name + ":" + row.Value + ";";
+            //});
+            //debugger;
+            var data = gridWrapper.getKendoGrid().dataSource.data().toJSON();
+            data.forEach(function(it,idx) {
+               //debugger;
+               it.Index = idx;
+               if (it.Type == 2) {
+                  //debugger;
+                  if (it.MaxLimit >= Number.MAX_SAFE_INTEGER)
+                     it.MaxLimit = null;
+                  if (it.MinLimit <= Number.MIN_SAFE_INTEGER)
+                     it.MinLimit = null;
+
+               } else if (it.Type == 3) {
+                  //debugger;
+                  if (it.MaxLimit >= Number.MAX_SAFE_INTEGER)
+                     it.MaxLimit = null;
+                  if (it.MinLimit <= Number.MIN_SAFE_INTEGER)
+                     it.MinLimit = null;
+               } else {
+                  //debugger;
+                  it.MaxLimit = null;
+                  it.MinLimit = null;
+               }
+            });
+            newOption = kendo.stringify(data);
+         }
+      } catch (e) {
+
+      }
+      $('#Options').val(newOption);
+   }
+   function initRuleOptionGridSortable(gridId) {
+      //debugger;
+      var grid = $('#' + gridId).data('kendoGrid');
+      if (!grid.table.data("kendoSortable")) {
+         grid.table.kendoSortable({
+            filter: ">tbody >tr",
+            hint: function (element) { // Customize the hint.
+               //var table = $('<table style="width: 600px;" class="k-grid k-widget"></table>'),
+               //   hint;
+
+               //table.append(element.clone()); // Append the dragged element.
+               //table.css("opacity", 0.7);
+
+               //return table; // Return the hint element.
+               var /*grid = $("#grid").data("kendoGrid"),*/
+                  table = grid.table.clone(), // Clone the Grid table.
+                  wrapperWidth = grid.wrapper.width(), // Get the Grid width.
+                  wrapper = $("<div class='k-grid k-widget'></div>").width(wrapperWidth),
+                  hint;
+
+               table.find("thead").remove(); // Remove the Grid header from the hint.
+               table.find("tbody").empty(); // Remove the existing rows from the hint.
+               table.wrap(wrapper); // Wrap the table
+               table.append(element.clone().removeAttr("uid")); // Append the dragged element.
+
+               hint = table.parent(); // Get the wrapper.
+
+               return hint; // Return the hint element.
+            },
+            cursor: "move",
+
+            placeholder: function(element) {
+               return element.clone().addClass("k-state-hover").css("opacity", 0.65);
+            },
+            start: function(e) {
+               if ($('#divCDSSRuleDetail').hasClass('readonly-mode')) {
+                  e.preventDefault();
+               }
+            },
+            change: function (e) {
+               //debugger;
+               var oldIndex = e.oldIndex,
+                  newIndex = e.newIndex,
+                  view = grid.dataSource.view(),
+                  dataItem = grid.dataSource.getByUid(e.item.data("uid"));
+
+
+               dataItem.Index = newIndex; // Update the order
+               dataItem.dirty = true;
+               // Shift the order of the records.
+               if (oldIndex < newIndex) {
+                  for (var i = oldIndex + 1; i <= newIndex; i++) {
+                     view[i].Index--;
+                     view[i].dirty = true;
+                  }
+               } else {
+                  for (var i = oldIndex - 1; i >= newIndex; i--) {
+                     view[i].Index++;
+                     view[i].dirty = true;
+                  }
+               }
+               grid.dataSource.remove(dataItem);
+               grid.dataSource.insert(newIndex, dataItem);
+               grid.dataSource.sync();
+
+            }
+         });
+      }
+
+   }
+</script>
+
+<div class="h-100 " id="divCDSSRuleDetail">
+   <div class="card h-90 pt-0 pb-2" style="max-height: 90%;">
+      <form id="@formId" asp-action="SaveCDSSRule" asp-controller="CDSS" class="h-85"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccessItemDetail" kendo-auto-scroll="true"
+            data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+         <div id="Results"></div>
+         @Html.HiddenFor(m => m.ID)
+         @(Html.HiddenFor(m => m.Options))
+         @Html.HiddenFor(m => m.OutputParameters)
+         @Html.HiddenFor(m => m.TriggerType)
+         @(
+            Html.Kendo().DataSource<StandardParameter>()
+               .Name("dataSourceStandardParameters")
+               .Ajax(dataSource => dataSource
+                  //.PageSize(100)
+                  .Read(read => read.Action("GetStandardParameters", "CDSS"))
+                  .ServerOperation(false)
+               )
+
+         )
+
+
+         <kendo-tabstrip name="tabstrip_ItemDetail_@Model.ID">
+            <scrollable enabled="true" />
+            <popup-animation>
+               <open effects="fade:in" />
+            </popup-animation>
+            <items>
+
+               <tabstrip-item text="@DicSvc.XLate("Rule Settings")" id="tabstrip-RuleDetail_@Model.ID-general" selected="true" >
+                  <content>
+                     @Html.HiddenFor(m => m.ID)
+                     <div class="row mt-2 mb-0">
+
+                        <div class="col-lg-6 general-card ml-0  p-0 ">
+                           <div id="general_" class="card row  p-0">
+                              <div class="row mb-4 ml-0 pl-0 ums-header">
+                                 @DicSvc.XLate("General Settings").ToUpper()
+                              </div>
+                              <div class="row">
+                                 <div class="col-md-4 u-col-h-fixed">
+                                    @Html.LabelFor(m => m.Name, new {@class= "field-required" })
+                                 </div>
+                                 <div class="col-md-8 u-col-h-fixed">
+                                    @Html.Kendo().TextBoxFor(m => m.Name).HtmlAttributes(new { @class = "k-input k-textbox w-100", @maxlength = "50" })
+                                 </div>
+                              </div>
+                              <div class="row">
+                                 <div class="col-md-4 u-col-h-fixed">
+                                    @Html.LabelFor(m => m.IsActive)
+                                 </div>
+                                 <div class="col-md-8 u-col-h-fixed">
+                                    @Html.Kendo().CheckBoxFor(m => m.IsActive).HtmlAttributes(new { @style = "margin-top: 6px;display: block;" }).Label(" ")
+                                 </div>
+                              </div>
+                              <div class="row">
+                                 <div class="col-md-4 u-col-h-fixed">
+                                    @Html.LabelFor(m => m.KillTimeout)
+                                 </div>
+                                 <div class="col-md-8 u-col-h-fixed">
+                                    @(Html.Kendo().NumericTextBox<int>().Name("KillTimeout").Value(Model.KillTimeout)
+                                       .Decimals(0) //.Min(1).Max(9)
+                                       .Format("#").HtmlAttributes(new { @class = "control-required w-50 text-right" })) sec (1-30)
+                                 </div>
+                              </div>
+                              <div class="row">
+                                 <div class="col-md-4 u-col-h-fixed">
+                                    @Html.LabelFor(m => m.ValidityTimeout)
+                                 </div>
+                                 <div class="col-md-8 u-col-h-fixed">
+                                    @(Html.Kendo().NumericTextBox<int>().Name("ValidityTimeout").Value(Model.ValidityTimeout)
+                                       .Decimals(0)//.Min(1).Max(86400)
+                                       .Format("#,###").HtmlAttributes(new { @class = "control-required w-50 text-right" })) sec (1-86400)
+                                 </div>
+                              </div>
+                              <div class="row">
+                                 <div class="col-md-4 u-col-h-fixed">
+                                    @Html.LabelFor(m => m.RuleTypeDescr)
+                                 </div>
+                                 <div class="col-md-8 u-col-h-fixed">
+
+                                    @(Html.Kendo().DropDownListFor(m => m.RuleType)
+                                       .Value("RuleType")
+                                       .DataTextField("Text")
+                                       .DataValueField("Value")
+                                       .HtmlAttributes(new { @class = "control-required w-50 readonly", id = "DllRuleType_" + @keyID, @readonly = "readonly" })
+                                       .Events(ev => ev.Change("onChangeRuleType"))
+                                    )
+
+
+
+                                 </div>
+                              </div>
+                              <div class="row">
+                                 <div class="col-md-4 u-col-h-fixed">
+                                    @Html.LabelFor(m => m.ExecuteAtStartup)
+                                 </div>
+                                 <div class="col-md-8 u-col-h-fixed">
+                                    @Html.Kendo().CheckBoxFor(m => m.ExecuteAtStartup).HtmlAttributes(new { @style = "margin-top: 6px;display: block;" }).Label(" ")
+                                 </div>
+                              </div>
+                              <div class="row">
+                                 <div class="col-md-4 u-col-h-fixed">
+                                    @Html.LabelFor(m => m.AutoActivate)
+                                 </div>
+                                 <div class="col-md-8 u-col-h-fixed">
+                                    @Html.Kendo().CheckBoxFor(m => m.AutoActivate).HtmlAttributes(new { @style = "margin-top: 6px;display: block;" }).Label(" ")
+                                 </div>
+                              </div>
+                              <div class="row">
+                                 <div class="col-md-4 u-col-h-fixed">
+                                    @Html.LabelFor(m => m.IsGeneric)
+                                 </div>
+                                 <div class="col-md-8 u-col-h-fixed">
+                                    @Html.HiddenFor(m => m.IsGeneric)
+                                    @(Html.Kendo().DropDownList()
+                                       .Name("DllDataType_" + @Model.ID.ToString())
+                                       .DataTextField("Text")
+                                       .DataValueField("Value")
+                                       .HtmlAttributes(new { @class = "control-required w-50", id = "DllDataType_" + @Model.ID.ToString() })
+                                       .Events(ev => ev.Change("onChangeDataType"))
+                                       )
+                                 </div>
+                              </div>
+
+                           </div>
+
+                        </div>
+                        <div class="col-lg-6 trigger-card ml-0  p-0 ">
+                           <div id="account_" class="card row  p-0">
+                              <div class="row mb-4 ml-0 pl-0 ums-header">
+                                 @DicSvc.XLate("Trigger Settings").ToUpper()
+                              </div>
+                              <div class="row d-none">
+                                 <div class="col-md-3">
+                                    @*<input type="radio" name="triggerTypeRadio" id="triggerTypeMulti" class="k-radio" checked="checked" onclick="setTriggerType('3');">*@
+                                    <label class="k-radio-label" for="triggerTypeMulti">@DicSvc.XLate("Multi Rule")</label>
+                                 </div>
+                                 <div class="col-md-3 text-right">
+                                    &nbsp;
+
+                                 </div>
+                                 <div class="col-md-6">
+                                    &nbsp;
+
+                                 </div>
+                              </div>
+                              <div class="row ">
+                                 <div class="col-md-3">
+                                    @*<input type="radio" name="triggerTypeRadio" id="triggerTypePeriodic" class="k-radio" checked="checked" onclick="setTriggerType('0');">*@
+                                    <label class="" for="triggerTypePeriodic">@DicSvc.XLate("Periodic rule interval")</label>
+                                 </div>
+                                 
+                                 <div class="col-md-7">
+
+                                    @(Html.Kendo().NumericTextBox<int>().Name("Interval").Value(Model.Interval)
+                                       .Decimals(0).Step(100)//.Min(500).Max(86400000)
+                                       .Format("#,###").HtmlAttributes(new { @class = "w-50 text-right" }))
+                                    millisec (500-86400000)
+                                 </div>
+                              </div>
+                              <div class="row">
+                                 <div class="col-md-3">
+                                    @*<input type="radio" name="triggerTypeRadio" id="triggerTypeScheduled" class="k-radio" onclick="setTriggerType('1');">*@
+                                    <label class="" for="triggerTypeScheduled">@DicSvc.XLate("Scheduled rule timings")</label>
+                                 </div>
+                                 
+                                 <div class="col-md-7">
+                                    @Html.HiddenFor(m => m.Times)
+                                    @{
+                                       var noDataTemplateID = "no-data-template";
+
+                                       List<SelectListItem> times = new List<SelectListItem>() { };
+                                       if (Model.Times != null && Model.Times.Length >= 5)
+                                       {
+                                          times.Clear();
+                                          foreach (string s in Model.Times.Split(";"))
+                                          {
+                                             times.Add(new SelectListItem()
+                                             {
+                                                Text = s,
+                                                Value = s
+                                             });
+                                          }
+                                       }
+                                    }
+                                    <script id="@noDataTemplateID" type="text/x-kendo-tmpl">
+
+                                       <div >
+                                          <div >
+                                             Do you want to add new item - '#: instance.input.val() #' ?
+                                          </div>
+                                          <div>
+                                             <button class="k-button k-button-md k-button-solid-base" onclick="addNew('#: instance.element[0].id #', '#: instance.input.val() #')">Add new item</button>
+                                          </div>
+                                       </div>
+                                    
+                                    </script>
+                                    
+                                    <div id="multiselectTimesErr">
+                                       @(
+
+                                          Html.Kendo().MultiSelect() //For(m => m.Times))
+                                             .Name("multiselectTimes")
+                                             .DataTextField("Text")
+                                             .DataValueField("Value")
+                                             .NoDataTemplateId(noDataTemplateID)
+                                             .Size(ComponentSize.Large	)
+                                             .ClearButton(false)
+                                             .BindTo(times)
+                                             .TagMode(MultiSelectTagMode.Multiple)
+                                             .Value(times)
+                                             .HtmlAttributes(new { style = "height:110px;align-items: flex-start;overflow-y: auto;" })
+                                             .Enable(false)
+                                             .EnforceMinLength(true)
+                                             .MinLength(5)
+                                             .AutoClose(true)
+                                             .Events(e => e.Change("onTimesChanged"))
+
+                                       )
+                                    </div>
+                                 </div>
+                              </div>
+                              <div class="row">
+                                 <div class="col-md-3">
+                                    @*<input type="radio" name="triggerTypeRadio" id="triggerTypeMessage" class="k-radio" onclick="setTriggerType('2');">*@
+                                    <label class="" for="triggerTypeMessage">@DicSvc.XLate("Message rule")</label>
+                                 </div>
+                                 
+                                 <div class="col-md-7">
+                                    @Html.Kendo().TextBoxFor(m => m.MessageType).HtmlAttributes(new { @class = "k-input w-100", @maxlength = "20", @style = "width:150px;" })
+                                 </div>
+                              </div>
+
+                           </div>
+
+
+                           <div class="row">
+
+
+                              <div class="col-md-6">
+                                 @if (isDll)
+                                 {
+                                    <button id="btnGetDllSettings" class="btn btn-outline-secondary" type="button" onClick="getDllInputOutputDefaultFromCDSS(3);">
+                                       @DicSvc.XLate("Get Settings from rule ")
+                                    </button>
+                                    <button id="btnGetSettingsTest" class="btn btn-outline-danger bg-warning d-none" type="button" onClick="TestOverWrite(3);">
+                                       TEST
+                                    </button>
+                                 }
+                              </div>
+
+                           </div>
+                        </div>
+                     </div>
+
+                  </content>
+
+               </tabstrip-item>
+               <tabstrip-item id="tabstrip-DllRules_@Model.ID" text="@DicSvc.XLate("DLL")" enabled="true">
+                  <content>
+                     <div style="max-height:420px;overflow-y: auto;">
+                     <div class="row ">
+                        <div class="col-md-2">
+                           @Html.LabelFor(m => m.DllFile, new { @class = "field-required" })
+                        </div>
+                        <div class="col-md-8">
+                           <div class="input-group ">
+                              @Html.Kendo().TextBoxFor(m => m.DllFile).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "50" })
+
+                              <div class="input-group-append">
+                                 <button id="btnOpenDllList" onclick="openDllListGrid();" class="btn border lh-1-0 ig-18px" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Get CDSS Dll list")">
+                                    <span class="mdi  mdi-pencil mdi-18px"></span>
+                                 </button>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                     <div class="row ">
+                        <div class="col-md-2">
+                           @Html.LabelFor(m => m.DllRuleName, new { @class = "field-required" })
+                        </div>
+                        <div class="col-md-8">
+                           <div class="input-group ">
+                              @Html.Kendo().TextBoxFor(m => m.DllRuleName).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "50", onchange = "onChangeDllRuleName(this);" })
+
+                              <div class="input-group-append">
+                                 <button id="btnOpenDllList" onclick="openDllMethodListGrid();" class="btn lh-1-0 border ig-18px" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Get CDSS Dll list")">
+                                    <span class="mdi  mdi-pencil mdi-18px"></span>
+                                 </button>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+
+                     <div class="card ">
+                        <div class="row mb-0 ml-0 pl-0 ums-header">
+                           Input/Output
+                        </div>
+                        <div class="card-body mx-0 px-0 py-2">
+                           <div class="row">
+                              <div class="col-md-2">
+
+                                 <button id="btnGetInputOutputParametersTest" class="btn btn-outline-primary d-none" type="button" onClick="TestOverWrite(5);">
+                                    TEST
+                                 </button>
+                              </div>
+                              <div class="col-md-5">
+
+                                 <button id="btnGetInputOutputParameters" class="btn btn-outline-secondary " type="button" onClick="getDllInputOutputDefaultFromCDSS(5);">
+                                    @DicSvc.XLate("Import options and output parameters from rule")
+                                 </button>
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-md-2">
+                                 <span class="align-content-center">
+                                    @DicSvc.XLate("Options")
+                                 </span>
+                              </div>
+                              <div class="col-md-10">
+
+                                 <script>var nr = 0;</script>
+                                 <script id="CdssOptionType" type="text/x-kendo-tmpl">
+                                    #=ruleOptType[data.Type]#
+
+
+                                 </script>
+                                 <div class="d-flex flex-row">
+                                    <div class="p-0">
+
+                                       @(Html.Kendo().Grid(cro).Name("gridInputOptionDll")
+                                          .HtmlAttributes(new { @style = "height:140px;display:inline-flex !important; " })
+
+                                          .Columns(columns =>
+                                          {
+                                             columns.Bound(c => c.Index).Title(" ").ClientTemplate("<i class=\"mdi mdi-arrow-up-down umsCanBeDragged text-muted\" title=\"#=Index#\" />").Width(35);
+
+                                             columns.Bound(c => c.Name).Editable("nonEditor").HtmlAttributes(new { @style = "min-width:150px;width:30%; " }).HeaderHtmlAttributes(new { @style = "min-width:150px;width:30%; " });
+                                             columns.Bound(c => c.Value).HtmlAttributes(new { @class = "col-editable" }).HtmlAttributes(new { @style = "min-width:80px;width:20%; " }).HeaderHtmlAttributes(new { @style = "min-width:80px;width:20%; " });
+                                             columns.Bound(c => c.Type).HtmlAttributes(new { @class = "col-editable" })
+                                                .EditorTemplateName("_CdssOptionType").ClientTemplateId("CdssOptionType");
+
+
+                                             columns.Bound(c => c.Label).HtmlAttributes(new { @class = "col-editable" });
+                                             columns.Bound(c => c.Description).HtmlAttributes(new { @class = "col-editable" });
+                                             columns.Bound(c => c.IsVisibleOnClient).Title(DicSvc.XLateJs("Visible on client"))
+                                                .ClientTemplate("#if(IsVisibleOnClient){#" + DicSvc.XLateHtml("Yes") + " #} else {# " + DicSvc.XLateHtml("No") + "#}#").HtmlAttributes(new { @class = "col-editable" });
+                                             columns.Bound(c => c.MinLimit).Title(DicSvc.XLateJs("Min")).HtmlAttributes(new { @class = "col-editable" });
+                                             columns.Bound(c => c.MaxLimit).Title(DicSvc.XLateJs("Max")).HtmlAttributes(new { @class = "col-editable" });
+                                             columns.Bound(c => c.ListItems).Title(DicSvc.XLateJs("Choices")).ClientTemplate("#if(ListItems){# <span title='#:ListItems#'>#:ListItems#</span> #}#")
+                                                .HtmlAttributes(new { @class = "col-editable" });
+                                             //columns.Command(command => { command.Edit().Text("&nbsp;").HtmlAttributes(new {title = "edit"}); }).Width(44);
+                                             columns.Command(command =>
+                                             {
+                                                command.Custom("EditC")
+                                                   .IconClass("k-icon k-i-edit")
+                                                   //.Template("<span class=\"k-button k-button-icontext k-grid-edit\" title=\"edit\" ><span class=\"k-icon k-i-edit\"></span></span>")
+                                                   .Text("&nbsp;")
+                                                   .Click("function(e) {/* prevent page scroll position change*/e.preventDefault();editThisOption(e, this, 0)}")
+                                                   .HtmlAttributes(new { title = "edit", data_type = 0, @class = " k-button k-grid-edit" });
+                                             }).Width(44);
+                                          })
+                                          .Scrollable(d => d.Enabled(true))
+                                          //.Editable(e =>
+                                          //{
+                                          //   e.Mode(GridEditMode.PopUp);
+                                          //   e.TemplateName("_CdssOptionsEdit");
+                                          //   e.AdditionalViewData(new {typeOptions = 0});
+                                          //   e.Window(w => w.Width(470));
+                                          //})
+                                          .Events(e => e.DataBound("onDataboundOptions")
+                                             .BeforeEdit("onBeforeEditCell")
+                                             .Save("onSaveGridOption").Cancel("onCancelGridOption")
+                                             .Change("onChangeGridOption")
+                                             .Edit("onEditedGridOption").SaveChanges("onSaveChangesGridOption")
+                                          )
+                                          .EnableCustomBinding(true)
+
+                                          //.BindTo(cro)
+                                          .DataSource("dsRuleOption")
+                                          .AutoBind(true)
+                                          //.DataSource(ds =>
+                                          //   ds.Custom()
+
+                                          //      .ServerFiltering(false).ServerSorting(false).ServerGrouping(false)
+                                          //      .Schema(sh => sh.Model(m => m.Id("Name"))))
+                                          //.ToHtmlString()
+                                          )
+                                    </div>
+                                    <div class="p-0">
+                                       <div class="d-flex flex-column">
+                                          <button id="btnInputOptionDllReload" type="button" class="btn border mdi mdi-24px ig-24px lh-1-0 mdi-reload "
+                                                  onClick="getDllInputOutputDefaultFromCDSS(2);"></button>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+
+
+                           <div class="row">
+                              <div class="col-md-2 mt-2">
+                                 @DicSvc.XLate("Output Parameters")
+                              </div>
+                              <div class="col-md-8">
+                                 <div class="input-group ">
+
+                                    @(Html.Kendo().MultiSelect() //For(m => m.Times))
+                                       .Name("msOutputParametersDll")
+                                       .DataTextField("Id")
+                                       .DataValueField("Id")
+                                       .Size(ComponentSize.Large	)
+                                       .ClearButton(false)
+                                       .TagTemplate("<span class=\"order-id\">#= Id #</span> #= Description #")
+                                       .DataSource("dataSourceStandardParameters")
+                                       .HtmlAttributes(new { @class = "form-control w-95", style = "overflow-y: auto !important;height:60px;align-items: flex-start;" })
+                                       .Enable(false)
+                                       )
+
+                                    <div class="input-group-append">
+                                       <button id="btnGetOutputParameters" class="btn lh-1-0 border ig-24px" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Get Dll Output parameters")">
+                                          <span class="mdi  mdi-reload mdi-24px"></span>
+                                       </button>
+                                    </div>
+
+                                 </div>
+                              </div>
+                           </div>
+                           <div class="row mb-0">
+                              <div class="col-md-2 mt-2">
+                                 @DicSvc.XLate("Test Parameters Values")
+                              </div>
+                              <div class="col-md-8">
+                                 <div class="input-group ">
+                                    @Html.Kendo().TextBox().Name("inputValuesDll").HtmlAttributes(new { @class = "k-input k-textbox", id = "inputValuesDll", @placeholder = "param:value;" })
+                                    <div class="input-group-append ">
+                                       <button id="btnInfoTestParametersValues" class="btn lh-1-0 border ig-24px" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("help")">
+                                          <span class="mdi  mdi-information-outline mdi-24px"></span>
+                                       </button>
+                                    </div>
+                                 </div>
+                              </div>
+                              <div class="col-md-2 text-right">
+                                 <button id="btnTestDll" type="button" class="btn btn-outline-secondary ">@DicSvc.XLate("Run test")</button>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                     </div>
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item id="tabstrip-ScriptRules_@Model.ID" text="@DicSvc.XLate("Script Rule ")" enabled="false">
+                  <content>
+                     <div class="row mt-3 mb-0 ">
+                        <div class="col-md-12">
+                           <div class="row">
+                              <div class="col-md-2 mt-2">
+                                 @Html.LabelFor(m => m.MethodCode, new { @class = "field-required" })
+
+                              </div>
+                              <div class="col-md-10">
+                                 @Html.TextAreaFor(m => m.MethodCode, new { @style = "resize:none;width:90%;height:200px;max-height:200px;border-color: #e4e4e4;" })
+
+                                 <div id="aceEditor" class="border"> </div>
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-md-2 mt-2">
+                                 @DicSvc.XLate("Option Values")
+                              </div>
+                              <div class="col-md-10">
+                                 <div class="d-flex flex-row">
+
+                                    <div class="p-0">
+                                       @(Html.Kendo().Grid<CDSSRuleOption>().Name("gridInputOptionScript")
+                                       .HtmlAttributes(new { @style = "height:110px;display:inline-flex !important; " })
+
+                                       .Columns(columns =>
+                                       {
+                                          columns.Bound(c => c.Name).Editable("nonEditor").HtmlAttributes(new { @class = "col-editable",style = "min-width:150px;width:30%; "}).HeaderHtmlAttributes(new {@style = "min-width:150px;width:30%; "});
+                                          columns.Bound(c => c.Value).HtmlAttributes(new { @class = "col-editable" }).HtmlAttributes(new { @style = "min-width:80px;width:20%; " }).HeaderHtmlAttributes(new { @style = "min-width:80px;width:20%; " });
+                                          columns.Bound(c => c.Type).HtmlAttributes(new { @class = "col-editable" })
+                                             .EditorTemplateName("_CdssOptionType").ClientTemplateId("CdssOptionType");
+
+
+                                          columns.Bound(c => c.Label).HtmlAttributes(new { @class = "col-editable" });
+                                          columns.Bound(c => c.Description).HtmlAttributes(new { @class = "col-editable" });
+                                          columns.Bound(c => c.IsVisibleOnClient).Title(DicSvc.XLateJs("Visible")).HtmlAttributes(new { @class = "col-editable" });
+                                          columns.Bound(c => c.MinLimit).Title(DicSvc.XLateJs("Min")).HtmlAttributes(new { @class = "col-editable" });
+                                          columns.Bound(c => c.MaxLimit).Title(DicSvc.XLateJs("Max")).HtmlAttributes(new { @class = "col-editable" });
+                                          columns.Bound(c => c.ListItems).Title(DicSvc.XLateJs("Choices")).ClientTemplate("<span title='#:ListItems#'>#:ListItems#</span>")
+                                             .HtmlAttributes(new { @class = "col-editable " });
+                                          //columns.Command(command => { command.Edit().Text("&nbsp;").HtmlAttributes( new {title="edit"}); }).Width(44);
+                                          columns.Command(command =>
+                                          {
+                                             command.Custom("Edit").Text("&nbsp;").IconClass("k-icon k-i-edit")
+                                                .Click("function(e) {/* prevent page scroll position change*/e.preventDefault();editThisOption(e, this, 1)}")
+                                                .HtmlAttributes(new { title = "edit", data_type = 1, @class = " k-button k-grid-edit" });
+                                          }).Width(44);
+                                       })
+                                       .Selectable(s => s.Mode(GridSelectionMode.Single).Type(GridSelectionType.Row))
+                                       .Scrollable(d => d.Enabled(true))
+
+                                       .Events(e => e.DataBound("onDataboundOptions")
+                                          .BeforeEdit("onBeforeEditCell")
+                                          .Save("onSaveGridOption").Cancel("onCancelGridOption")
+                                          .Change("onChangeGridOption")
+                                          .Edit("onEditedGridOption").SaveChanges("onSaveChangesGridOption")
+                                       )
+                                       .EnableCustomBinding(true)
+
+                                       //.BindTo(cro)
+                                       .DataSource("dsRuleOption")
+                                       .AutoBind(true)
+                                       )
+                                    </div>
+                                    <div class="p-0">
+                                       <div class="d-flex flex-column">
+                                          @*<button id="btnInputOptionScriptReload" type="button" class="btn border mdi mdi-24px ig-24px lh-1-0 mdi-reload " onClick="onClickInputOptionScriptReload();"></button>*@
+                                          <button id="btnInputOptionScriptNew" type="button" class="btn border mdi mdi-24px ig-24px lh-1-0 mdi-plus   " onClick="onClickInputOptionScriptNew();"></button>
+                                          <button id="btnInputOptionScriptDel" type="button" class="btn border mdi mdi-24px ig-24px lh-1-0 mdi-minus  " onClick="onClickInputOptionScriptDel();"></button>
+                                          <script>
+                                             function onClickInputOptionScriptNew() {
+                                                var grid = $("#gridInputOptionScript").data("kendoGrid");
+                                                //debugger;
+                                                createThisOption(grid, 1);
+                                             }
+                                             function onClickInputOptionScriptDel() {
+                                                //debugger;
+                                                var grid = $("#gridInputOptionScript").data("kendoGrid");
+                                                var row = grid.select();
+                                                if (row) {
+                                                   var data = grid.dataItem(row);
+                                                   grid.removeRow(row);
+                                                }
+
+                                             }
+                                          </script>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+
+                           <div class="row">
+                              <div class="col-md-2 mt-2">
+                                 @DicSvc.XLate("Output Parameters")
+                              </div>
+                              <div class="col-md-10">
+                                 @*Html.Kendo().TextBox().Name("OutputParametersScript").HtmlAttributes(new { @class = "k-input k-textbox w-100", @maxlength = "50",onfocusout = "onFocusOutOutPut(this);"})*@
+
+
+                                 <style>
+                                    .order-id {
+                                       display: inline-block;
+                                       min-width: 60px;
+                                    }
+                                 </style>
+                                 <script>
+
+                                    function opFiltering(e) {
+                                       if (e.filter) {
+                                          var value = e.filter.value;
+                                          var newFilter = {
+                                             filters: [
+                                                { field: "Id", operator: "contains", value: value },
+                                                { field: "Description", operator: "contains", value: value }
+                                             ],
+                                             logic: "or"
+                                          }
+                                          e.sender.dataSource.filter(newFilter);
+                                          e.preventDefault();
+                                       }
+                                       e.preventDefault();
+                                    }
+                                 </script>
+                                 <div id="msOutputParametersScriptErr">
+                                    @(Html.Kendo().MultiSelect() //For(m => m.Times))
+                                    .Name("msOutputParametersScript")
+                                    .DataTextField("Description")
+                                    .DataValueField("Id")
+                                       
+                                       .Size(ComponentSize.Large	)
+                                    .ItemTemplate("<span class=\"order-id\">#= Id #</span> #= Description #")
+                                    .TagTemplate("<span class=\"order-id\">#= Id #</span> #= Description #")
+                                    //.Filter(FilterType.Contains)
+                                    .DataSource("dataSourceStandardParameters")
+                                    .HtmlAttributes(new { @class = "w-100" ,style="overflow-y: auto !important;height:60px" })
+                                    .Events(e => e.Change("onChangeOPS").Filtering("opFiltering"))
+                                    .Enable(false))
+                                 </div>
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-md-2 mt-2">
+                                 @DicSvc.XLate("Test Parameters Values")
+
+
+                              </div>
+                              <div class="col-md-8">
+                                 <div class="input-group ">
+                                    @Html.Kendo().TextBox().Name("inputValues").HtmlAttributes(new { @style = "border-color: #e4e4e4;", id = "inputValues", @placeholder = "param:value;" })
+                                    <div class="input-group-append ">
+                                       <button id="btnInfoTestParametersValue" class="btn lh-1-0 border ig-24px" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("parameters used to test ")">
+                                          <span class="mdi  mdi-information-outline mdi-24px"></span>
+                                       </button>
+                                    </div>
+                                 </div>
+                              </div>
+                              <div class="col-md-2 text-right">
+                                 <button id="btnCompileM" type="button" class="btn btn-outline-primary h-100">@DicSvc.XLate("Compile")</button>
+                                 <button id="btnTest" type="button" class="btn btn-outline-secondary h-100 ">@DicSvc.XLate("Run test")</button>
+                                 <button id="btnCompileD" type="button" class="btn btn-outline-info d-none">@DicSvc.XLate("Compile D")</button>
+
+                              </div>
+                           </div>
+
+                        </div>
+                     </div>
+                  </content>
+
+               </tabstrip-item>
+
+
+               <tabstrip-item text="@DicSvc.XLate("Client Behavior")" id="tabstrip-ClientBehavior_@Model.ID-general" >
+                  <content>
+                     <div class="row mt-2 mb-0" style="height: 450px;">
+                        <div class="col-12">
+                           <div class="row">
+                              <div class="col-lg-6 ml-0  p-0 ">
+
+
+                                 <div class="row">
+                                    <div class="col-md-4 u-col-h-fixed">
+                                       @Html.LabelFor(m => m.Code)
+                                    </div>
+                                    <div class="col-md-8 u-col-h-fixed">
+                                       @Html.Kendo().TextBoxFor(m => m.Code).HtmlAttributes(new { @class = "k-input k-textbox w-100", @maxlength = "5" })
+                                    </div>
+                                 </div>
+
+                                 <div class="row ">
+                                    <div class="col-md-4 u-col-h-fixed">
+                                       @Html.LabelFor(m => m.Uri)
+                                    </div>
+                                    <div class="col-md-8 u-col-h-fixed">
+                                       @Html.Kendo().TextBoxFor(m => m.Uri).HtmlAttributes(new { @class = "k-input k-textbox w-100", @maxlength = "500" })
+                                    </div>
+                                 </div>
+                                 <div class="row">
+                                    <div class="col-md-4 u-col-h-fixed">
+                                       @Html.LabelFor(m => m.ClientVisible)
+                                    </div>
+                                    <div class="col-md-8 u-col-h-fixed">
+                                       @Html.Kendo().CheckBoxFor(m => m.ClientVisible).HtmlAttributes(new { @style = "margin-top: 6px;display: block;" }).Label(" ")
+                                    </div>
+                                 </div>
+
+
+                                 <div class="row">
+                                    <div class="col-md-4 u-col-h-fixed">
+                                       @Html.LabelFor(m => m.ClientEditable)
+                                    </div>
+                                    <div class="col-md-8 u-col-h-fixed">
+                                       @Html.Kendo().CheckBoxFor(m => m.ClientEditable).HtmlAttributes(new { @style = "margin-top: 6px;display: block;" }).Label(" ")
+                                    </div>
+                                 </div>
+                                 <div class="row">
+                                    <div class="col-md-4 u-col-h-fixed">
+                                       @Html.LabelFor(m => m.ClientConfigurable)
+                                    </div>
+                                    <div class="col-md-8 u-col-h-fixed">
+                                       @Html.Kendo().CheckBoxFor(m => m.ClientConfigurable).HtmlAttributes(new { @style = "margin-top: 6px;display: block;" }).Label(" ")
+                                    </div>
+                                 </div>
+                                 <div class="row">
+                                    <div class="col-md-4 u-col-h-fixed">
+                                       @Html.LabelFor(m => m.ClientCopyable)
+                                    </div>
+                                    <div class="col-md-8 u-col-h-fixed">
+                                       @Html.Kendo().CheckBoxFor(m => m.ClientCopyable).HtmlAttributes(new { @style = "margin-top: 6px;display: block;" }).Label(" ")
+                                    </div>
+                                 </div>
+
+
+
+                              </div>
+                              <div class="col-lg-6 ml-0  p-0 ">
+
+                                 <div class="row">
+                                    <div class="col-md-3 u-col-h-fixed">
+                                       @Html.LabelFor(m => m.Description)
+                                    </div>
+                                    <div class="col-md-9 u-col-h-fixed">
+                                       @Html.TextAreaFor(m => m.Description, new { @class = "k-input k-textarea w-100", row = "9", @maxlength = "4000", @autocomplete = "off", style = "resize:none;height: 260px;max-height: 260px;min-height: 260px;" })
+                                    </div>
+
+
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-12">
+   
+</div>
+
+                     </div>
+                  </content>
+
+               </tabstrip-item>
+               <tabstrip-item id="tabstrip-Location_@Model.ID" text="@DicSvc.XLate("Locations")" enabled="true">
+                  <content>
+                     <div class=" row mt-3" style="height: 400px;">
+                        <div class="col-md-2 u-col-h-fixed">
+                           @DicSvc.XLate("Current selected locations:") <span id="qtaLocation" class="badge badge-secondary">0</span>
+                        </div>
+                        <div class="col-md-10 u-col-h-fixed">
+                           <script>
+                              function onLocationChange(e) {
+                                 var msLocations = $("#LocationIds").data("kendoMultiSelect");
+                                 $('#qtaLocation').html(msLocations.value().length);
+                              }
+
+                              var isFirstDb = true;
+                              function onLocationDataBound(e) {
+
+                                 if (isFirstDb) {
+                                    //debugger;
+                                    isFirstDb = false;
+                                    var msLocations = $("#LocationIds").data("kendoMultiSelect");
+                                    var selectedValue = [];
+                                    @if (Model.Locations != null)
+                                    {
+                                       foreach (var d in Model.Locations.Split(","))
+                                       {
+                                          @:selectedValue.push(@d);
+                                       }
+                                    }
+                                    msLocations.value(selectedValue);
+                                    $('#qtaLocation').html(selectedValue.length);
+                                 }
+
+                              }
+                           </script>
+                           <style> 
+                              div.k-chip-list{
+                                 align-self: baseline;
+                              }
+                              span.k-clear-value{
+                                 align-self: baseline;
+                              }
+                           </style>
+                           <div style="overflow: auto">
+                              @Html.HiddenFor(m => m.Locations)
+                              @(Html.Kendo().MultiSelect()
+                                 .Name("LocationIds")
+                                 .HtmlAttributes(new {@style = "width:100%;height:350px; max-height:350px;align-self: baseline;",})
+                                 .DataTextField("LocationName")
+                                 .AutoWidth(true)
+                                 .Size(ComponentSize.Large	)
+                                 .DataValueField("ID")
+                                 .Placeholder(DicSvc.XLateHtml("Select location/s"))
+                                 .DataSource(source =>
+                                 {
+
+                                    source.Custom().Type("aspnetmvc-ajax")
+                                       .Transport(transport =>
+                                          transport.Read(read => read.Action("ReadLocations", "SystemConfiguration"))
+                                       )
+                                       .Schema(schema => schema
+                                          .Data("Data")
+                                          .Total("Total")
+                                       )
+                                       .ServerFiltering(false);
+
+                                 })
+                                 .AutoClose(false)
+                                 .Events(p => p.DataBound("onLocationDataBound").Change("onLocationChange"))
+                                 .Filter(FilterType.Contains)
+                                 //.Height(82)
+                                 .AutoBind(true).Enable(false))
+                           </div>
+                        </div>
+
+                     </div>
+                  </content>
+
+               </tabstrip-item>
+            </items>
+         </kendo-tabstrip>
+
+      </form>
+   </div>
+   <div class="card-footer h-10 p-0 m-0   border-0 bg-white">
+      @(Html.Kendo().ToolBar()
+         .Name("toolbarItemDetail")
+         .UmsDefaultErrors(DicSvc)
+         //.UmsDefaultSettings(DicSvc, "")
+         .Items(items =>
+         {
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDeleteItem").UmsHtmlButtonGeneric("modify-mode-item").Hidden();
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Save")).Id("btnSaveItem").UmsHtmlButtonGeneric("modify-mode-item btnRed").Hidden();
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnCancelItem").UmsHtmlButtonGeneric("modify-mode-item").Hidden();
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode-item");
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Edit")).Id("btnEditItem").UmsHtmlButtonGeneric("view-mode-item");
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Close")).Id("btnCloseItem").UmsHtmlButtonGeneric("view-mode-item");
+         })
+
+      )
+   </div>
+</div>
+<div id="dllSelectionDialog"></div>
+<script src="~/js/ums.cdss.ruleOptionEdit.js" asp-append-version="true"></script>
+
+<script>
+   var dasBrokerWnd;
+   $(document).ready(function() {
+
+      if (!dasBrokerWnd) {
+         dasBrokerWnd = $('#dllSelectionDialog').usmKendoWindow({
+            height: '550px',
+            width: '700px'
+         }).getKendoWindow();
+      }
+      initilizeOPS();
+      initilizeOPD();
+      //$('#KillTimeout').bind("outOfRange", OnNumericTextBoxOutOfRange);
+      //$('#ValidityTimeout').bind("outOfRange", OnNumericTextBoxOutOfRange);
+      //$('#Interval').bind("outOfRange", OnNumericTextBoxOutOfRange);
+   });
+   function OnNumericTextBoxOutOfRange(e, data) {
+      //debugger;
+      if (data.value > data.max)
+         alert("Value " + data.value + " is greater than Max: " + data.max);
+      else if (data.value < data.min)
+         alert("Value " + data.value + " is less than Min: " + data.min);
+   }
+   var dialogItem = $("#divCDSSRuleEditWindow").data("kendoWindow");
+   dialogItem.bind("activate", setModeItem);
+   dialogItem.bind("resize", setModeItem);
+
+   function changeToEditModeItem() {
+      if (dataSourceStandardParameters && dataSourceStandardParameters.total()>0) {
+         try {
+            dataSourceStandardParameters.pushInsert({ Id: -1, Description: "Missing Standard Parameters" });
+         } catch (e) {
+
+         }
+      }
+
+      actualmode = 2;
+      $('#divCDSSRuleDetail').removeClass('readonly-mode');
+      $("#divCDSSRuleDetail").find(".view-mode-item").addClass("k-hidden").hide();
+      $("#divCDSSRuleDetail").find(".modify-mode-item").removeClass("k-hidden").show();
+      $('#divCDSSRuleDetail').find(':input').attr('disabled', false);
+      $('#divCDSSRuleDetail').find(':input').each(function () {
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+            if (!cb.wrapper.hasClass("readonly")) {
+               cb.enable(true);
+            }
+
+         } else {
+            cb = $(this).data("kendoMultiSelect");
+
+            if (cb ) {
+               if (!cb.wrapper.hasClass("readonly")) {
+                  cb.enable(true);
+               }
+            }
+            else {
+               cb = $(this).data("kendoSwitch");
+               if (cb) {
+                  if (!cb.wrapper.hasClass("readonly")) {
+                     cb.enable(true);
+                  }
+               }
+            }
+         }
+      });
+      $('#divCDSSRuleDetail').find(':input').each(function () {
+         var cb = $(this).data("kendoNumericTextBox");
+         if (cb) {
+            cb.enable(true);
+         }
+      });
+      $('#divCDSSRuleDetail').find(':input').each(function () {
+         var cb = $(this).data("kendoTimePicker");
+         if (cb) {
+            cb.enable(true);
+         }
+      });
+      if (editor) {
+         editor.setOptions({ readOnly: false });
+      }
+      if('@(Model.ID)'==0)
+      {
+         $('#btnDeleteItem').hide();
+      }
+
+      //setTriggerType('@Model.TriggerType');
+      setTriggerType('3'); //bug #5461: now is always multi
+
+      onChangeDataType();
+      //debugger;
+      //$('#msOutputParametersDll').getKendoMultiSelect().enable(false);
+      var opDll = $('#msOutputParametersDll').getKendoMultiSelect();
+      opDll.enable(false);
+      //opDll.input.attr("readonly", "readonly");
+      opDll.wrapper.removeClass("k-state-disabled");
+   }
+   function changeToViewModeItem() {
+      actualmode = 1;
+      $('#divCDSSRuleDetail').addClass('readonly-mode');
+      $("#divCDSSRuleDetail").find(".modify-mode-item").hide();
+      $("#divCDSSRuleDetail").find(".view-mode-item").show();
+      $('#divCDSSRuleDetail').find(':input').attr('disabled', true);
+      $('#divCDSSRuleDetail').find(':input').each(function () {
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+            cb.enable(false);
+         }
+
+      });
+      $('#divCDSSRuleDetail').find(':input').each(function () {
+         var cb = $(this).data("kendoNumericTextBox");
+         if (cb) {
+            cb.enable(false);
+         }
+      });
+      $('#divCDSSRuleDetail').find(':input').each(function () {
+         var cb = $(this).data("kendoTimePicker");
+         if (cb) {
+            cb.enable(false);
+         }
+      });
+      if (editor) {
+         editor.setOptions({ readOnly: true });
+         $('.ace_text-input').attr('disabled', false);
+      }
+   }
+
+
+   var actualmodeItem;
+   function setWindowModeItem() {
+
+      if ('@(Model.ID)' !== '' && @(Model.ID)!== 0) {
+         actualmodeItem = 1;
+      } else {
+         actualmodeItem = 2;
+      }
+      setModeItem();
+   }
+   function setModeItem() {
+      if (actualmodeItem === 2)
+         changeToEditModeItem();
+      else
+         changeToViewModeItem();
+      dialogItem.center().resize();
+   }
+
+
+   function setTriggerType(selectedValue) {
+      //debugger;
+      $("#MessageType").prop("disabled", false).removeClass("k-state-disabled");
+      $('#TriggerType').val(selectedValue);
+
+      var interval = $("#Interval").data("kendoNumericTextBox");
+      switch (selectedValue) {
+      case "0":
+         interval.enable(true);
+         $("#Times").prop("disabled", true).addClass("k-state-disabled");
+         $("#multiselectTimes").data("kendoMultiSelect").enable(false);
+         //$("#MessageType").prop("disabled", true).addClass("k-state-disabled");
+         break;
+      case "1":
+         interval.enable(false);
+         $("#Times").prop("disabled", false).removeClass("k-state-disabled");
+         $("#multiselectTimes").data("kendoMultiSelect").enable(true);
+         //$("#MessageType").prop("disabled", true).addClass("k-state-disabled");
+         break;
+      case "2":
+         interval.enable(false);
+         $("#Times").prop("disabled", true).addClass("k-state-disabled");
+         $("#multiselectTimes").data("kendoMultiSelect").enable(false);
+         //$("#MessageType").prop("disabled", false).removeClass("k-state-disabled");
+         break;
+      case "3":
+         interval.enable(true);
+         $("#Times").prop("disabled", false).removeClass("k-state-disabled");
+         $("#multiselectTimes").data("kendoMultiSelect").enable(true);
+         //$("#MessageType").prop("disabled", false).removeClass("k-state-disabled");
+         break;
+      default:
+         interval.enable(true);
+         $("#Times").prop("disabled", false).removeClass("k-state-disabled");
+         $("#multiselectTimes").data("kendoMultiSelect").enable(false);
+         //$("#MessageType").prop("disabled", false).removeClass("k-state-disabled");
+         break;
+      }
+   }
+
+
+
+   function onScoreIDSelect(arg) {
+      //debugger;
+      var mygrid = this;
+      var model = mygrid.dataItem(mygrid.select());
+      $('#ScoreID').val(model.Value);
+      $('#ScoreName').val(model.Text);
+      var dialogAbout = $("#scoreIDDialogList");
+      dialogAbout.data("kendoWindow").close();
+   }
+
+   function cancelDeleteItem() {
+      //do nothing
+   }
+
+   function deleteItem() {
+      kendo.ui.progress($("#divCDSSRuleDetail"), true);
+      $.ajax({
+         url: '@Url.Action("DeleteCDSSRule", "CDSS")',
+         type: 'POST',
+         data: { id: '@Model.ID' },
+         async: false
+
+      }).done(function (response) {
+         if (response.success) {
+            var grid = $("#" + gridIdName).data("kendoGrid");
+            grid.dataSource.read();
+
+            kndWnd.data("kendoWindow").close();
+         }
+         else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+         }
+      }).fail(function (response) {
+         umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+      });
+      kendo.ui.progress($("#divCDSSRuleDetail"), false);
+   }
+
+   function OnSuccessItemDetail(response) {
+
+      if (response.success) {
+         var grid = $("#" + gridIdName).data("kendoGrid");
+         grid.dataSource.read();
+
+         kndWnd.data("kendoWindow").close();
+      }
+      else {
+         window.umsAlert("Error occured", response.errorMessage, 400, 300);
+      }
+   }
+
+   //the actual data won't get synced to the server,
+   //but that's okay because when we save this new item on the update of the parent model
+   //, we presumably will grab that newly added item on the next read
+   function addNew(widgetId, value, skipCheck) {
+      var widget = $("#" + widgetId).getKendoMultiSelect();
+      var dataSource = widget.dataSource;
+      if (skipCheck == undefined || !skipCheck) {
+         if (value.length < 5) {
+            alert('time is not correct (HH:mm)');
+            return;
+         }
+
+         var TIME24HOURS_PATTERN = "^([2][0-3]|[01]?[0-9])([:][0-5][0-9])";
+         $.each(value.split(";"),
+            function (key, val) {
+               //alert( key + ": " + val );
+               var timeHHmm = new RegExp(TIME24HOURS_PATTERN);
+               if (!timeHHmm.test(val)) {
+                  alert(val + ' is not correct (HH:mm)');
+                  return;
+               }
+               dataSource.add({
+                  Text: val,
+                  Value: val
+               });
+               widget.value(widget.value().concat([val]));
+               $('#Times').val(widget.value().join(";"));
+            });
+
+
+      }
+      dataSource.sync();
+   }
+   function onTimesDeselect(e) {
+      var widget = $("#multiselectTimes" ).getKendoMultiSelect();
+      $('#Times').val(widget.value().join(";"));
+   }
+   function onTimesSelect(e) {
+      var widget = $("#multiselectTimes" ).getKendoMultiSelect();
+      $('#Times').val(widget.value().join(";"));
+   }
+   function clearErrors() {
+      $("#toolbarItemDetail #errors").html('');
+   }
+   $(document).ready(function () {
+
+
+      setWindowModeItem();
+      $('#btnEditItem').off('click').on('click', function () {
+         kendo.ui.progress($("#divCDSSRuleDetail"), true);
+         changeToEditModeItem();
+         kendo.ui.progress($("#divCDSSRuleDetail"), false);
+      })
+      $('#btnCancelItem').off('click').on('click', function (e) {
+         e.preventDefault();
+         //debugger;
+         kendo.ui.progress($("#divCDSSRuleDetail"), true);
+         var currentID = '@Model.ID';
+         if (currentID && currentID != '' && currentID != '0') {
+
+            openDetail(currentID);
+         }
+         else {
+            dialogItem.close();
+         }
+         kendo.ui.progress($("#divCDSSRuleDetail"), false);
+
+      });
+      $('#btnCloseItem').off('click').on('click',
+         function() {
+            dialogItem.close();
+         });
+
+      $('#btnDeleteItem').off('click').on('click',function () {
+         umsConfirm('@DicSvc.XLate("Confirm Delete", Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+            '@DicSvc.XLate("Do you really want to delete this Rule?",Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+            deleteItem, cancelDeleteItem);
+      });
+
+
+      $('#btnCopy').off('click').on('click',function () {
+         //reset guid
+         $("#ID").val("0");
+         changeToEditModeItem();
+      });
+      var infotitle = '@DicSvc.XLateJs("TEST PARAMETERS VALUES")';
+      var infomessage = '@DicSvc.XLateJs("Test the rule inserting a value for each input parameter, according to the format \"parameter:value\". Multiple \"parameter:value\" couples are separed by the character \";\". If you are testing a script, you can easily retrieve the code number of input parameters. If you are testing a dll, be sure to know the code number of input parameters before execute the test")';
+      $('#btnInfoTestParametersValues').off('click').on('click',function () {
+         window.umsAlert(infotitle, infomessage);
+      });
+      $('#btnInfoTestParametersValue').off('click').on('click',function () {
+         window.umsAlert(infotitle, infomessage);
+      });
+
+      $('#btnSaveItem').off('click').on('click', function () {
+         kendo.ui.progress($("#divCDSSRuleDetail"), true);
+         //debugger;
+         if ($("#DllRuleType_@keyID").val()==0) {
+            updateOptions("gridInputOptionDll");
+
+         } else {
+            updateOptions("gridInputOptionScript");
+         }
+         var oldL = $('#Locations').val();
+         var newL = $('#LocationIds').val().join(',');
+         //debugger;
+         $('#Locations').val(newL);
+
+
+         var diff = false;
+         if (@(hasPatientOption?"true":"false")) {
+            //TODO: Check changes
+            //debugger;
+            try {
+               var newOp = JSON.parse($('#Options').val());
+
+               originalOption.forEach((o) => {
+                  var c = newOp.find(function(n) { return n.Name === o.Name });
+                  if (!c || c.Value != o.Value) {
+                     diff = true;
+                  }
+               });
+            } catch (e) {
+
+            }
+         }
+         if (diff) {
+            if (kendo.confirm('some difference, patient option will be deleted. Proced?')) {
+               if (OnValidationItem()) {
+                  $("#form_CDSSRule_@Model.ID").submit();
+               }
+            }
+         } else {
+            if (OnValidationItem()) {
+               $("#form_CDSSRule_@Model.ID").submit();
+            }
+         }
+         kendo.ui.progress($("#divCDSSRuleDetail"), false);
+      });
+
+
+      //set values
+      var currValue = $('#ID').val();
+      //debugger;
+      if (currValue != '' && currValue != '0' && currValue != 0) {
+         //var strTriggerType = $('#TriggerType').val();
+         var strTriggerType = '4';
+         $('input:radio[name=triggerTypeRadio]').prop('checked', false);
+         switch (strTriggerType) {
+         case '0' /*'Periodic'*/:
+            $('#triggerTypePeriodic').prop('checked', true);
+            break;
+         case '1' /*'Scheduled'*/:
+            $('#triggerTypeScheduled').prop('checked',true);
+            break;
+         case '2' /*'Message'*/:
+            $('#triggerTypeMessage').prop('checked', true);
+            break;
+         case '3' /*'Message'*/:
+            $('#triggerTypeMulti').prop('checked', true);
+            break;
+         }
+      }
+      $('#btnCompileD').off('click').on('click',
+         function() {
+            compileByDll();
+         });
+      $('#btnCompileM').off('click').on('click',
+         function() {
+            compileByMessage();
+         });
+      $('#btnTest').off('click').on('click',
+         function() {
+            runTestByMessage();
+         });
+      $('#btnTestDll').off('click').on('click',
+         function() {
+            runTestByMessage(true);
+         });
+
+      $('#btnGetOutputParameters').off('click').on('click',
+         function() {
+            getDllInputOutputDefaultFromCDSS(4);
+         });
+
+      $('#btnGetDllList').off('click').on('click',
+         function() {
+            getDllListByMessage();
+         });
+      //var oup = $('#OutputParameters').val();
+      //$('#OutputParametersDll').val(oup);
+      //$('#OutputParametersScript').val(oup);
+   });
+   function onChangeDllRuleName(el) {
+      //debugger;
+      if ("@isNewRecord"=="@true") {
+         getDllInputOutputDefaultFromCDSS(1);
+      }
+   }
+
+   function openDllListGrid() {
+      //debugger;
+      var dllName = $('#DllFile').val();
+      $.ajax({
+         url: '@Url.Action("GetDllList", "CDSS")',
+         type: 'GET',
+         data: { selectedDll: dllName, idField: "DllFile",idModel:"@(Model.ID)"},
+         async: false
+
+      }).done(function (data) {
+
+         if (!dasBrokerWnd) {
+            //debugger;
+            dasBrokerWnd = $('#dllSelectionDialog').usmKendoWindow({
+               height: '500px',
+               width: '700px'
+            }).getKendoWindow();
+         }
+         dasBrokerWnd.title('@DicSvc.XLate("SELECT CDSS DLL")');
+         dasBrokerWnd.content(data);
+         dasBrokerWnd.center().open();
+      });
+   }
+   function openDllMethodListGrid() {
+      //debugger;
+      var dllName = $('#DllFile').val();
+      if (dllName.length===0) {
+         window.umsAlert("Error", "DLL File name is required", 400, 300);
+         return;
+      }
+
+      $.ajax({
+         url: '@Url.Action("GetDllMethodList", "CDSS")',
+         type: 'GET',
+         data: { selectedDll: dllName, idField: "DllRuleName",idModel:"@(Model.ID)"},
+         async: false
+
+      }).done(function (data) {
+         if (!dasBrokerWnd) {
+            //debugger;
+            dasBrokerWnd = $('#dllSelectionDialog').usmKendoWindow({
+               height: '500px',
+               width: '700px'
+            }).getKendoWindow();
+         }
+         dasBrokerWnd.title('@DicSvc.XLate("SELECT CDSS DLL METHOD")');
+         dasBrokerWnd.content(data);
+         dasBrokerWnd.center().open();
+      });
+   }
+
+   function getDllListByMessage() {
+      clearErrors();
+      //debugger;
+      var dllName = $('#DllFile').val();
+      var ruleMetodh = $('#DllRuleName').val();
+      //times = $('#Times').val();
+      var actualData = {
+         id: '@Model.ID',
+         name: dllName, //Name             =
+         ruleMetodh:ruleMetodh
+      };
+      kendo.ui.progress($("#divCDSSRuleDetail"), true);
+      $.ajax({
+            url: '@Url.Action("GetDllListByMessage", "CDSS")',
+            type: 'POST',
+            data: actualData,
+            async: true
+
+         }).done(function(response) {
+            if (response.success) {
+               //debugger;
+               if (response.fullResponse) {
+                  if (response.fullResponse.success) {
+                     //$("#toolbarItemDetail #errors").html(buildValidationMessage(response.fullResponse.messagges));
+                     if (!dasBrokerWnd) {
+                        //debugger;
+                        dasBrokerWnd = $('#dllSelectionDialog').usmKendoWindow({
+                           height: '500px',
+                           width: '700px'
+                        }).getKendoWindow();
+                     }
+                     dasBrokerWnd.title('@DicSvc.XLate("SELECT DLL")');
+                     dasBrokerWnd.content(data);
+                     dasBrokerWnd.center().open();
+                  } else {
+                     $("#toolbarItemDetail #errors").html(buildValidationMessage(response.fullResponse.messagges));
+                  }
+               }
+               //kndWnd.data("kendoWindow").close();
+               //
+               //window.umsAlert("Test execution", "ALL OK");
+            } else {
+               //debugger;
+               $("#toolbarItemDetail #errors").html(buildValidationMessage(response.errorMessage.split("\r\n")));
+               //window.umsAlert("Error occured", response.errorMessage, 400, 300);
+            }
+         })
+         .fail(function(response) {
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+         }).always(function () {kendo.ui.progress($("#divCDSSRuleDetail"), false);});
+      //kendo.ui.progress($("#divCDSSRuleDetail"), false);
+   };
+
+   function getOutputParametersByMessage() {
+      clearErrors();
+      var dllName = $('#DllFile').val();
+      var ruleMetodh = $('#DllRuleName').val();
+      var times = $('#multiselectTimes').val().join(';');
+      var actualData = {
+         id: '@Model.ID',
+         dllName: dllName,
+         ruleMetodh:ruleMetodh,
+         name: $('#Name').val(), //Name             =
+         dataType: $('#DllDataType_@Model.ID.ToString()').val(), //IsGeneric        =
+         triggerType: $('#TriggerType').val(), //TriggerType      =
+         killTimeout: $('#KillTimeout').val(), //KillTimeout      =
+         interval: $('#Interval').val(), //Interval         =
+         times: times, //Times            =
+         validityTimeout: $('#ValidityTimeout').val(), //ValidityTimeout  =
+         isExecuteAtStartup: $('#ExecuteAtStartup').is(":checked"), //ExecuteAtStartup =
+         isAutoActivate: $('#AutoActivate').is(":checked"), //AutoActivate     =
+         messageType: $('#MessageType').val(), //MessageType      =
+         outputParameters:$('#OutputParameters').val()
+      };
+      if (!OnValidationTemp()) {
+         return;
+      }
+
+      kendo.ui.progress($("#divCDSSRuleDetail"), true);
+      $.ajax({
+         url: '@Url.Action("GetOutputParametersByMessage", "CDSS")',
+         type: 'POST',
+         data: actualData,
+         async: true
+
+      }).done(function(response) {
+         if (response.success) {
+            //debugger;
+            //kndWnd.data("kendoWindow").close();
+            $("#toolbarItemDetail #errors").html('');
+            //$('#OutputParametersDll').val(response.errorMessage);
+            $('#OutputParameters').val(response.errorMessage);
+            initilizeOPD();
+            var missingStandardParam="";
+            if ($('#OutputParameters').val() !== $('#msOutputParametersDll').getKendoMultiSelect().value().join(";")) {
+               missingStandardParam = "<br/><br/>@DicSvc.XLate("Check for the presence of Standard Parameters in Database",Digistat.FrameworkStd.Enums.StringParseMethod.Js)";
+            }
+            var msg = "The following output parameters will be imported from the DLL:";
+            window.umsAlert("Output Parameters", msg+"<br/>["+response.errorMessage+"]" + missingStandardParam );
+         } else {
+
+            $("#toolbarItemDetail #errors").html(buildValidationMessage(response.errorMessage.split("\r\n")));
+            //window.umsAlert("Error occured", response.errorMessage, 400, 300);
+         }
+      }).fail(function(response) {
+         umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+      }).always(function () {kendo.ui.progress($("#divCDSSRuleDetail"), false);});
+      //kendo.ui.progress($("#divCDSSRuleDetail"), false);
+   };
+   function compileByMessage() {
+      clearErrors();
+      var times = $('#multiselectTimes').val().join(';');
+      //times = $('#Times').val();
+      var actualData = {
+         id: '@Model.ID',
+         name: $('#Name').val(), //Name             =
+         dataType: $('#DllDataType_@Model.ID.ToString()').val(), //IsGeneric        =
+         triggerType: $('#TriggerType').val(), //TriggerType      =
+         killTimeout: $('#KillTimeout').val(), //KillTimeout      =
+         interval: $('#Interval').val(), //Interval         =
+         times: times, //Times            =
+         validityTimeout: $('#ValidityTimeout').val(), //ValidityTimeout  =
+         isExecuteAtStartup: $('#ExecuteAtStartup').is(":checked"), //ExecuteAtStartup =
+         isAutoActivate: $('#AutoActivate').is(":checked"), //AutoActivate     =
+         messageType: $('#MessageType').val(), //MessageType      =
+         methodCode: $('#MethodCode').val(), //MethodCode       =
+         outputParameters:$('#OutputParameters').val(),
+         options:$('#Options').val()
+      };
+      kendo.ui.progress($("#divCDSSRuleDetail"), true);
+      $.ajax({
+         url: '@Url.Action("CompileCDSSRuleByMessage", "CDSS")',
+         type: 'POST',
+         data: actualData,
+         async: true
+
+      }).done(function (response) {
+         //debugger;
+         if (response.success) {
+            //
+            //kndWnd.data("kendoWindow").close();
+            $("#toolbarItemDetail #errors").html('');
+            window.umsAlert("@DicSvc.XLate("Compiling")","@DicSvc.XLate("Rule compiled successfully")");
+         }
+         else {
+
+            $("#toolbarItemDetail #errors").html(buildValidationMessage(response.errorMessage.split("\r\n")));
+            window.umsAlert("@DicSvc.XLate("Error Compiling")", response.errorMessage.replaceAll("\r\n","<br/>"), 400, 300);
+         }
+      }).fail(function (response) {
+         umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+      }).always(function () {kendo.ui.progress($("#divCDSSRuleDetail"), false);});
+      //kendo.ui.progress($("#divCDSSRuleDetail"), false);
+   }
+
+   function compileByDll() {
+      //kendo.ui.progress($("#divCDSSRuleDetail"), true);
+      //debugger;
+      var actualScript = $('#MethodCode').val();
+      var times = $('#multiselectTimes').val().join(';');
+      updateOptions("gridInputOptionScript");
+      var actualData = {
+         id: '@Model.ID',
+         name: $('#Name').val(), //Name             =
+         dataType: $('#DllDataType_@Model.ID.ToString()').val(), //IsGeneric        =
+         triggerType: $('#TriggerType').val(), //TriggerType      =
+         killTimeout: $('#KillTimeout').val(), //KillTimeout      =
+         interval: $('#Interval').val(), //Interval         =
+         times: times, //Times            =
+         validityTimeout: $('#ValidityTimeout').val(), //ValidityTimeout  =
+         isExecuteAtStartup: $('#ExecuteAtStartup').is(":checked"), //ExecuteAtStartup =
+         isAutoActivate: $('#AutoActivate').is(":checked"), //AutoActivate     =
+         messageType: $('#MessageType').val(), //MessageType      =
+         methodCode: actualScript //MethodCode       =
+
+      };
+      $.ajax({
+         url: '@Url.Action("CompileCDSSRuleByDll", "CDSS")',
+         type: 'POST',
+         data: actualData,
+         async: true
+
+      }).done(function (response) {
+         if (response.success) {
+            //
+            //kndWnd.data("kendoWindow").close();
+            $("#toolbarItemDetail #errors").html('');
+            window.umsAlert("Compiling","ALL OK");
+         }
+         else {
+            //debugger;
+
+            $("#toolbarItemDetail #errors").html(buildValidationMessage(response.errorMessage.split("\r\n")));
+            //window.umsAlert("Error occured", response.errorMessage, 400, 300);
+         }
+      }).fail(function (response) {
+         umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+      }).always(function () { return false; });
+      //kendo.ui.progress($("#divCDSSRuleDetail"), false);
+   }
+   function runTestByMessage(isDll) {
+      clearErrors();
+      //debugger;
+      var typerule = 1;
+      var actualScript = $('#MethodCode').val();
+      var times = $('#multiselectTimes').val().join(';');
+      updateOptions("gridInputOptionScript");
+      var testImputVal = $('#inputValues').val();
+      if (isDll != undefined && isDll == true) {
+         testImputVal = $('#inputValuesDll').val();
+         updateOptions("gridInputOptionDll");
+         typerule = 0;
+      }
+      var msLocations = $("#LocationIds").data("kendoMultiSelect");
+      var actualData = {
+         id: '@Model.ID',
+         name: $('#Name').val(), //Name             =
+         dataType: $('#DllDataType_@Model.ID.ToString()').val(), //IsGeneric        =
+         triggerType: $('#TriggerType').val(), //TriggerType      =
+         killTimeout: $('#KillTimeout').val(), //KillTimeout      =
+         interval: $('#Interval').val(), //Interval         =
+         times: times, //Times            =
+         validityTimeout: $('#ValidityTimeout').val(), //ValidityTimeout  =
+         isExecuteAtStartup: $('#ExecuteAtStartup').is(":checked"), //ExecuteAtStartup =
+         isAutoActivate: $('#AutoActivate').is(":checked"), //AutoActivate     =
+         messageType: $('#MessageType').val(), //MessageType      =
+         methodCode: actualScript, //MethodCode       =
+         outputParameters: $('#OutputParameters').val(),
+         options: $('#Options').val(),
+         inputValues: testImputVal,
+         ruletype: typerule,
+         dllname: $('#DllFile').val(),
+         rulename: $('#DllRuleName').val(),
+         locations: msLocations.value().join(",")
+
+      };
+      //debugger;
+      kendo.ui.progress($("#divCDSSRuleDetail"), true);
+      $.ajax({
+         url: '@Url.Action("RunTestCDSSRuleByMessage", "CDSS")',
+         type: 'POST',
+         data: actualData,
+         async: true
+
+      }).done(function(response) {
+         if (response.success) {
+            //
+            //kndWnd.data("kendoWindow").close();
+            $("#toolbarItemDetail #errors").html('');
+            var result = "Execution terminated correctly.<br/>Geneated output:<br/>";
+            if (response.errorMessage.replace(/\r\n/gi, "").length > 0) {
+               //debugger;
+               console.log(response.errorMessage);
+               result += "<samp>";
+               result += $.map(response.errorMessage.split("\r\n"),
+                  function(val, index) {
+                     if (val.indexOf('Alarm:') == 2) val = '<code>' + val + '</code>';
+                     if (val.indexOf('Alarms for') == 0) val = '<code>' + val + '</code>';
+                     return val;
+                  }).join("<br/>");
+               result += "</samp>";
+
+            } else {
+               result += "No output";
+            }
+
+            window.umsAlert("Test execution", result);
+
+         } else {
+            //debugger;
+
+            $("#toolbarItemDetail #errors").html(buildValidationMessage(response.errorMessage.split("\r\n")));
+            var result = "Execution terminated with error:<br/>";
+            if (response.errorMessage.length>0) {
+               result += response.errorMessage.split("\r\n");
+            } else {
+               result += "No error description";
+            }
+
+            window.umsAlert("Test execution", response.errorMessage, 400, 300);
+         }
+      }).fail(function(response) {
+         umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+      }).always(function () {kendo.ui.progress($("#divCDSSRuleDetail"), false);});
+      //kendo.ui.progress($("#divCDSSRuleDetail"), false);
+   };
+   function onFocusOutOutPut(item) {
+
+      var textArea = $(item);
+      $('#OutputParameters').val(textArea.val());
+   }
+
+
+
+   function onFocusOutOutPutMS(item) {
+      //debugger;
+      var textArea = $(item);
+      $('#OutputParameters').val(textArea.val());
+   }
+
+   function clearCustomValidationErrors() {
+      clearErrors();
+      //$('#IntervalErr').removeClass('border rounded border-danger');
+      $('#multiselectTimesErr').removeClass('border rounded border-danger');
+      $('#MessageType').removeClass('k-invalid');
+      $('#' + editor.container.id).removeClass("border-danger");
+      //$('#btnLocation').removeClass('border-danger');
+   }
+
+   $(document).ready(function() {
+      $("#multiselectTimesErr").focusin(function() {
+         $("#multiselectTimesErr").removeClass("border rounded border-danger");
+      });
+
+
+   });
+   function OnValidationItem() {
+      //debugger;
+      clearCustomValidationErrors();
+      var validator = $("#form_CDSSRule_@Model.ID").kendoValidator({
+         rules: {
+            IntervalOutOfRange: function(input) {
+               //console.log("custom1 "+input[0].id);
+               //if (input.is("[name=Interval]")) {
+               //   if ($('#TriggerType').val()==0) {
+               //      return  input.val().length>666666666;
+               //   }
+               //}
+               return true;
+            },
+            customRule1: function(input) {
+               //console.log("custom1 "+input[0].id);
+               if (input.is("[name=Interval]")) {
+                  if ($('#TriggerType').val()==0) {
+                     return  input.val().length!=0;
+                  }
+               }
+               return true;
+            },
+            customRule2: function(input) {
+               //console.log("custom2 "+input[0].id);
+               if (input.is("[name=MessageType]")) {
+                  if ($('#TriggerType').val()==2) {
+                     return  input.val().length!=0;
+                  }
+               }
+               return true;
+            }
+            ,dllFileName: function(input) {
+               //console.log("dllname "+input[0].id);
+               if (input.is("[name=DllFile]")) {
+                  if ($('input[name=RuleType]').val()==0) {
+                     return  input.val().length!=0;
+                  }
+               }
+               return true;
+
+            }
+            ,dllRuleName: function(input) {
+               //console.log("rulename "+input[0].id);
+               if (input.is("[name=DllRuleName]")) {
+                  if ($('input[name=RuleType]').val()==0) {
+                     return  input.val().length!=0;
+                  }
+               }
+               return true;
+            }
+            ,ruleName: function(input) {
+               //console.log("rulename "+input[0].id);
+               if (input.is("[name=Name]")) {
+                  var rules = $('#' + gridIdName).data("kendoGrid").dataSource.view();
+                  for (var i = 0; i < rules.length; i++) {
+                     if (input.val().length >0 && input.val() == rules[i].Name && $('#ID').val() != rules[i].ID ) {
+                        return false;
+                     }
+                  }
+               }
+               return true;
+            }
+            ,MethodCode: function(input) {
+               //console.log("rulename "+input[0].id);
+               if (input.is("[name=MethodCode]")) {
+                  if ($('input[name=RuleType]').val()==1) {
+                     return  input.val().length!=0;
+                  }
+               }
+
+               return true;
+            }
+            ,outputParamMissing: function(input) {
+               //console.log("rulename "+input[0].id);
+               if (input.is("[name=OutputParameters]")) {
+                  //debugger;
+                  if (input.val().length >0 && input.val().indexOf("-1")>-1 ) {
+                     return false;
+                  }
+               }
+               return true;
+            }
+         },
+         messages: {
+
+            IntervalOutOfRange: "Interval value is out of range",
+            customRule1: "Interval value is required",
+            customRule2: "Message Type value is required",
+            dllFileName: "DLL File Name is required",
+            dllRuleName: "DLL Rule Name is required",
+            ruleName: "Rule Name already exist",
+            MethodCode: "MethodCode  is required",
+            outputParamMissing: "some OutputPArameter is missing"
+         }
+      }).getKendoValidator();
+      //kendo.ui.progress($("#divCDSSRuleDetail"), true);
+      var customErrors = [];
+      var customFieldErrors = [];
+      var triggerType = $('#TriggerType').val();
+      if (triggerType == 0) {
+         if ($('#Interval').val() == "") {
+            //customErrors.push('@DicSvc.XLate("Interval value is required", StringParseMethod.Js)');
+            //customFieldErrors.push({ field: "#IntervalErr", class: "border rounded border-danger" });
+
+         }
+      }
+      if (triggerType == 1) {
+         if ($('#multiselectTimes').val() == "") {
+            customErrors.push('@DicSvc.XLate("Times value is required", StringParseMethod.Js)');
+            customFieldErrors.push({ field: "#multiselectTimesErr", class: "border rounded border-danger" });
+
+         }
+      }
+      if (triggerType == 2) {
+         if ($('#MessageType').val() == "") {
+            //customErrors.push('@DicSvc.XLate("Message value is required", StringParseMethod.Js)');
+            //customFieldErrors.push({ field: "#MessageType", class: "k-invalid" });
+         }
+      }
+
+      if (!validator.validate() || customErrors.length > 0) {
+         var errors = validator.errors();
+         if (customErrors.length > 0) {
+            errors.push(customErrors);
+         }
+
+         if ($("#MethodCode").hasClass("k-invalid")) {
+            $('#' + editor.container.id).addClass("border-danger");
+         }
+         $.each(customFieldErrors,
+            function(index, element) {
+               $(element.field).addClass(element.class);
+            });
+
+         $("#toolbarItemDetail #errors").html(buildValidationMessage(errors));
+         return false;
+      } else {
+         $("#toolbarItemDetail #errors").html("");
+      }
+      validator.destroy();
+      return true;
+   }
+   function OnValidationTemp() {
+      clearCustomValidationErrors();
+      var validator = $("#form_CDSSRule_@Model.ID").kendoValidator({
+         rules: {
+            dllFileName: function(input) {
+               if (input.is("[name=DllFile]")) {
+                  if ($('input[name=RuleType]').val() == 0) {
+                     return input.val().length != 0;
+                  }
+               }
+               return true;
+
+            },
+            dllRuleName: function(input) {
+               if (input.is("[name=DllRuleName]")) {
+                  if ($('input[name=RuleType]').val() == 0) {
+                     return input.val().length != 0;
+                  }
+               }
+               return true;
+            },
+            MethodCode: function(input) {
+               //console.log("rulename "+input[0].id);
+               if (input.is("[name=MethodCode]")) {
+                  if ($('input[name=RuleType]').val() == 1) {
+                     return input.val().length != 0;
+                  }
+               }
+               return true;
+            }
+         },
+         messages: {
+            customRule1: "Interval value is required",
+            customRule2: "Message Type value is required",
+            dllFileName: "DLL File Name is required",
+            dllRuleName: "DLL Rule Name is required",
+            MethodCode: "MethodCode  is required"
+         }
+      }).getKendoValidator();
+      //kendo.ui.progress($("#divCDSSRuleDetail"), true);
+      var customErrors = [];
+      var customFieldErrors = [];
+
+
+      if (!validator.validate() || customErrors.length > 0) {
+         var errors = validator.errors();
+         if (customErrors.length > 0) {
+            errors.push(customErrors);
+         }
+
+         if ($("#MethodCode").hasClass("k-invalid")) {
+            $('#' + editor.container.id).addClass("border-danger");
+         }
+         $.each(customFieldErrors,
+            function(index, element) {
+               $(element.field).addClass(element.class);
+            });
+
+         $("#toolbarItemDetail #errors").html(buildValidationMessage(errors));
+         return false;
+      } else {
+         $("#toolbarItemDetail #errors").html("");
+      }
+      validator.destroy();
+      return true;
+   }
+
+
+   function json2xml(o, tab, nodeTag, rootTag) {
+      var toXml = function(v, name, ind) {
+
+         var xml = "";
+         if (v instanceof Array) {
+            for (var i = 0, n = v.length; i < n; i++) {
+               xml += ind + toXml(v[i], name, ind + "\t") + "\n";
+               //debugger;
+            }
+         }
+         else if (typeof(v) == "object") {
+            var hasChild = false;
+            xml += ind + "<" + name;
+            for (var m in v) {
+               if (m.charAt(0) == "@@")
+                  xml += " " + m.substr(1) + "=\"" + v[m].toString() + "\"";
+               else
+                  hasChild = true;
+            }
+            xml += hasChild ? ">" : "/>";
+            if (hasChild) {
+               for (var m in v) {
+                  if (m == "#text")
+                     xml += v[m];
+                  else if (m == "#cdata")
+                     xml += "<![CDATA[" + v[m] + "]]>";
+                  else if (m.charAt(0) != "@@")
+                     xml += toXml(v[m], m, ind+"\t");
+               }
+               xml += (xml.charAt(xml.length-1)=="\n"?ind:"") + "</" + name + ">";
+            }
+         }
+         else if (typeof (v) == "undefined") {
+            xml += ind + "<" + name + "></" + name + ">";
+         }
+         else {
+            xml += ind + "<" + name + ">" + v.toString() +  "</" + name + ">";
+         }
+         return xml;
+      }, xml = "", nodeName = "";;
+
+      for (var m in o) {
+         if (nodeTag != undefined) {
+            nodeName = nodeTag;
+         } else {
+            nodeName = m;
+         }
+         xml += toXml(o[m], nodeName, "");
+      }
+      if (rootTag != undefined) {
+         xml = "<" + rootTag + ">" + xml + "<" + "/" + rootTag + ">";
+      }
+      return tab ? xml.replace(/\t/g, tab) : xml.replace(/\t|\n/g, "");
+   }
+   function xml2json(xml,level) {
+      if (!level) {
+         level = 1;
+      }
+      try {
+         var obj = (level === 1) ? [] : {};
+         if (xml.children.length > 0) {
+            for (var i = 0; i < xml.children.length; i++) {
+               var item = xml.children.item(i);
+               var nodeName = item.nodeName;
+               //debugger;
+               if (level === 1 ) {
+
+                  if (nodeName !== "Choice") {
+                     continue;
+                  }
+
+                  var level1 = level+1;
+                  obj.push(xml2json(item, level1));
+
+               } else {
+
+                  var level2 = level + 1;
+                  if (typeof (obj[nodeName]) == "undefined") {
+
+                     obj[nodeName] = xml2json(item, level2);
+                  } else {
+                     if (typeof (obj[nodeName].push) == "undefined") {
+                        var old = obj[nodeName];
+
+                        obj[nodeName] = [];
+                        obj[nodeName].push(old);
+                     }
+                     obj[nodeName].push(xml2json(item, level2));
+                  }
+               }
+            }
+         } else {
+            obj = xml.textContent;
+         }
+         return obj;
+      } catch (e) {
+         console.log(e.message);
+      }
+   }
+
+   
+</script>
+<script>
+   function editThisOption(e, grid, type){
+      if ($('#divCDSSRuleDetail').hasClass('readonly-mode')) {
+         e.preventDefault();
+         return;
+      }
+      //debugger;
+      // e.target is the DOM element representing the button
+      var tr = $(e.target).closest("tr"); // get the current table row (tr)
+
+      var dataItem = grid.dataItem(tr);
+      var data = $.extend({}, dataItem.toJSON());
+      data = $.extend(data, { typeOptions: type, uid: dataItem.uid});
+      showEditOption(grid,data, type);
+   }
+   function createThisOption(grid, type){
+
+      var data = $.extend({}, { typeOptions: type, uid: null});
+      showEditOption(grid, data, type);
+   }
+   function showEditOption(grid, data, type) {
+
+      $.ajax({
+            url: '@Url.Action("GetRuleOptionEdit", "CDSS")',
+            method: 'POST',
+            data: { options: JSON.stringify(data), typeOptions: type }
+         })
+         .done(function(content) {
+            //debugger;
+            var wnd2 = $("<div id='popupEdit'></div>")
+               .appendTo("body")
+               .kendoWindow({
+                  width: 482,
+                  maxHeight: Math.round((window.innerHeight * 0.9)),
+                  height: 680,
+                  modal: true,
+                  title: "@DicSvc.XLate("Option Edit")",
+                  visible: false,
+                  close: function(e) {
+                     this.destroy();
+                  },
+                  initOpen: function(e) {
+                     //debugger;;
+                     //dsStandardValidationGrp.fetch();
+                     ////debugger;;
+                     //setTimeout(function () {
+                     //   $("#ValGrpListGrid").data("kendoGrid").refresh();
+                     //})
+                  },
+                  position: {
+                     top: 70, // or "100px"
+                     left: "10%"
+                  }
+               })
+               .data('kendoWindow').content(content).open();
+
+            $('#btnSaveOption').off('click').on('click', function(a){
+               //debugger;
+               var val = $('#popupEdit').kendoValidator({
+                  rules: {
+                     // custom rules
+                     name: function(input, params) {
+                        if (input.is('[data-bind="value:Name"]')) {
+
+                           if ($(input).val().trim().length == 0) {
+                              return false;
+                           }
+                        }
+                        //check for the rule attribute
+                        return true;
+                     }
+                  },
+                  messages: {
+                     name: function(input) {
+                        // return the message text
+                        return "Name is mandatory!";
+                     }
+                  }
+               }).getKendoValidator();
+               if (val.validate()) {
+                  //debugger;
+                  acData.Name        = $('[data-bind="value:Name"]').val();
+                  acData.Type        = $('[data-bind="value:Type"]').getKendoDropDownList().value();
+                  acData.Description = $('[data-bind="value:Description"]').val();
+                  acData.IsVisibleOnClient = $('[data-bind="value:IsVisibleOnClient"]').prop('checked')? 1:0;
+                  acData.Label       = $('[data-bind="value:Label"]').val();
+                  if ($.inArray(parseInt(acData.Type), [2, 3]) !== -1) {
+                     acData.MinLimit    = $('[data-bind="value:MinLimit"]').getKendoNumericTextBox().value();
+                     acData.MaxLimit    = $('[data-bind="value:MaxLimit"]').getKendoNumericTextBox().value();
+                  } else {
+                     acData.MinLimit = null;
+                     acData.MaxLimit = null;
+                  }
+                  acData.Value = $('[data-bind="value:Value"]').val();
+                  if (acData.Type == 1) {
+                     acData.Value = $('#ValueList').getKendoDropDownList().value();
+                     acData.ListItems = $('[data-bind="value:ListItems"]').val();
+                  }
+                  if (acData.Type == 5) {
+                     acData.Value = $('#ValueBool').getKendoDropDownList().value();
+                  }
+                  var localDs = grid.dataSource;
+
+                  //debugger;
+                  if (acData.uid == null) {
+
+                     localDs.insert(acData);
+                  } else {
+                     var row = localDs.data().find(r => r.uid == acData.uid);
+                     $.extend(row, acData);
+                  }
+
+                  localDs.sync();
+                  //debugger;
+                  $('#popupEdit').getKendoWindow().close();
+               }
+            });
+            $('#btnCancelOption').off('click').on('click', function(a){
+               $('#popupEdit').getKendoWindow().close();
+            });
+         })
+         .fail(function(jqXhr, textStatus, thrownError) {
+            $("#errors").html("An error occurred while retriving  defaults (" +
+               requestUrl +"): " + jqXhr.status + ' ' + thrownError);
+         });
+
+
+   }
+
+   var msgDuplicateKey = '@DicSvc.XLateJs("Duplicated Key")';
+</script>

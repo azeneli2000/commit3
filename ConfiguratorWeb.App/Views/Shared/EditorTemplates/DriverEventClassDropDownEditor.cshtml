@@ -1,0 +1,19 @@
+﻿@model DriverEventClassViewModel
+
+@(Html.Kendo().DropDownListFor(m => m)
+                              .HtmlAttributes(new { @style = "width:100%;" })
+                              .DataValueField("ClassId")
+                              .DataTextField("ClassName")
+
+                              .Events(ev => ev.Change("onChangeDriverEventClass"))
+                          .DataSource(source =>
+                          {
+                              source.Read(read =>
+                              {
+                                  read.Action("GetDriverEventClassList", "Generic");
+                              });
+                          })
+)
+
+
+@Html.ValidationMessageFor(m => m)

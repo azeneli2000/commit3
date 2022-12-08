@@ -1,0 +1,142 @@
+﻿@{
+    string gridName = "id-of-grid";
+    string popUpWindowName = "IdOfEditWindow";
+   ViewBag.Title = DicSvc.XLate("List with grid");
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+</script>
+<link href="~/css/Test.css" rel="stylesheet" />
+<div class="card h-100 m-1 p-2 border-0" id="gridContainer">
+    <div id="@popUpWindowName"></div>
+    @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.ListWithGridViewModel>()
+                  .Name(gridName)
+                  .UmsDefaultSettings(DicSvc)
+                  .UmsDefaultToolbar("createNewItem", "add new", "displayItemDetail('');", DicSvc)
+                  .UmsDefaultPager(DicSvc)
+                  .Events(ev => ev.DataBound("onDataBound"))
+                  .Columns(columns =>
+                  {
+                      columns.Bound(e => e.ID).Visible(false);
+                      columns.Bound(e => e.TLDeviceID);
+                      columns.Bound(e => e.TLDeviceName);
+                      columns.Bound(e => e.tl_IPAddress);
+                      columns.Bound(e => e.tl_MACAddress);
+                      columns.Bound(e => e.TLLocationDescriptor);
+                      columns.Bound(e => e.tl_DeviceType).Filterable(a =>
+                      {
+                          a.Search(true).Multi(true).CheckAll(true);
+                      }); //select existing values
+                      columns.Bound(e => e.HasNetwork).Filterable(a => a.Multi(true))
+                                  .ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #= HasNetwork ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" });
+                      columns.Bound(e => e.tl_psv_ID).Filterable(false)
+                          .ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #= tl_psv_ID!=0 ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" });
+                      columns.Bound(e => e.BedCount)
+                          .HtmlAttributes(new { @class = "umsPreventClick" })
+                          .ClientTemplate(@"<input type='button' class='btn w-100 #= BedCount>0 ? 'btnGreen' : 'btnOrange' # ' value='#=BedCount# '></input>")
+                          .HtmlAttributes(new { style = "text-align:center;" });
+
+                      //columns.Command(command =>
+                      //{
+                      //    command.Custom("deletecustom").Click("onDeleteItem").Text(" ");
+                      //}).Width(120);
+                  })
+                  .DataSource(dataSource => dataSource
+                      .Ajax()
+                      .PageSize(20) //if pager is not enabled, remove this row
+                      .Events(events => events.Error("error_handler_users"))
+                      .Read(read => read.Action("ReadTelligenceDevicesWithBeds", "Template"))
+                  )
+    )
+</div>
+
+<script type="text/javascript">
+
+    @{
+       string editItemTitle = "Edit PopUpWindow Title";
+       string newItemTitle = "Add PopUpWindow Title";
+    }
+    var kndWnd;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                maxHeight:500,
+                title: '@DicSvc.XLate(editItemTitle)',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+
+        }
+    });
+
+
+    $(window).resize(function () {
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                for (var i = 0; i < kendoWindow.length; i++) {
+                    var win = $(kendoWindow[i]).data("kendoWindow");
+                    if (!win.element.is(":hidden")) {
+                        win.center();
+                        if (win.resize != undefined) {
+                            win.trigger('resize');    
+                        }
+                        
+                    }
+                }
+            }
+        }, 100);
+    });
+
+    function displayItemDetail(itemID) {
+        var windowWidget = $(popUpWindowName).data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+        $.ajax({
+            url: '@Url.Action("GetDevice", "Template")',
+            type: 'GET',
+            data: { id: itemID }
+        }).done(function (dataHtml) {
+            kendo.ui.progress(windowWidget.element, true);
+            var itemDialog = $(popUpWindowName).data('kendoWindow');
+            if (itemID ==='') {
+                itemDialog.title('@DicSvc.XLate(newItemTitle)');
+            } else {
+                itemDialog.title('@DicSvc.XLate(editItemTitle)');
+            }
+            itemDialog.content(dataHtml).center().open();
+
+        });
+    }
+    // 
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+    }
+    function onGridKeyEnter(item) {
+        displayItemDetail(item.ID);
+    };
+
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+
+
+    
+</script>

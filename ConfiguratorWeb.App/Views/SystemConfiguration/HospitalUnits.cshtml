@@ -1,0 +1,198 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@{
+    string gridName = "hospital-units-grid";
+   
+   ViewBag.Title = DicSvc.XLate("Hospital unit");
+}
+<script>
+    var gridIdName = "@gridName";
+</script>
+
+<style>
+
+
+    .k-grid td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+</style>
+
+<div class="h-100 text-center">
+    <div class="card h-100 m-1 p-2 text-left">
+
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.HospitalUnitViewModel>()
+        .UmsDefaultToolbar("create_hu", DicSvc.XLate("ADD NEW HOSPITAL UNIT"), "openDetail();", DicSvc)
+                                             .Name(gridName)
+                                            // .ToolBar(t => t.Excel().Text(DicSvc.XLate("Export to Excel")))
+                                              .UmsDefaultSettings(DicSvc)
+                                              .Navigatable(true)
+                                              .Columns(columns =>
+                                              {
+                                                  columns.Bound(e => e.GUID).Visible(false);
+                                                  columns.Bound(e => e.Name).Filterable(ftb => ftb.Multi(true));
+                                                  columns.Bound(e => e.ShortName).Filterable(ftb => ftb.Multi(true));
+                                                  columns.Bound(e => e.Code);
+                                                  columns.Bound(e => e.ParentUnit).Sortable(false).Filterable(false);
+                                              })
+                                              .UmsDefaultPager(DicSvc)
+                                              .Events(ev => ev.Cancel("onCancel").DataBound("onDataBound"))
+                                              .DataSource(dataSource => dataSource
+                                                  .Ajax()
+                                                  .Model(model =>
+                                                  {
+                                                      model.Id(o => o.GUID);
+                                                      model.Field(o => o.Name).Editable(false);
+                                                      model.Field(o => o.ShortName).Editable(false);
+                                                      model.Field(o => o.Code).Editable(false);
+                                                      model.Field(o => o.ParentUnit).Editable(false);
+                                                  }).PageSize(50)
+                                                  .Events(events => events.Error("onGridError"))
+                                                  .Read(read => read.Action("ReadHospitalUnits", "SystemConfiguration")
+                                                  )
+                                                  .Create(create => create.Action("CreateHospitalUnit", "SystemConfiguration")
+                                                  )
+
+                                              )
+
+        )
+        <div id="HospitalUnitEditWindow"></div>
+    </div>
+</div>
+
+<kendo-window name="popupParentHospital"
+              draggable="true"
+              scrollable="false"
+              visible="false"
+              width="600"
+              modal="true"
+              title=@DicSvc.XLate("PARENT HOSPITAL UNIT SELECTION")
+              height="450"
+              resizable="true">
+    <popup-animation enabled="false" />
+</kendo-window>
+
+<script>
+
+
+    @{
+       string editItemTitle = DicSvc.XLate("Edit Hospital Unit");
+    }
+    var kndWnd ;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $('#HospitalUnitEditWindow').usmKendoWindow({
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                },
+                title: '@editItemTitle',
+                height: 550,
+                minWidth:'50%'
+            });
+        }
+    });
+    function displayHUDetail(itemID) {
+         var windowWidget = $("#HospitalUnitEditWindow").data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+          $.ajax({
+            url: '@Url.Action("GetHospitalUnit", "SystemConfiguration")',
+            type: 'GET',
+              data: { id: itemID },
+            async: false
+        }).done(function (dataHtml) {
+            kendo.ui.progress(windowWidget.element, true);
+            var itemDialog = kndWnd('kendoWindow');
+            itemDialog.content(dataHtml);
+            itemDialog.open();
+            itemDialog.center();
+
+        });
+    }
+    
+    function filterMenuInit(e) {
+        var firstValueDropDown = e.container.find("select:eq(0)").data("kendoDropDownList");
+
+        setTimeout(function () {
+            firstValueDropDown.wrapper.hide();
+        });
+    }
+
+
+    function openDetail(dataItem) {
+        kendo.ui.progress($("#hospital-units-grid"), true);
+        var strID = '';
+        if (dataItem) {
+            strID = dataItem.GUID;
+        }
+       
+        $.ajax({
+            type: "GET",
+            url: '@Url.Action("GetHospitalUnit", "SystemConfiguration")',
+            data: { id: strID }
+          }).done(  function (data) {
+              var wnd = kndWnd.data("kendoWindow");
+                wnd.content('');
+                wnd.content(data);
+                wnd.center().open();
+            }).fail(function (xhr, textStatus, errorThrown) {
+
+            }
+        );
+        kendo.ui.progress($("#hospital-units-grid"), false);
+    }
+
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+    }
+
+    function onCancel(e) {
+        var grid = e.sender;
+        grid.refresh();
+    }
+
+    function onGridError(e) {
+        if (e.errors) {
+            debugger;
+        }
+    }
+
+    //functions for detail
+    function OnSuccess(response) {
+        //debugger;
+        if (response.success) {
+
+            var grid = $("#system-options-grid").data("kendoGrid");
+            grid.dataSource.read();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+
+    function OnFailure(response) {
+        //debugger;
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+    $(window).resize(function(){
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                var win = $(kendoWindow).data("kendoWindow");
+                win.center();
+                win.trigger('resize');
+                if (typeof(setMode) != "undefined") {
+                    setMode();
+                }
+            }
+        }, 100);
+    });
+    function onGridKeyEnter(item) {
+        openDetail(item);
+    };
+</script>

@@ -1,0 +1,72 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+
+@inject IDictionaryService DicSvc
+
+@model ConfiguratorWeb.App.Models.StandardDatasetViewModel
+
+@{
+   Layout = null;
+}
+
+<div class="row " style="height: 365px">
+   <div class="col-9 pt-1 text-center">
+      <p class="text-left">
+         
+      </p>
+      <textarea asp-for="sd_Script" class="c-sharp"
+                style="width:98%;max-width:98%;margin-top:5px;height: 95%;max-height:95%;border-color: #e4e4e4;padding:10px;"></textarea>
+   </div>
+   <div class="col-3">
+        <div style="height: 325px">
+            <div>
+                @DicSvc.XLate("Script for calculation of Score")
+                <ul>
+                    <li>
+                        @DicSvc.XLate("Script language : C#")
+                    </li>
+                    <li>
+                        @DicSvc.XLate("The script MUST RETURN a number")
+                    </li>
+                    <li>
+                        @DicSvc.XLate("If an item value under condition is used into script, it may be passed as NULL. Null value must be managed by script .")
+                    </li>
+                    <li>
+                        @DicSvc.XLate("Each value type will depend on Item type. See configuration manual for details.")
+                    </li>
+                    <li>
+                       <a href="javascript:toggleScoreScriptExamples();">@DicSvc.XLate("Show/Hide Example/s")</a>
+                       <div id="divScoreScriptExamples" style="display:none;">
+                          <small>
+                             <b>Example 1: simple sum of numeric items</b>
+                             Given @@p1 , @@p2 , @@p3 as placeholders for dataset items, all of type “Numeric”, returns the sum of the values:
+                             <br />
+                             <pre><code>
+return @@p1 + @@p2 + @@p3;
+                             </code></pre>
+                             <b>Example 2: conditional</b>
+                             Given @@p1 , @@p2 , @@p3 as placeholders for dataset items, all of type “Numeric”: returns 10 if @@p1 is greater than 1; returns the sum of the values otherwise
+                             <br />
+                             <pre><code>
+int tmp = 0;
+if(@@p1>1)
+{
+   tmp = 10;
+}
+else
+{
+   tmp = @@p1 + @@p2 + @@p3;
+}
+return tmp;
+
+                             </code></pre>
+                          </small>
+                       </div>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+   </div>
+</div>
+
+    

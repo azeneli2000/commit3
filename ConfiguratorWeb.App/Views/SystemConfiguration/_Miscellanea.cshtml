@@ -1,0 +1,231 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@inject IDictionaryService DicSvc
+@model ConfiguratorWeb.App.Models.MiscellaneaViewModel
+@{
+    StringBuilder objSbDelete = new StringBuilder();
+    objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Item \"{0}\"  "),
+        Model.Key);
+    objSbDelete.Append("?");
+}
+
+@{
+    Layout = null;
+}
+@{
+    string strGuidFunction = Model.Id.ToString();
+    string formId = "form_miscellanea_" + Model.Id;
+}
+
+<div>
+    <div class="card px-0 py-2"  id="divItemDetail">
+        <form asp-controller="SystemConfiguration" asp-action="SaveMiscellaneaDetail" id="@formId"
+              data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+              data-ajax="true" data-ajax-method="POST">
+
+            <div asp-validation-summary="ModelOnly"></div>
+            <input asp-for="Id" type="hidden" />
+
+            <div class="row mt-2">
+                <div class="col-1">
+                    <label asp-for="Key" class="label-name">@DicSvc.XLate("Key")</label>
+                </div>
+                <div class="col-5">
+                    <input asp-for="Key" class="k-input k-textbox w-100" />
+                </div>
+                <div class="col-1">
+                    <label asp-for="Value" class="label-name">@DicSvc.XLate("Value")</label>
+                </div>
+                <div class="col-5">
+                    <textarea asp-for="Value" class="form-control" rows="5"></textarea>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="card-footer h-10 p-0 m-0 border-0 bg-white">
+        @{
+            string postId = ""; //use in case of multi toolbar
+        }
+        @(Html.Kendo().ToolBar()
+              .Name("toolbarDetail")
+              .UmsDefaultErrors(DicSvc, "errors")
+              .Items(items =>
+              {
+                  items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+              })
+              .UmsDefaultSettings(DicSvc, postId)
+              )
+    </div>
+</div>
+
+       
+
+
+        <script type="text/javascript">
+    
+         
+            var consolelog = false;
+            var actualmode=0;
+            var divName = '#divItemDetail';
+            var dialog = $(popUpWindowName).data("kendoWindow");
+            var grid = $('#' + gridIdName).data("kendoGrid");
+            function changeToEditMode() {
+                actualmode = 2;
+                $(".modify-mode").show();
+                $(".view-mode").hide();
+                umsHideAllEditSaveButton();
+                toolBarShowButtonByClass("modify-mode");
+
+                $(divName +' :input').attr('disabled', false);
+                $(divName +' :input').each(function () {
+                    var cb = $(this).data("kendoNumericTextBox");
+                    if (cb) {
+                        cb.enable(true);
+                    }
+                });
+                if ('@Model.Id' =='0') {
+                   $('#btnDelete').hide();
+                }
+            }
+
+            function changeToViewMode() {
+                actualmode = 1;
+                $(".view-mode").show();
+                $(".modify-mode").hide();
+                umsHideAllEditSaveButton();
+                toolBarShowButtonByClass("view-mode");
+
+                $(divName +' :input').attr('disabled', true);
+                $(divName +' :input').each(function () {
+                    var cb = $(this).data("kendoNumericTextBox");
+                    if (cb) {
+                        cb.enable(false);
+                    }
+                });
+            }
+            function setWindowMode() {
+                //customize according model key
+                if ('@Model.Id' !== '0') {
+                    actualmode = 1;
+
+                } else {
+                    actualmode = 2;
+                }
+            }
+
+            function setMode() {
+                if (actualmode === 2)
+                    changeToEditMode();
+                else
+                    changeToViewMode();
+            }
+
+
+            $(document).ready(function() {
+                umsHideAllEditSaveButton();
+                setWindowMode();
+                //set up condition to know if it's a new item
+                setMode();
+                $('#btnEdit' + '@postId').off('click').on('click', function () {
+                    if(consolelog)console.log("btnEdit called");
+
+                    changeToEditMode();
+                });
+                $('#btnCancel' + '@postId').off('click').on('click', function () {
+                    if (consolelog)console.log("btnCancel called");
+                    if ('@Model.Id'=='0') {
+                        dialog.close();
+                        return;
+                    }
+                    displayItemDetail(@Model.Id);
+                    changeToViewMode();
+                });
+                $('#btnSave'+'@postId').off('click').on('click', function() {
+                    if (consolelog)console.log("btnSave called");
+                    actionSave();
+                });
+                $('#btnDelete').off('click').on('click', function () {
+                    if (consolelog)console.log("btnDelete called");
+                    umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteSysOpt, cancelDeleteSysOpt);
+                });
+                $('#btnClose' + '@postId').off('click').on('click', function () {
+                    if (consolelog)console.log("btnClose called");
+                    dialog.close();
+                });
+            });
+
+
+
+            function actionSave()
+            {
+                if (OnValidation()) {
+                    //uncomment for production
+                    $("#@formId").submit();
+                }
+            }
+
+
+            function OnValidation() {
+                var retValue = false;
+                var validator = $("#@formId").kendoValidator().data("kendoValidator");
+                if (!validator.validate() ) {
+                    try {
+                        var errors = validator.errors();
+                        $("#errors").html(buildValidationMessage(errors));    
+                    } catch (e) {
+                        $("#errors").html(e);
+                    } 
+                }
+                else {
+                    $("#errors").html("");
+                    retValue = true;
+                }
+        
+                return retValue;
+            }
+            function OnSuccess(response) {
+                if (response.success) {
+                    grid.dataSource.read();
+                    dialog.close();
+                }
+                else {
+                    window.umsAlert("Error occured", response.errorMessage, 400, 300);
+                }
+            }
+            function OnFailure(response) {
+                //debugger;
+                window.umsAlert("Error occured", response.errorMessage, 400, 300);
+            }
+            function toolBarShowButtonByClass(clas) {
+
+                var tb = $("#toolbarDetail").data("kendoToolBar");
+                tb.umsShowButtonByClass(clas);
+            }
+            function umsHideAllEditSaveButton()
+            {
+                var tb = $("#toolbarDetail").data("kendoToolBar");
+                tb.umsHideAllEditSaveButton();
+            }
+
+
+            function deleteSysOpt() {
+                $.ajax({
+                    url: '@Url.Action("DeleteMiscellanea", "SystemConfiguration")',
+                    type: 'POST',
+                    data: { id: '@Model.Id' }
+        
+                }).done(function (data) {
+                    dialog.close();
+                    grid.dataSource.read();
+                }).fail(function (response) {
+                    umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+                });
+
+            }
+
+            function cancelDeleteSysOpt() {
+
+                /* do nothing */
+            }
+        </script>

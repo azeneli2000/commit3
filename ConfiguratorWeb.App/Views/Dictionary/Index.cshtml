@@ -1,0 +1,288 @@
+@using System.Text
+@model System.Data.DataTable
+@{
+    StringBuilder objSbDelete = new StringBuilder();
+    objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Item \"{0}\" for application \"{1}\" "),
+        "", "other APP");
+    objSbDelete.Append("?");
+}
+@{
+   
+   ViewBag.Title = DicSvc.XLate("Dictionary");
+    string gridName = "dictionary-grid";
+    string popUpWindowName = "AddKeyGroupWindow";
+    bool userCanNotEditSystem = !ViewBag.UserCanEditSys?? true;
+    bool userCabEdit = ViewBag.UserCanEdit?? false;
+    bool userCabAdd  = ViewBag.UserCanAdd ?? false;
+    bool userCabDel  = ViewBag.UserCanDel ?? false;
+    //test
+    //userCabEdit = true;
+    //userCabAdd = true;
+    //userCabDel = false;
+    //userCanNotEditSystem = true;
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+</script>
+<style>
+    
+
+    #@gridName .k-button.k-primary ,
+    #@gridName .k-button.k-primary:active {
+        color: #5f5f5f;
+    }
+</style>
+<div class="h-100">
+
+    <div id="AddKeyGroupWindow"></div>
+    <div class="card" style="height:99%; margin: 0 15px; padding: 5px; text-align:left; ">
+        @(
+                           Html.Kendo().Grid<dynamic>()
+                           .Name(gridName)
+                           .UmsDefaultToolbar(userCabAdd?"addKeyGroup":"", userCabAdd?"New Key":"", "newKeyClicked", DicSvc)
+                           .UmsDefaultSettings(DicSvc)
+
+                           .UmsDefaultPager(DicSvc)
+                               .ColumnMenu(true)
+                           .Columns(columns =>
+                           {
+                               // Command to delete (and edit) a Key-Group
+                               columns.Command(command =>
+
+                               {
+                                   //command.Destroy().Text(" ");
+                                   command.Custom(" ").Text("").IconClass("k-grid-command mdi mdi-delete ").Click("confirmDeleteScoreDescription").HtmlAttributes(new {style = "width:30px;",@class=(userCabDel ? "":" d-none")}) ;
+                                   command.Edit().Text(" ").HtmlAttributes(new {@class=(userCabEdit ? "":" d-none")}) ;
+                               }
+                                         )
+                                         .Width(100)
+                                         .Locked().Lockable(false).Hidden(!userCabEdit && !userCabDel);
+
+                               // Now defines columns from model (DataTable) columns, and their width (fixed):
+                               foreach (System.Data.DataColumn c in Model.Columns)
+                               {
+
+                                   var gridcolumn = columns.Bound(c.ColumnName)
+                                   .Title(System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(c.ColumnName.ToLower()))
+                                   .Width(300);
+
+                                   /* Want to freeze, etc... some columns?: */
+                                   switch (c.ColumnName)
+                                   {
+                                       case "DictionaryKey":
+                                           gridcolumn
+                                                .Locked().Lockable(false).IncludeInMenu(false);
+                                           break;
+
+                                       case "Module":
+                                           gridcolumn
+                                               .Width(150)
+                                               .Filterable(f => f.Multi(true).Search(true)).IncludeInMenu(false)
+                                               .Locked().Lockable(false);
+                                           break;
+
+                                       case "IsSystem":
+                                           string IsSystemTemplate = "<input type='checkbox' #= IsSystem ? checked='checked' : '' # class='k-checkbox' disabled/><label for='IsSystem' class='k-checkbox-label' ></label>";
+                                           //IsSystemTemplate = "<input type='checkbox' #= IsSystem ? checked='checked' : '' # class='chkbx'/>";
+                                           gridcolumn
+                                                .Width(120)
+                                                .Title(DicSvc.XLate("Is System"))
+                                                .HtmlAttributes(new {@class="text-center"})
+                                                .EditorTemplateName("Boolean")
+                                                .ClientTemplate(IsSystemTemplate);
+                                           break;
+
+                                       case "Id":
+                                           gridcolumn.Visible(false);
+                                           break;
+                                   }
+                               }
+                           }
+                           ) // end columns
+                           .DataSource(dataSource =>
+                                     dataSource
+                                     .Ajax()
+                                     .Model(model =>
+                                     {
+                                         model.Id("Id");
+                                         /* Set uneditable columns [SS-0220.004] */
+                                         var ids = new List<string> { "DictionaryKey", "Module" };
+                                         foreach (System.Data.DataColumn column in Model.Columns)
+                                         {
+                                             Type columnDataType = column.DataType;
+                                             if (column.ColumnName=="IsSystem")
+                                             {
+                                                 columnDataType = System.Type.GetType("System.Boolean");
+                                             }
+                                             var field = model.Field(column.ColumnName, columnDataType);
+                                             if (ids.Contains(column.ColumnName))
+                                                 field.Editable(false);
+                                         }
+                                     })
+                                     .Events(events => events.Error("error_handler_users"))
+                                     .ServerOperation(true)
+                                     .Read(read => read.Action("ReadDictionaryGrid", "Dictionary"))
+                                     .Destroy(destroy => destroy.Action("DeleteKeyGroup", "Dictionary"))
+                                     .Update(update => update.Action("UpdateKeyGroup", "Dictionary"))
+                           )
+                           .Editable(editable => editable.Mode(GridEditMode.InLine))
+                               .Events(ev => ev.BeforeEdit("onBeforEdit").DataBound("onDataBound"))
+                               .Selectable(selectable => selectable
+                              .Mode(GridSelectionMode.Single)
+                              .Type(GridSelectionType.Row)
+                           )
+        )
+    </div>
+
+</div>
+
+<script>
+
+   function error_handler_users(e) {
+       if (e.errors) {
+           var message = "Errors:\n";
+           $.each(e.errors, function (key, value) {
+               if ('errors' in value) {
+                   $.each(value.errors, function () {
+                       message += this + "\n";
+                   });
+               }
+           });
+           alert(message);
+       }
+   }
+   /* Attach a handler to the click event for the
+   toolbar button used to add a new Key-Group. */
+   $(function () {
+      $("#addKeyGroup").on("click", function (e) {
+         showUIForNewKeyGroup();
+      });
+   });
+
+
+   @{
+      string editItemTitle = "Add a new Key and Translation";
+   }
+
+
+   var kndWnd;
+
+   $(document).ready(
+      function() {
+         /* Define kendo.windowPopUp for new Key-Group */
+         if (!kndWnd) {
+            kndWnd = $('#AddKeyGroupWindow').usmKendoWindow({
+               height:400,
+               title: '@DicSvc.XLate(editItemTitle)'
+            });
+         }
+      }
+   )
+
+
+   function resizeGrid() {
+      console.log(getFuncName());
+      $('#dictionary-grid').data("kendoGrid").resize();
+   }
+
+
+   $(window).resize(function(){
+      console.log(getFuncName());
+      resizeGrid();
+      var kendoWindow = $("[data-role='window']");
+      if (kendoWindow.length) {
+         var win = $(kendoWindow).data("kendoWindow");
+         win.center();
+         win.trigger('resize');
+
+      }
+   });
+
+
+   function showUIForNewKeyGroup() {
+
+      var windowWidget = $("#AddKeyGroupWindow").data("kendoWindow");
+      kendo.ui.progress(windowWidget.element, true);
+
+      $.ajax({
+         url: '@Url.Action("GetViewForNewKey", "Dictionary")',
+         type: 'GET',
+         async: false
+      })
+      .done(function (dataHtml) {
+         kendo.ui.progress(windowWidget.element, true);
+         var itemDialog = $('#AddKeyGroupWindow').data('kendoWindow');
+         itemDialog.content(dataHtml)
+         .center()
+         .open();
+      });
+   }
+
+
+   /* Utility: return the name of the calling function. */
+   function getFuncName() {
+      return getFuncName.caller.name;
+   }
+
+   function newKeyClicked() {
+      showUIForNewKeyGroup();
+   }
+   function confirmDeleteScoreDescription(e) {
+       e.preventDefault();
+       if ('@userCanNotEditSystem'==='True') {
+           umsAlert("Warning","User have not permission to edit system key");
+           return;
+       }
+       localGrid = this;
+       _currRow = $(e.currentTarget).closest("tr");
+       umsConfirm('@DicSvc.XLate("Confirm Delete", Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+           '@DicSvc.XLate("Do you really want to delete this Dictionary Key?",Digistat.FrameworkStd.Enums.StringParseMethod.Js)',
+           deleteItem, cancelDeleteItem);
+   }
+   function deleteItem() {
+       //translation.DictionaryKey, translation.Module
+       var dItem = localGrid.dataItem(_currRow);
+       $.ajax({
+           url: '@Url.Action("DeleteKeyGroup", "Dictionary")',
+           type: 'POST',
+           data: {
+               translation: {
+                   DictionaryKey: dItem.DictionaryKey,
+                   Module: dItem.Module
+               }
+           },
+           async: false
+       
+       }).done(function (data) {
+           if (data.success != undefined && data.success) {
+               //dialog.close();
+               localGrid.dataSource.read();
+           } else {
+               umsErrorDialog("Error occured", data.errorMessage, 200, 200);
+           }
+       }).fail(function (response) {
+           umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+       });
+
+   }
+
+   function cancelDeleteItem() {
+
+       /* do nothing */
+   }
+
+   function onBeforEdit(e) {
+       
+       if ('@userCanNotEditSystem'==='True') {
+           e.preventDefault();
+           umsAlert("Warning","User have not permission to edit system key");
+           
+       }
+   }
+
+   function onDataBound(e) {
+
+   }
+   
+</script>

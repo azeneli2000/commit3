@@ -1,0 +1,86 @@
+﻿@{
+   
+   ViewBag.Title = DicSvc.XLate("Telligence Import");
+}
+<div class="h-100 text-center ">
+    <div class="card h-100 m-1 p-2 text-left">
+        <div class="row">
+            <div class="col-md-12 ">
+                <h3>@DicSvc.XLate("This procedure will import all devices from Telligence network")</h3>
+            </div>
+        </div>
+        <div class="row">
+
+        </div>
+        <div class="row">
+            <div class="col-auto ">
+                <label class="mt-2">@DicSvc.XLate("Select a server")</label>
+            </div>
+            <div class="col-4 ">
+               @(Html.Kendo().DropDownList()
+                  .Name("TLServer")
+                  .HtmlAttributes(new { id = "TLServer", style = "width:100%;"})//, @class = "form-control form-control-lg" })
+                  .Size(ComponentSize.Large)
+                  .DataTextField("ts_serverurl")
+                  .DataValueField("ts_ID")
+                  .DataSource(source =>
+                  {
+                     source.Read(read =>
+                     {
+                        read.Action("GetAllServers", "Telligence");
+                     });
+                  }))
+
+            </div>
+            <div class="col-2">
+                <button type="button" class="k-button k-button-lg k-buttonLarge btn-primary" id="btnMassiveImport">@DicSvc.XLate("IMPORT")</button>
+            </div>
+        </div>
+
+        <div class="row" style="height:300px;">
+            <div class="col-2">
+                <label>@DicSvc.XLate("Import Log")</label>
+            </div>
+            <div class="col-8 ">
+                <div id="txtImportResults" style="width:700px;height:300px; overflow-y:auto;"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<script>
+    $('#btnMassiveImport').click(function () {
+        var srvID = $('#TLServer').data('kendoDropDownList').value();
+        $('#txtImportResults').html('');
+        $('#btnMassiveImport').prop('enabled', false).addClass('k-state-disabeld');
+        kendo.ui.progress($('.card'), true);
+        $('#txtImportResults').html('@DicSvc.XLate("Telligence Devices Import in progress ...")');
+        $.ajax({
+            url: '@Url.Action("ImportAllTelligenceDevices", "Telligence")',
+            data: { serverID: srvID },
+            type: 'GET',
+            async: true
+
+        }).done(function (data) {
+            $('#txtImportResults').html('');
+            if (data) {
+                for (var i = 0; i < data.length; i++) {
+                    strColor = 'green';
+                    if (data[i].Item1 != '0') {
+                        strColor = 'red';
+                    }
+                    $('#txtImportResults').html($('#txtImportResults').html() + '<br><span style="color:' + strColor + '">' + data[i].Item2 + '</span>');
+                }
+            }
+            $('#btnMassiveImport').prop('enabled', true).removeClass('k-state-disabeld');
+            }).fail(function (err) {
+                if (err.responseText && err.responseText!='' && err.responseText!='""') {
+                    $('#txtImportResults').html('<br><span style="color:red">' + err.responseText +'</span>');
+                } else {
+                    $('#txtImportResults').html('<br><span style="color:red">@DicSvc.XLate("An Error has occurred.")</span>');
+                }
+                kendo.ui.progress($('.card'), false);
+            }).then(function () {kendo.ui.progress($('.card'), false);});
+
+    })
+</script>

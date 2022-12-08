@@ -1,0 +1,118 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@inject IDictionaryService DicSvc
+@model ConfiguratorWeb.App.Models.SDItemViewModel
+@{
+    Layout = null;
+    var bolIsPublished = ViewBag.IsPublished == true;
+}
+
+<script type="text/javascript">
+
+	function displaySubItemDialog_@(Model.ID.ToString("N"))(subitemID) {
+		$.ajax({
+			url: '@Url.Action("GetStandardSubItem", "Vitals")',
+			type: 'GET',
+            data: { subItemId: subitemID },
+			async: false
+		}).done(function (dataHtml) {
+			var dialog = $('#sdSubItemEditWindow').data('kendoWindow');
+            dialog.content(dataHtml || "");
+            window.scrollTo(0, 0);
+            dialog.open();
+            dialog.center().element.closest(".k-window").css({
+                top: 55,
+                height:"auto"
+            });
+            $('#sdSubItemEditWindow').find('#ItemID').val('@Model.ID');
+		});
+	}
+
+    function onSubItemSelected(e) {
+        if ($(e.sender.element).attr('id') == 'vitalsDatasetSubItem_grid_@(Model.ID)') {
+			var item = e.sender.dataItem(e.sender.select());
+            displaySubItemDialog_@(Model.ID.ToString("N"))(item.ID);
+		}
+	}
+
+    function dataSource_requestEndSubItem_@(Model.ID.ToString("N"))(e) {
+        if (e.type === 'destroy') {
+            $('#vitalsDatasetSubItem_grid_@(Model.ID)').data('kendoGrid').dataSource.read();
+        }
+    }
+
+    $(document).ready(function () {
+        var grid = $('#vitalsDatasetSubItem_grid_@(Model.ID)').data('kendoGrid');
+        grid.dataSource.bind("requestEnd", dataSource_requestEndSubItem_@(Model.ID.ToString("N")));
+
+        $(".k-grid-create_datasetsubitem").off("click").on("click", function () {
+            displaySubItemDialog_@(Model.ID.ToString("N"))();
+            return false;
+        });
+    });
+
+</script>
+
+<style>
+    input.text-box.single-line {
+        width: 98%;
+        margin: 0 1%;
+    }
+
+    .k-grid td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+</style>
+
+<div style="height:340px">
+    @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.SDSubItemViewModel>()
+            .Name("vitalsDatasetSubItem_grid_" + Model.ID)
+            .ToolBar(toolbar =>
+            {
+                if (Model.ID != Guid.Empty && !bolIsPublished)
+                {
+                    toolbar.Custom().Name("create_datasetsubitem").Text(DicSvc.XLate("ADD NEW SUBITEM"));
+                }
+            })
+            .UmsDefaultSettings(DicSvc)
+            .Columns(columns =>
+            {
+                columns.Bound(e => e.ID).Hidden();
+                columns.Bound(e => e.Code);
+                columns.Bound(e => e.Label);
+                columns.Bound(e => e.SubItemIndex).Title(DicSvc.XLate("Index"));
+                columns.Bound(e => e.SubItemValue);
+                columns.Bound(e => e.ColorCode);
+            })
+            .UmsDefaultPager(DicSvc)
+            .Events(ev =>
+            {
+                if (!bolIsPublished)
+                {
+                    ev.Change("onSubItemSelected");
+                }
+            })
+            .Filterable()
+            .HtmlAttributes(new { style = "height:100%;margin-top:10px;" })
+            .Sortable()
+            .Scrollable()
+            .DataSource(dataSource => dataSource
+            .Ajax()
+            .Model(model =>
+            {
+                model.Id(o => o.ID);
+                model.Field(e => e.ID).Editable(false);
+                model.Field(e => e.ItemID).DefaultValue(Model.ID);
+                model.Field(e => e.Label);
+                model.Field(e => e.Code);
+                model.Field(e => e.SubItemIndex);
+                model.Field(e => e.SubItemValue);
+                model.Field(e => e.ColorCode);
+
+            })
+            .Sort(sort => sort.Add("SubItemIndex").Ascending())
+            .Read(read => read.Action("GetAllSubItemsForItem", "Vitals", new { itemID = Model.ID }))
+            )
+    )
+</div>

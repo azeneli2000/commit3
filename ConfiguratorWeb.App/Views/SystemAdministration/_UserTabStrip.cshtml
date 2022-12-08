@@ -1,0 +1,571 @@
+﻿@model ConfiguratorWeb.App.Models.UserViewModel
+
+@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+
+@using Digistat.FrameworkStd.UMSLegacy;
+
+@using System.Text;
+@inject IDictionaryService DicSvc
+@inject ISystemOptionsService sysOptSvc
+@{
+    bool bolNewPermissionMgr = UMSFrameworkParser.ConvertToBoolean(sysOptSvc.GetSystemOption(string.Empty, null, null, null, "UseRolesForPermissions", true).Value);
+
+    StringBuilder objSbDelete = new StringBuilder();
+    objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete User \"{0}\"  "),
+        Model.UserName, "other APP");
+    objSbDelete.Append("?");
+}
+@{
+    Layout = null;
+}
+
+
+<script>
+    function openRoleEditor() {
+        //debugger;
+        kendo.ui.progress($("#divRoleTabStrip"), true); // progess bar will intiate
+        $.ajax({
+            type: "POST",
+            url: '@Url.Action("GetRoles", "SystemAdministration")',
+            data: JSON.stringify($("#user-roles").data().kendoGrid.dataSource.view()),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (data) {
+              //  debugger;
+                var wnd = kndWndRoleDetails.data("kendoWindow");
+                wnd.content('');
+                wnd.content(data.content.Result);
+                wnd.center().open();
+            },
+            error: function () {
+            },
+            complete: function () {
+                kendo.ui.progress($("#divRoleTabStrip"), false);
+            }
+        });
+    }
+
+</script>
+
+
+@{
+    string keyID = Model.Id;
+    string keyEmptyValueID = "";
+    string formId = "form_" + keyID;
+}
+<div class="h-100 ">
+    <div class="card h-90 m-0 p-0  text-left overflow-auto" id="divItemDetail">
+        <form asp-controller="SystemAdministration" id="@formId" asp-action="SaveUserDetail"
+              data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+              data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+
+            @Html.ValidationSummary()
+
+            @Html.HiddenFor(m => m.Id)
+            @Html.HiddenFor(m => m.Version)
+            @Html.HiddenFor(m => m.PermissionLevel)
+            @Html.HiddenFor(m => m.Language)
+            @Html.HiddenFor(m=>m.PersonnelGUID)
+
+            <kendo-tabstrip name="tabstrip_@Model.Id" style="margin-top: -13px;">
+
+                <scrollable enabled="true" />
+                <popup-animation>
+                    <open effects="fade:in" />
+                </popup-animation>
+                <items>
+                    <tabstrip-item text="@DicSvc.XLate("General")" id="tabstrip-@Model.Id-pagedetail" selected="true">
+                        <content>
+                            <div style="height: 310px" class="m-0 p-0">
+                                @{await Html.RenderPartialAsync("_TabUserDetail", Model);}
+                            </div>
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Account")" id="tabstrip-@Model.Id-account">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabUserAccount", Model);}
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Roles and Permissions")" id="tabstrip-@Model.Id-roleandpermissions" visible="true">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabUserRolesAndPermissions", Model);}
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Notes")" id="tabstrip-@Model.Id-notes" style="max-height: 336px;">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabUserNotes", Model);}
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Role")" id="tabstrip-@Model.Id-role" visible="false">
+                        <content>
+                            @{await Html.RenderPartialAsync("_TabUserRole", Model);}
+                        </content>
+                    </tabstrip-item>
+                </items>
+            </kendo-tabstrip>
+
+
+        </form>
+
+
+    </div>
+    <div class="card-footer h-10 p-0 m-0 mt-1 border-0 bg-white">
+
+        @{
+            string postId = ""; //use in case of multi toolbar
+        }
+        @(Html.Kendo().ToolBar()
+                                  .Name("toolbarDetail")
+                                  .UmsDefaultErrors(DicSvc, "errors")
+                                  .Items(items =>
+                                  {
+                                      items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+                                  })
+                                  .UmsDefaultSettings(DicSvc, postId)
+        )
+    </div>
+</div>
+<script type="text/javascript">
+
+    function getAbbreviation() {
+        //debugger;
+        var firstInvalid = false;
+        if (($.trim($("#FirstName").val()) == "") || ($.trim($("#LastName").val()) == "")) {
+
+            if ($.trim($("#FirstName").val()) == "") {
+                $("#FirstName").css("border-color", "#ffc166");
+                $("#FirstName").css("background-color", "#fff4e5");
+            }
+            else {
+                $("#FirstName").css("border-color", "rgba(0, 0, 0, 0.08)");
+                $("#FirstName").css("background-color", "#ffffff");
+            }
+            if ($.trim($("#LastName").val()) == "") {
+                $("#LastName").css("border-color", "#ffc166");
+                $("#LastName").css("background-color", "#fff4e5");
+            }
+            else {
+                $("#LastName").css("border-color", "rgba(0, 0, 0, 0.08)");
+                $("#FirstName").css("background-color", "#ffffff");
+
+            }
+
+            window.umsAlert("Set Abbreviation", "First Name and LastName are required to determine the abbreviation.", 400, 300);
+        }
+        else {
+
+            $.ajax({
+                url: '@Url.Action("GetAbbreviation", "SystemAdministration")',
+                type: 'GET',
+                data: {
+                    'firstname': $("#FirstName").val(),
+                    'lastname': $("#LastName").val()
+                },
+                dataType: 'json',
+                success: function (data) {
+                    $("#Abbrev").val(data.message);
+                },
+                error: function (request, error) {
+                    alert("Request: " + JSON.stringify(request));
+                }
+            });
+        }
+    }
+
+    function OnValidation() {
+        //debugger;
+        //update permission level val
+        $("#PermissionLevel").val($("#PermissionLevel_@Model.Id").val());
+        $("#Language").val($("#Language_@Model.Id").val());
+
+        var validator = $("#form_@Model.Id").kendoValidator(
+        {
+            validate: function (e) {
+                //console.log(e.id);
+                if ($.trim($("#PermissionLevel_@Model.Id").val()) == "") {
+                    $("#PermissionLevel_@Model.Id").parent().css("border-color", "red");
+                    $("#PermissionLevel_@Model.Id").parent().css("background-color", "#fff8f8");
+                }
+                else {
+                    $("#PermissionLevel_@Model.Id").parent().css("border-color", "#f0f0f0");
+                    $("#PermissionLevel_@Model.Id").parent().css("background-color", "#fafafa");
+                }
+            }
+            ,rules:{
+                Email : function (input) {
+
+
+                    if (input.is("[data-val-email]") && input.val() !== "") {
+                        //debugger;
+                        var re = /\S+@@\S+\.\S+/;
+                        return re.test(input.val());
+                    }
+
+                    return true;
+                        return true;
+                },
+              BadgePIN: function (input) {
+                  if (input.is("[name=BadgePIN]") && input.val() !== "") {
+                    var regEx = /^\d{5,}$/;
+                    return regEx.test(input.val());
+                  }
+                  return true;
+                }
+            },
+            messages: {
+              BadgePIN: "@DicSvc.XLate("Badge PIN must be a numeric string of at least 5 digits")"
+            }
+        }).data("kendoValidator");
+
+        //check if passwords match
+        if (!$("#ConfirmPassword").is(":hidden")) {
+            if (($("#Password").val() !== $("#ConfirmPassword").val())) {
+                $("#errors").html(buildValidationMessage(["The password and confirmation password do not match."]));
+                return false;
+            }
+        }
+
+
+
+        if (!validator.validate()) {
+
+            try {
+                var errors = validator.errors();
+                $("#errors").html(buildValidationMessage(errors));
+            } catch (e) {
+                $("#errors").html(e);
+            }
+            ValidateTabs();
+            return false;
+        }
+        else {
+            $("#errors").html("");
+              if ($("#@formId #Id").val().length == 0) {
+                    var abbrevValid = true;
+                    //check if abbrev is valid
+                    $.ajax({
+                        url: '@Url.Action("CheckAbbreviation", "SystemAdministration")',
+                        type: 'GET',
+                        data: {
+                            'abbrev': $("#Abbrev").val(),
+                            'userId': '@Model.Id'
+                        },
+                        async: false,
+                        dataType: 'json',
+                        success: function (data) {
+                            if (data.message) {
+                                abbrevValid = false;
+                            }
+                        },
+                        error: function (request, error) {
+                            alert("Request: " + JSON.stringify(request));
+                        }
+                    });
+                    //debugger;
+                    if (!abbrevValid) {
+                        window.umsAlert("Check Abbreviation", '@DicSvc.XLate("This abbreviation cannot be used. Please correct and try again.")', 400, 300);
+                        return false;
+                    }
+                }
+
+        }
+
+
+        return true;
+
+
+    }
+    function OnSuccess(response) {
+        //debugger;
+        if (response.success) {
+
+            var grid = $("#users-grid").data("kendoGrid");
+            grid.dataSource.read();
+
+            window.umsAlert("Success", "User detail successfully saved saved.");
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+    function OnFailure(response) {
+        //debugger;
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+    function ValidateTabs() {
+        $("#tabstrip_@Model.Id").find("span.k-link").removeClass("tab-invalid");
+        var invalidTabs = [];
+        $("input.k-invalid").each(function () {
+            var idInvalid = $(this).attr('id');
+            var tabContentId = $("#" + idInvalid).closest("div[role='tabpanel']").attr("id");
+
+            var tabId = $("#tabstrip_@Model.Id").find("li[aria-controls='" + tabContentId + "']").attr("id");
+            $("#" + tabId + " span.k-link").addClass("tab-invalid");
+
+            if ($.inArray(tabId, invalidTabs) < 0) {
+                //add to array
+                invalidTabs.push(tabId);
+            }
+        });
+        if (invalidTabs.length > 0)
+            $("#" + invalidTabs[0]).trigger("click");
+    }
+
+    $('#set-password').click(function() {
+       $("#confirm-password").show();
+       $("#Password").data('kendoTextBox').enable()
+       $("#set-password").hide();
+       if (!$(".modify-mode").is(":visible")) {
+          $('.btnEdit').trigger("click");
+       }
+    });
+
+
+    $('#create-pin').click(function () {
+
+        $.ajax({
+            async: true,
+            url: '@Url.Action("GeneratePin", "SystemAdministration")',
+            dataType: 'json',
+            type: 'GET',
+            error: function(request, error) {
+               //Show ErrMsg
+            },
+            success: function(result) {
+               $('#Pin').val(result)
+            }
+        });
+        if (!$(".modify-mode").is(":visible")) {
+           $('.btnEdit').trigger("click");
+        }
+    });
+
+    var consolelog = false;
+    var actualmode = 0;
+    var divName = '#divItemDetail';
+    var dialog = $(popUpWindowName).data("kendoWindow");
+    var grid = $('#' + gridIdName).data("kendoGrid");
+
+    function changeToEditMode() {
+       actualmode = 2;
+       $(".modify-mode").show();
+       $(".view-mode").hide();
+       umsHideAllEditSaveButton();
+       toolBarShowButtonByClass("modify-mode");
+
+       $(divName + ' :input').attr('disabled', false);
+       $(divName + ' :input').each(function() {
+          var cb = $(this).data("kendoDropDownList");
+          if (cb) {
+             cb.enable(true);
+          }
+          cb = $(this).data("kendoNumericTextBox");
+          if (cb) {
+             cb.enable(true);
+          }
+       });
+       if ('@keyID' === '@keyEmptyValueID') {
+          $('#btnDelete').hide();
+        }
+        @if (bolNewPermissionMgr)
+        {
+           <text>
+        $('#UserPermission_Allowed').data('kendoMultiSelect').enable(true);
+        $('#UserPermission_Denied').data('kendoMultiSelect').enable(true);
+           </text>
+        }
+
+    }
+
+    function changeToViewMode() {
+        actualmode = 1;
+        $(".view-mode").show();
+        $(".modify-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("view-mode");
+
+        $(divName +' :input').attr('disabled', true);
+        $(divName +' :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(false);
+            }
+            cb = $(this).data("kendoNumericTextBox");
+            if (cb) {
+                cb.enable(false);
+            }
+        });
+        @if (bolNewPermissionMgr)
+        {
+         <text>
+            $('#UserPermission_Allowed').data('kendoMultiSelect').enable(false);
+        $('#UserPermission_Denied').data('kendoMultiSelect').enable(false);
+           </text>
+        }
+    }
+    function setWindowMode() {
+        //customize according model key
+        if ('@keyID' !== '@keyEmptyValueID') {
+            actualmode = 1;
+
+        } else {
+            actualmode = 2;
+        }
+    }
+
+    function setMode() {
+        if (actualmode === 2)
+            changeToEditMode();
+        else
+            changeToViewMode();
+    }
+
+
+    $(document).ready(function() {
+        umsHideAllEditSaveButton();
+        setWindowMode();
+        //set up condition to know if it's a new item
+        setMode();
+        $('#btnEdit' + '@postId').off('click').on('click', function () {
+            if(consolelog)console.log("btnEdit called");
+            changeToEditMode();
+        });
+        $('#btnCancel' + '@postId').off('click').on('click', function () {
+            if (consolelog)console.log("btnCancel called");
+            if ('@keyID'=='@keyEmptyValueID') {
+                dialog.close();
+                return;
+            }
+            displayItemDetail('@keyID');
+            changeToViewMode();
+        });
+        $('#btnSave'+'@postId').off('click').on('click', function() {
+            if (consolelog)console.log("btnSave called");
+            actionSave();
+        });
+        $('#btnDelete').off('click').on('click', function () {
+            if (consolelog)console.log("btnDelete called");
+            umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteSysOpt, cancelDeleteSysOpt);
+        });
+        $('#btnClose' + '@postId').off('click').on('click', function () {
+            if (consolelog)console.log("btnClose called");
+            dialog.close();
+        });
+        $("input[data-val-length-max]").each(function (index, element) {
+            element.setAttribute("maxlength", element.getAttribute("data-val-length-max"));
+        });
+        $("input[data-val-email]").each(function (index, element) {
+            element.setAttribute('type', 'email');
+        });
+
+        @if (!string.IsNullOrEmpty(Model.AllowedPermissions))
+        {
+            <text>
+            var strAllowed = $('#AllowedPermissions').val();
+            if (strAllowed) {
+                var aAllowd = strAllowed.split('#§#');
+                //debugger;
+                $('#UserPermission_Allowed').data('kendoMultiSelect').value(aAllowd);
+            }
+            </text>
+        }
+
+         @if (!string.IsNullOrEmpty(Model.DeniedPermissions))
+        {
+            <text>
+            var strdenied = $('#DeniedPermissions').val();
+        if (strdenied) {
+            var aDenied = strdenied.split('#§#');
+                //debugger;
+            $('#UserPermission_Denied').data('kendoMultiSelect').value(aDenied);
+            }
+            </text>
+        }
+    });
+
+
+
+    function actionSave()
+    {
+        if (OnValidation()) {
+            //uncomment for production
+            $("#@formId").submit();
+            //dialog.close();
+        }
+    }
+
+
+    function OnSuccess(response) {
+        if (response.success) {
+            grid.dataSource.read();
+            dialog.close();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+    function OnFailure(response) {
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+    function toolBarShowButtonByClass(clas) {
+
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsShowButtonByClass(clas);
+    }
+    function umsHideAllEditSaveButton()
+    {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsHideAllEditSaveButton();
+    }
+
+
+    function deleteSysOpt() {
+        //debugger;
+        $.ajax({
+            url: '@Url.Action("CheckIfUserCanBeDeleted", "SystemAdministration")',
+            type: 'GET',
+            data: { userId: '@keyID' }
+
+        }).done(function (data) {
+            //debugger;
+            if (data != undefined && data.success) {
+                $.ajax({
+                    url: '@Url.Action("DisableUser", "SystemAdministration")',
+                    type: 'POST',
+                    data: { id: '@keyID' }
+
+                }).done(function (data) {
+                    if (data.success != undefined && data.success) {
+                        dialog.close();
+                        grid.dataSource.read();
+                    } else {
+                        $('#errors').html('not saved. reason:' + data.errorMessage);
+                    }
+                }).fail(function (response) {
+                    umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+                });
+            } else {
+                $('#errors').html('User not erasable:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+
+
+    }
+
+    function cancelDeleteSysOpt() {
+
+          /* do nothing */
+    }
+
+    $('#create-badge-pin').click(function () {
+      var rndPin = [];
+      for (var i = 0; i < 5; i++) {
+        rndPin.push(Math.floor((Math.random() * 10)))
+      }
+      $('#BadgePIN').val(rndPin.join(""));
+    });
+</script>

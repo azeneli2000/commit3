@@ -1,0 +1,34 @@
+﻿@model string
+@{
+    Layout = "_LayoutEmpty";
+}
+<div class="device-screen">
+    <div class="content-side">
+        <div class="content-body">
+            <input type="hidden" id="messageErrorID" name="messageErrorID" />
+            <div style="display:none">@Model</div>
+            <div id="ad-content-empty">
+                <div class="sad-face">
+                    <img src="~/images/sad-face.png" />
+                </div>
+                <div class="error-message-view">
+                    <div style="height: 30px;">Oops! Something went wrong.</div>
+                    <div style="font-size: 18px;">Please try again or contact your administrator. </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+</div>
+
+
+<script>
+    $(document).ready(function () {
+        //hide buttons
+        $("#cmdButtonPrev").hide();
+        $("#cmdButtonNext").hide();
+        $("#cmdButtonDescription").hide();
+    });
+</script>

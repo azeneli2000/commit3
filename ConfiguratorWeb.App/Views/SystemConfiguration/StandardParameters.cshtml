@@ -1,0 +1,156 @@
+﻿@{
+   string gridName = "StandardParameters";
+   string popUpWindowName = "EditParameter";
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+</script>
+
+<div class="card h-100 m-1 p-2 border-0" id="gridContainer">
+   <div id="@popUpWindowName"></div>
+   @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.StandardParameterViewModel>()
+      .Name(gridName)
+      .UmsDefaultSettings(DicSvc)
+      .UmsDefaultToolbar("createNewItem", DicSvc.XLate("ADD NEW PARAMETER"), "displayItemDetail('');", DicSvc)
+      .ToolBar(toolbar=>toolbar.Custom().Text(DicSvc.XLate("Refresh Connect")).HtmlAttributes(new { id="tlbBtnRefreshConnect" }))
+      .UmsDefaultPager(DicSvc)
+      //.ToolBar(T=>T.Search())
+      //.Search(s=>
+      //{
+      //   s.Field(f => f.Description).Field(f => f.Print);
+      //})
+      .Events(ev => ev.DataBound("onDataBound"))
+      .Columns(columns =>
+      {
+          columns.Bound(e => e.ID).Width(80).HtmlAttributes(new { style = "text-align:right;" });
+          columns.Bound(e => e.Description);
+          columns.Bound(e => e.Print);
+          columns.Bound(e => e.DataType).Width(170).Filterable(ftb => ftb.Multi(true).Search(true)).Title(DicSvc.XLateHtml("Data Type"));
+          //columns.Bound(e => e.Devices).Filterable(ftb => ftb.Multi(true).Search(true));
+          columns.Bound(e => e.IsSystem).Title(DicSvc.XLateHtml("System")).Width(120)
+             .ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #= IsSystem ? checked='checked' :'' # /><label class='k-checkbox-label'></label>")
+             .HtmlAttributes(new { style = "text-align:center;" });
+
+      })
+      .DataSource(dataSource => dataSource
+                     .Ajax()
+                     //.ServerOperation(false)
+                     //Uncomment for use Pager
+                     .PageSize(20) //if pager is not enabled, remove this row
+                     .Events(events => events.Error("error_handler_users"))
+                     .Read(read => read.Action("ReadStandardParameters", "SystemConfiguration"))
+      ))
+</div>
+
+<script type="text/javascript">
+
+    @{
+       string editItemTitle = "Edit Standard Parameter";
+       string newItemTitle = "Add Standard Parameter";
+    }
+    var kndWnd;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                maxHeight:320,
+                title: '@DicSvc.XLate(editItemTitle)',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+
+        }
+
+
+        $('#tlbBtnRefreshConnect').off('click').on('click', function () {
+             $.ajax({
+                 url: '@Url.Action("RefreshStandardParameterAtConnect", "SystemConfiguration")',
+                 type: 'GET',
+                 success: function (response) {
+                     if (response.success) {
+                         window.umsAlert('@DicSvc.XLate("Action Result")', '@DicSvc.XLate("Refresh command sent to Connect")', 400, 300);
+                    }
+                    else {
+                       window.umsAlert("Error occured", response.errorMessage, 400, 300);
+                    }
+                 },
+                 error: function () {
+                     window.umsAlert("Error occured", '', 400, 300);
+                 }
+              });
+        });
+
+    });
+
+
+    $(window).resize(function () {
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                for (var i = 0; i < kendoWindow.length; i++) {
+                    var win = $(kendoWindow[i]).data("kendoWindow");
+                    if (!win.element.is(":hidden")) {
+                        win.center();
+                        if (win.resize != undefined) {
+                            win.trigger('resize');
+                        }
+
+                    }
+                }
+            }
+        }, 100);
+    });
+
+    function displayItemDetail(itemID) {
+        var strID = '0';
+        if (itemID && itemID>'') {
+           strID = itemID;
+        }
+        var windowWidget = $(popUpWindowName).data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+        $.ajax({
+            url: '@Url.Action("GetStandardParameter", "SystemConfiguration")',
+            type: 'GET',
+            data: { id: strID }
+        }).done(function (dataHtml) {
+            kendo.ui.progress(windowWidget.element, true);
+			var dialog = $(popUpWindowName ).data('kendoWindow');
+            if (strID ==='0') {
+                dialog.title('@DicSvc.XLate(newItemTitle)');
+            } else {
+                dialog.title('@DicSvc.XLate(editItemTitle)');
+            }
+            dialog.content(dataHtml).center().open();
+
+        });
+    }
+    //
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem( $(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+    }
+    function onGridKeyEnter(item) {
+        //replace Key
+        displayItemDetail(item.ID);
+    };
+
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+</script>

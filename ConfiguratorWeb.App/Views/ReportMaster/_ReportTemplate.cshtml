@@ -1,0 +1,412 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@model ConfiguratorWeb.App.Models.ReportTemplateViewModel
+@inject IDictionaryService DicSvc
+
+@{
+   StringBuilder objSbDelete = new StringBuilder();
+   objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Item \"{0}\" for application \"{1}\" "),
+       Model.Name, Model.Application);
+   objSbDelete.Append("?");
+}
+@{
+   Layout = null;
+   string keyID = Model.ID.ToString();
+   string keyEmptyValueID = Guid.Empty.ToString();
+   string formId = "form_" + keyID;
+}
+
+<div class="h-90 ">
+   <div class="card h-90 m-0 p-0 border-bottom-0 text-left" id="divItemDetail">
+      <form asp-controller="ReportMaster" asp-action="SaveReportDetail" id="@formId"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+            data-ajax="true" data-ajax-method="POST">
+
+         <div asp-validation-summary="ModelOnly"></div>
+         <input asp-for="ID" type="hidden" />
+         <input asp-for="Version" type="hidden" />
+         <input asp-for="UserVersion" type="hidden" />
+         <input asp-for="ValidToDate" type="hidden" />
+         <input asp-for="UserID" type="hidden" />
+         <input asp-for="CreationDate" type="hidden" />
+         <input asp-for="Current" type="hidden" />
+
+         <div class="row pt-3">
+            <div class="col-md-1 u-col-h-fixed">
+               <label asp-for="Name" class="">@DicSvc.XLate("Name")</label>
+            </div>
+            <div class="col-md-5 u-col-h-fixed">
+               <input asp-for="Name" class="k-input k-textbox w-95" />
+            </div>
+            <div class="col-md-1 u-col-h-fixed">
+               <label asp-for="Author" class="">@DicSvc.XLate("Author")</label>
+            </div>
+            <div class="col-md-5 u-col-h-fixed">
+               <input asp-for="Author" class="k-input k-textbox w-95" />
+            </div>
+         </div>
+         <div class="row">
+            <div class="col-md-1 u-col-h-fixed">
+               <label asp-for="Application" class="">@DicSvc.XLate("Application")</label>
+            </div>
+            <div class="col-md-5 u-col-h-fixed">
+               <input asp-for="Application" class="k-input k-textbox w-95" />
+            </div>
+            <div class="col-md-1 u-col-h-fixed">
+               <label asp-for="Module" class="">@DicSvc.XLate("Module")</label>
+            </div>
+            <div class="col-md-5 u-col-h-fixed">
+               <input asp-for="Module" class="k-input k-textbox w-95" />
+            </div>
+         </div>
+         <div class="row">
+            <div class="col-md-1 u-col-h-fixed">
+               <label asp-for="Description" class="">@DicSvc.XLate("Description")</label>
+            </div>
+            <div class="col-md-11 u-col-h-fixed">
+               <input asp-for="Description" class="k-input k-textbox" style="width: 97.7%;" />
+            </div>
+         </div>
+         <div class="row" style="margin-top:30px;">
+            <div class="col-md-1 u-col-h-fixed">
+               <label asp-for="Filename" class="">@DicSvc.XLate("Template")</label>
+            </div>
+            <div class="col-md-5 u-col-h-fixed">
+               <input asp-for="Filename" class="k-input k-textbox txt-readonly" disabled="disabled" readonly="readonly" />
+            </div>
+            
+         </div>
+         <div class="row">
+            @Html.HiddenFor(m => m.Stream)
+         </div>
+
+      </form>
+
+   </div>
+   <div class="card-footer h-10 p-0 m-0 border-top bg-white">
+
+      @{
+         string postId = ""; //use in case of multi toolbar
+      }
+      @(Html.Kendo().ToolBar()
+         .Name("toolbarDetail")
+         .UmsDefaultErrors(DicSvc, "errors")
+         .Items(items =>
+         {
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Upload")).Id("btnUpload_" + keyID).UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Download")).Id("btnDownload_" + keyID).UmsHtmlButtonGeneric("view-mode " + (Model.ID == Guid.Empty ? "d-none" : "")).Hidden(true);
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("View template")).Id("btnViewTemplate").UmsHtmlButtonGeneric("view-mode " + (Model.ID == Guid.Empty ? "d-none" : "")).Hidden(true);
+         })
+         .UmsDefaultSettings(DicSvc, postId)
+      )
+   </div>
+</div>
+<style>
+   .ace_editor {
+      width: 100%;
+      height: 100%;
+   }
+</style>
+<script src='~/lib/ace/src-noconflict/ace.js'></script>
+
+<kendo-window name="dialog_@keyID"
+              draggable="false"
+              scrollable="false"
+              visible="false"
+              width="600"
+              modal="true"
+              title="Upload"
+              height="300"
+              resizable="true">
+   <popup-animation enabled="false" />
+</kendo-window>
+<script type="text/javascript">
+    var consolelog = false;
+    var actualmode=0;
+    var divName = '#divItemDetail';
+    var dialog = $(popUpWindowName).data("kendoWindow");
+    var grid = $('#' + gridIdName).data("kendoGrid");
+    function changeToEditMode() {
+        actualmode = 2;
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("modify-mode");
+
+        $(divName +' :input').attr('disabled', false);
+        $(divName +' :input').each(function () {
+            //var cb = $(this).data("kendoDropDownList");
+            //if (cb) {
+            //    cb.enable(true);
+            //}
+            //cb = $(this).data("kendoNumericTextBox");
+            //if (cb) {
+            //    cb.enable(true);
+            //}
+        });
+        if ('@keyID' == '@keyEmptyValueID') {
+           $('#btnDelete').hide();
+        }
+    }
+
+    function changeToViewMode() {
+        actualmode = 1;
+        $(".view-mode").show();
+        $(".modify-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("view-mode");
+
+        $(divName +' :input').attr('disabled', true);
+        $(divName +' :input').each(function () {
+            //var cb = $(this).data("kendoDropDownList");
+            //if (cb) {
+            //    cb.enable(false);
+            //}
+            //cb = $(this).data("kendoNumericTextBox");
+            //if (cb) {
+            //    cb.enable(false);
+            //}
+        });
+    }
+    function setWindowMode() {
+        //customize according model key
+        if ('@keyID' !== '@keyEmptyValueID') {
+            actualmode = 1;
+        } else {
+            actualmode = 2;
+        }
+    }
+
+    function setMode() {
+        if (actualmode === 2)
+            changeToEditMode();
+        else
+            changeToViewMode();
+    }
+
+
+    $(document).ready(function() {
+        umsHideAllEditSaveButton();
+        setWindowMode();
+        //set up condition to know if it's a new item
+        setMode();
+        $('#btnEdit' + '@postId').off('click').on('click', function () {
+            if(consolelog)console.log("btnEdit called");
+            changeToEditMode();
+        });
+        $('#btnCancel' + '@postId').off('click').on('click', function () {
+            if (consolelog)console.log("btnCancel called");
+            // IF is new add, close the dialog
+            if ('@keyID'=='@keyEmptyValueID') {
+                dialog.close();
+                return;
+            }
+
+            displayItemDetail('@keyID');
+            changeToViewMode();
+        });
+        $('#btnSave'+'@postId').off('click').on('click', function() {
+            if (consolelog)console.log("btnSave called");
+            actionSave();
+        });
+        $('#btnDelete').off('click').on('click', function () {
+            if (consolelog)console.log("btnDelete called");
+            umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteItem, cancelDeleteItem);
+        });
+
+        $('#btnViewTemplate').off('click').on('click', function () {
+           //debugger;
+           kendo.ui.progress($("#btnViewTemplate"),true);
+           var scrip ='<textarea style="height:100%; max-height:580px" class="k-textarea w-100 txt-readonly" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" readonly="readonly"></textarea>';
+           $.when(
+              $("<div id='popupWindow'></div>")
+                 .appendTo("body")
+                 .kendoWindow({
+                    width: '80%',
+                    height: '80%',
+                    maxHeight:700,
+                    modal: true,
+                    title: "",
+                    visible: false,
+                    close: function (e) {
+                       this.destroy();
+                       //dfd.resolve();
+                    }
+                 }).data('kendoWindow').content(
+                    '<div id="editorX"></div>'
+                    + '<script>$(document).ready(function() {onLoadTemplate();})<'
+                    + '/script>'
+                   
+                  )
+                    .center().open()
+               
+           ).then(function () {
+               kendo.ui.progress($("#btnViewTemplate"),false);
+              }
+           );
+
+           //return dfd.promise();
+        });
+        $('#btnClose' + '@postId').off('click').on('click', function () {
+            if (consolelog)console.log("btnClose called");
+            dialog.close();
+        });
+        $("input[data-val-length-max]").each(function (index, element) {
+           element.setAttribute("maxlength", element.getAttribute("data-val-length-max"));
+        });
+        $("input[data-val-required]").each(function (index, element) {
+         var x = $('label[for="' + this.id + '"]');
+         if (x)
+            x.removeClass("field-required").addClass("field-required");
+        });
+        
+      //$('#btnEditor_@@keyID').click(function () {
+      //    var idRep = $(this).attr("data-id");
+      //    var url = '@@Url.Action("EditReportTemplate", "ReportMaster", new { target = "_blank" })' + "&id=" + idRep;
+      //    window.open(url);
+      //});
+
+      $('#btnUpload_@keyID').off('click').on('click', function () {
+
+      var windowWidget = $("#dialog_@keyID").data("kendoWindow");
+
+      windowWidget.refresh({
+      url: "@Url.Action("Upload", "ReportMaster")/?id=" + "@keyID"
+      });
+      windowWidget.center();
+      windowWidget.open();
+
+      });
+      $('#btnDownload_@keyID').off('click').on('click', function() {
+      //debugger;
+      window.location.href = "@Url.RouteUrl(new { Controller = "ReportMaster", Action = "DownloadReportFile" })/?id=" + '@keyID';
+
+      });
+
+
+      });
+
+    function onLoadTemplate() {
+       var editor = ace.edit("editorX");
+       editor.setTheme("ace/theme/chrome");
+       editor.session.setMode("ace/mode/xml");
+       editor.setValue($("#Stream").val());
+       editor.setReadOnly(true);
+    }
+
+      function actionSave() {
+      if (OnValidation()) {
+      //uncomment for production
+      $("#@formId").submit();
+
+      }
+      }
+
+      function OnValidation() {
+      var retValue = true;
+      var customFieldValidation = function() {
+      $('#Filename').removeClass('k-invalid');
+      var retFV = false;
+      //Only if we have field not validable by Model
+      try {
+      retFV = $('#Filename').val().length === 0;
+      if (retFV)
+      $('#Filename').addClass('k-invalid');
+      } catch (e) {
+      //
+      }
+      return retFV;
+      }
+      if ('@keyID' == '@keyEmptyValueID') {
+      $('#ID').val('@keyEmptyValueID');
+      }
+      var validator = $("#@formId").kendoValidator().data("kendoValidator");
+      if (!validator.validate() || customFieldValidation()) {
+      retValue = false;
+      try {
+      var errors = validator.errors();
+      if (customFieldValidation()) {
+      errors.push('The Template file is required.');
+      }
+      $("#errors").html(buildValidationMessage(errors));
+      } catch (e) {
+      $("#errors").html(e);
+      }
+      }
+      else {
+      $("#errors").html("");
+      retValue = true;
+      }
+
+      return retValue;
+      }
+      function OnSuccess(response) {
+      if (response.success) {
+      grid.dataSource.read();
+      dialog.close();
+      }
+      else {
+      window.umsAlert("Error occured", response.errorMessage, 400, 300);
+      }
+      }
+      function OnFailure(response) {
+      window.umsAlert("Error occured", response.errorMessage, 400, 300);
+      }
+      function toolBarShowButtonByClass(clas) {
+      var tb = $("#toolbarDetail").data("kendoToolBar");
+      tb.umsShowButtonByClass(clas);
+      }
+      function umsHideAllEditSaveButton()
+      {
+      var tb = $("#toolbarDetail").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+      }
+
+
+      function deleteItem() {
+      $.ajax({
+      url: '@Url.Action("DeleteReportTemplate", "ReportMaster")',
+      type: 'POST',
+      data: { id:  '@keyID' },
+      async: false
+
+      }).done(function (data) {
+      if (data.success != undefined && data.success) {
+      dialog.close();
+      grid.dataSource.read();
+      } else {
+      $('#errors').html('not saved. reason:' + data.errorMessage);
+      }
+      }).fail(function (response) {
+      umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+      });
+
+      }
+
+      function cancelDeleteItem() {
+
+      /* do nothing */
+      }
+
+      function OnSuccessUpload(response) {
+      //debugger;
+      kendo.ui.progress($("#upload_@Model.ID"),false);
+      if (response.success) {
+      //set filename
+      var wnd = $("#dialog_@keyID").getKendoWindow();
+      wnd.close();
+      $('#Filename').removeClass('k-invalid');
+      $("#Filename").val(response.fileUploaded);
+      $("#Stream").val(response.fileContent);
+      }
+      else {
+      }
+      }
+      function OnFailureUpload(response) {
+      //debugger;
+      kendo.ui.progress($("#upload_@Model.ID"),false);
+      window.umsAlert("Error occured", response.errorMessage, 400, 300);
+      }
+      </script>

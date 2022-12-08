@@ -1,0 +1,78 @@
+﻿@{
+    Layout = null;
+}
+
+<script>
+    var isBounded = false;
+
+    function onChangeDASBroker(e) {
+        //debugger;
+        if (!isBounded) {
+            var mygrid = this;
+            var item = e.sender.dataItem(e.sender.select())
+            if (item) {
+                $('#@ViewBag.IdToSet').val(item.Text);
+            }
+
+            if (!dasBrokerWnd) {
+               //debugger;
+               dasBrokerWnd = $('#dasBrokerSelectionDialog').usmKendoWindow({
+                  height: '500px',
+                  width: '700px'
+               }).getKendoWindow();
+            }
+            dasBrokerWnd.close();
+            
+        }
+        else {
+            isBounded = false;
+        }
+    }
+
+    function onDataBoundDASBroker(e) {
+        isBounded = true;
+        //debugger;
+        var grid = $("#dasbroker-grid").data("kendoGrid");
+        var data = grid.dataSource.data();
+        for (var i = 0; i < data.length; i++) {
+            if (data[i].Value == '@ViewBag.SelectedDASBroker') {
+                var select = grid.tbody.find('tr[data-uid="' + data[i].uid + '"]');
+                grid.select(select);
+                return false;
+            }
+        }
+    }
+
+</script>
+
+<div style="text-align:center;">
+
+    @(Html.Kendo().Grid<SelectListItem>()
+                                  .Name("dasbroker-grid").HtmlAttributes(new { style = "height:455px;margin-top:10px;" })
+                                  .Columns(columns =>
+                                  {
+                                      columns.Bound(e => e.Value).Visible(false);
+                                      columns.Bound(e => e.Text).HtmlAttributes(new { @style = "text-align:left;" });
+                                  })
+                                  .Pageable(pager => pager
+                                          .Input(false)
+                                          .Numeric(true)
+                                          .Info(true)
+                                          .PreviousNext(true)
+                                          .Refresh(false)
+                                          .PageSizes(false)
+                                          ) //it's not working
+                                  .Sortable(true)
+                                  .Filterable()
+                                  .Selectable()
+                                  .Scrollable()
+                                  .Events(ev => ev.Change("onChangeDASBroker").DataBound("onDataBoundDASBroker"))
+                                  .DataSource(dataSource => dataSource
+                                      .Ajax()
+                                      .Read(read => read.Action("ReadDASBrokers", "ConnectPlus"))
+                                      .ServerOperation(false)
+                                  .PageSize(20)
+                                  )
+                                  .NoRecords(x => x.Template("<div class='text-center'>" + DicSvc.XLate("No records found") + "</div>"))
+    )
+</div>

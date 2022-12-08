@@ -1,0 +1,185 @@
+﻿@using Digistat.FrameworkStd.Interfaces
+@using Microsoft.AspNetCore.Html
+@model Digistat.FrameworkStd.Model.Export.ExportJobs
+@inject IDictionaryService DicSvc
+@functions {
+   private IHtmlContent rawXlateJs(string text)
+   {
+
+      return Html.Raw(DicSvc.XLateJs(text));
+   }
+}
+<style>
+
+   #jobStatisticsGrid.k-grid tbody tr {
+      line-height: 14px;
+   }
+
+   #jobStatisticsGrid.k-grid tbody td {
+      padding: 0;
+   }
+</style>
+<div class="row">
+   <div class="col-12 px-0">
+
+      <div class="row ">
+         <div class="col-2">
+            <label asp-for="exj_LastRunDateTime">@DicSvc.XLate("Last Run Date/Time")</label>
+         </div>
+
+         <div class="col-3">
+            <div class="form-control txt-readonly">@Model.exj_LastRunDateTime</div>
+
+         </div>
+
+         <div class="col-2">
+            <label class="">@DicSvc.XLate("Last Run Result")</label>
+         </div>
+
+         <div class="col-1">
+            <div id="lastStatusIcon"></div>
+         </div>
+
+         <div class="col-2">
+            <label asp-for="exj_LastRunMessage" class="">@DicSvc.XLate("Last Run Message")</label>
+         </div>
+
+         <div class="col-2">
+            <div id="exj_LastRunMessage" class="form-control txt-readonly overflow-hidden" style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">@Model.exj_LastRunMessage</div>
+         </div>
+      </div>
+      <div class="row">
+         
+         <div id="jobStatisticsGrid"></div>
+      </div>
+
+   </div>
+   @Html.HiddenFor(m => m.exj_LastRunDateTime)
+   @Html.HiddenFor(m => m.exj_LastRunStatusCode)
+   @Html.HiddenFor(m => m.exj_LastRunMessage)
+</div>
+<script>
+   $(document).ready(function() {
+      var columns = [];
+      $("#jobStatisticsGrid").kendoGrid({
+
+         "noRecords": {
+            "template": '<div class="empty-grid">@rawXlateJs("No records found")</div>'
+         },
+         columns: [
+
+            { field: "exjh_Id",hidden:true },
+            { field: "exjh_Hostname", title: "@rawXlateJs("Hostname")"},
+            { field: "exjh_Triggered", title: "@rawXlateJs("Triggered")"},
+            { field: "exjh_QueryParameterResult", title: "@rawXlateJs("Parameters")",width:100,
+                attributes: {
+                    style: 'white-space: nowrap '
+                }
+            },
+            { field: "exjh_StartDateTime", title: "@rawXlateJs("Date time")", format: "{0:dd/MM/yyyy HH:mm:ss}", type: "datetime"},
+            { field: "exjh_ElapsedTime" , title: "@rawXlateJs("Elapsed Time (s)")"},
+            {
+               field: "exjh_StatusCode", title: "@rawXlateJs("Status")",width:100
+               , template:"#= setLastStatusCell({ 'exj_LastRunStatusCode': data.exjh_StatusCode,'LastRunStatusDescription' :data.LastRunStatusDescription })#"
+            },
+            { field: "exjh_StatusMessage", title: "@rawXlateJs("Status Message")"}
+
+         ],
+         selectable: false,
+         filterable: false,
+         scrollable: true,
+         height: 320,
+         /*width: 500,*/
+         dataSource: {
+            type: "json",
+            transport: {
+               read: "@Url.Action("JobHistory")",
+               parameterMap: function () {
+                  return { "jobId": @Model.exj_ID};
+               },
+               data: function (data) { //specify the array that contains the data
+                  //debugger;
+                  return data.data || data;
+               }
+               //dataType: "jsonp"
+            },
+            success: function (e) {
+               //debugger
+               //alert("Get budget data success");
+            },
+            error: function (xhr, status, error) {
+               //debugger;
+               alert(error);
+            },
+            //requestStart: function() {
+            //   //kendo.ui.progress($("#jobStatisticsGrid"), true);
+            //},
+            requestEnd: function(data) {
+               //debugger;
+               //   //kendo.ui.progress($("#jobStatisticsGrid"), false);
+            },
+            schema: {
+               model: {
+                  fields: {
+                     exjh_Id: { type: "number" },
+                     exjh_Hostname: { type: "string" },
+                     exjh_Triggered: { type: "string" },
+                     exjh_StartDateTime: { type: "date" },
+                     exjh_ElapsedTime: { type: "number" },
+                     exjh_StatusCode: { type: "number" },
+                     exjh_StatusMessage: { type: "string" }
+                  }
+               }
+            }
+            ,
+            pageSize: 20
+            //serverPaging: true,
+            //serverFiltering: true,
+            //serverSorting: true
+         },
+         pageable: {
+            pageSize: 10,
+            refresh: true
+         },
+         dataBound: function(e) {setGridKendoTooltip("#jobStatisticsGrid")}
+      });
+@*      $("#jobStatisticsGrid").kendoTooltip({
+         filter: "td,th",
+         show: function(e) {
+            if (this.content.text() != "") {
+               $('div.k-tooltip[role="tooltip"]').css("visibility", "visible");
+            }
+         },
+         hide: function() {
+            $('div.k-tooltip[role="tooltip"]').css("visibility", "hidden");
+         },
+         content: function(e) {
+            var element = e.target[0];
+            if (element.offsetWidth < element.scrollWidth) {
+               return e.target.text();
+            } else {
+               return "";
+            }
+         }
+      });*@
+      $("#exj_LastRunMessage").kendoTooltip({
+         //filter: "td,th",
+         show: function(e) {
+            if (this.content.text() != "") {
+               $('div.k-tooltip[role="tooltip"]').css("visibility", "visible");
+            }
+         },
+         hide: function() {
+            $('div.k-tooltip[role="tooltip"]').css("visibility", "hidden");
+         },
+         content: function(e) {
+            var element = e.target[0];
+            if (element.offsetWidth < element.scrollWidth) {
+               return e.target.text();
+            } else {
+               return "";
+            }
+         }
+      });
+   })
+</script>

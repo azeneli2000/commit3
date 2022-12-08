@@ -1,0 +1,20 @@
+﻿@model StandardUnitViewModel
+
+@(Html.Kendo().DropDownListFor(m => m)
+                      .HtmlAttributes(new { @style = "width:100%;" })
+                      .DataValueField("ID")
+                      .DataTextField("Print")
+                      
+                      .Events(ev => ev.Change("onChangeSporadic"))
+                  .DataSource(source =>
+                  {
+                      source.Read(read =>
+                      {
+                          read.Action("GetStandardUnit", "Generic");
+                      });
+                  })
+                 // .Value(Model.Sporadic.ToString())
+)
+
+
+@Html.ValidationMessageFor(m => m)

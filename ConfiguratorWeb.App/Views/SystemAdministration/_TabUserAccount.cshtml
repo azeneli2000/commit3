@@ -1,0 +1,167 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@inject IDictionaryService DicSvc
+@model ConfiguratorWeb.App.Models.UserViewModel
+@{
+    Layout = null;
+}
+
+
+
+<style>
+
+
+   </style>
+<div style="height: 410px">
+   <div class="row mt-2 mb-0" >
+     <div class="col-lg-4 account-card ml-0  p-0">
+       <div id="account_" class="card row  p-0">
+         <div class="row mb-4 ml-0 pl-0 ums-header">
+           @DicSvc.XLate("Account").ToUpper()
+         </div>
+         <div class="row mb-0">
+           <div class="col-4 ">
+             @Html.LabelFor(m => m.UserName, new { @class = " field-required " })
+           </div>
+           <div class="col-8">
+             <div class="input-group">
+               @Html.Kendo().TextBoxFor(m => m.UserName).HtmlAttributes(new { @class = "k-input k-textbox control-required " })
+             </div>
+           </div>
+         </div>
+         <div class="row">
+           <div class="col-4 ">
+             @Html.LabelFor(m => m.Password, new { @class = "" })
+           </div>
+           <div class="col-8">
+             <div class="input-group ">
+               @Html.Kendo().TextBoxFor(m => m.Password).HtmlAttributes(new { @class = "form-control w-60", type = "password", @readonly = "readonly" })
+               <span class="input-group-append">
+                 <button id="set-password" class="btn border bg-white" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Set Password")"><span class="mdi mdi-pencil"></span></button>
+               </span>
+             </div>
+           </div>
+         </div>
+         <div id="confirm-password" style="display: none;" class="row">
+           <div class="col-4 ">
+             @Html.LabelFor(m => m.ConfirmPassword)
+           </div>
+           <div class="col-8">
+             <div class="input-group ">
+               @Html.Kendo().TextBoxFor(m => m.ConfirmPassword).HtmlAttributes(new { @class = "form-control", type = "password", @style = "width:89%;" })
+             </div>
+           </div>
+         </div>
+       </div>
+       <div id="accountPin_" class="card  row p-0">
+         <div class="row mb-4 ml-0 pl-0 ums-header">
+           @DicSvc.XLate("PIN") &nbsp;&nbsp;
+         </div>
+         <div class="row">
+           <div class="col-4  ">
+             @Html.LabelFor(m => m.Pin, new { @class = "" })
+           </div>
+           <div class="col-8">
+             <div class="input-group">
+               @Html.Kendo().TextBoxFor(m => m.Pin).HtmlAttributes(new { @class = "form-control w-60", @maxlength = "5", @readonly = "readonly" })
+               <span class="input-group-append">
+                 <button id="create-pin" class="btn border  bg-white" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Create new Pin")"><span class="mdi mdi-pencil"></span></button>
+               </span>
+             </div>
+           </div>
+         </div>
+       </div>
+       <div id="accountBadge_" class="card  row p-0">
+         <div class="row mb-4 ml-0 pl-0 ums-header">
+           @DicSvc.XLate("Badge") &nbsp;&nbsp;
+         </div>
+         <div class="row ">
+           <div class="col-4 ">
+             @Html.LabelFor(m => m.BadgeID, new { @class = "" })
+           </div>
+           <div class="col-8">
+             <div class="input-group">
+               @Html.Kendo().TextBoxFor(m => m.BadgeID).HtmlAttributes(new { @class = "k-input k-textbox" })
+             </div>
+           </div>
+         </div>
+         <div class="row">
+           <div class="col-4  ">
+             @Html.LabelFor(m => m.BadgePIN, new { @class = "" })
+           </div>
+           <div class="col-8">
+             <div class="input-group">
+               @Html.Kendo().TextBoxFor(m => m.BadgePIN).HtmlAttributes(new { @class = "k-input k-textbox", @minlength = "5" })
+               <span class="input-group-append">
+                 <button id="create-badge-pin" class="btn border  bg-white" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Create new Badge Pin")"><span class="mdi mdi-pencil"></span></button>
+               </span>
+             </div>
+           </div>
+         </div>
+       </div>
+
+     </div>
+      <div class="col-lg-4 options-card  p-0">
+         <div id="options_" class="card  row ">
+            <div class="row mb-4 ml-0 pl-0 ums-header">
+               @DicSvc.XLate("Options")
+            </div>
+
+            <div class="row">
+               <div class="col-12">
+                  @Html.Kendo().CheckBoxFor(m => m.MustChangePassword)
+               </div>
+            </div>
+            <div class="row">
+               <div class="col-12">
+                  @Html.Kendo().CheckBoxFor(m => m.CannotChangePassword)
+               </div>
+            </div>
+            <div class="row">
+               <div class="col-12">
+                  @Html.Kendo().CheckBoxFor(m => m.PasswordNeverExpires)
+               </div>
+            </div>
+            <div class="row">
+               <div class="col-12">
+                  @Html.Kendo().CheckBoxFor(m => m.AccountNeverExpires)
+               </div>
+            </div>
+            <div class="row">
+               <div class="col-12">
+                  @Html.Kendo().CheckBoxFor(m => m.AccountDisabled)
+               </div>
+            </div>
+         </div>
+      </div>
+      <div class="col-lg-4 permissions-card  p-0">
+         
+         <div id="account-statistics_" class="card  row ">
+            <div class="row mb-4 ml-0 pl-0 ums-header">
+               @DicSvc.XLate("Account statistics")
+            </div>
+            <div class="row ">
+               <div class="col-6  ">
+                  @Html.LabelFor(m => m.LastLoginDate, new { @class = "w-95" })
+               </div>
+               <div class="col-6 ">
+                  @Html.Kendo().TextBoxFor(m => m.LastLoginDate).HtmlAttributes(new { @class = " w-95 text-center", @readonly = "readonly" })
+               </div>
+            </div>
+            <div class="row ">
+               <div class="col-6  ">
+                  @Html.LabelFor(m => m.LoginCounter, new { @class = "w-95" })
+               </div>
+               <div class="col-6 ">
+                  @Html.Kendo().TextBoxFor(m => m.LoginCounter).HtmlAttributes(new { @class = " w-95 text-center", @readonly = "readonly" })
+               </div>
+            </div>
+         </div>
+
+      </div>
+
+
+   </div>
+
+   </div>
+
+

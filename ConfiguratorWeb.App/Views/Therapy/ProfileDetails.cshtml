@@ -1,0 +1,838 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@using  Digistat.FrameworkStd.Enums
+@model Digistat.FrameworkStd.Model.Therapy.Profiles
+@{ 
+   int keyID = Model.IdProfile;
+   string strDialogID = "ProfilesDetail";
+   string strFormID = "profileForm";
+}
+<style>
+
+   .location-header {
+      position: relative;
+      bottom: 31px;
+      left: 300px;
+   }
+   .labelProfile {
+      position: relative;
+      top: 7px;
+   }
+</style>
+<script>
+   var associatedItemArray = [];
+
+   function ActionsPDataBound() {
+      var components;
+      components = $('#ActionsProfiles').getKendoGrid().dataSource.data();
+    
+      if (components != null) {
+         for (var i = 0; i < components.length; i++) {
+            associatedItemArray.push(components[i].IdChild)
+
+         }
+      }
+   }
+
+   function MixturesPDataBound() {
+      var components;
+      components = $('#MixturesProfiles').getKendoGrid().dataSource.data();
+      if (components != null) {
+         for (var i = 0; i < components.length; i++) {
+            associatedItemArray.push(components[i].IdChild)
+
+         }
+      }
+
+   }
+
+   function ProtocolsPDataBound() {
+      var components;
+      components = $('#ProtocolsProfiles').getKendoGrid().dataSource.data();
+      if (components != null) {
+         for (var i = 0; i < components.length; i++) {
+            associatedItemArray.push(components[i].IdChild)
+
+         }
+      }
+   }
+</script>
+<div id="dialogLocationError" style="display: none;">
+    <div>
+        <div>@DicSvc.XLate("Invalid operation. You can't modify location because there're associated items with different location Id")</div>
+    </div>
+</div>
+<form id="@strFormID" asp-controller="Therapy" asp-action="ProfileConfigEdit" method="post" data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+      data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+   <div class="detailsItemContainer">
+      <input asp-for="IdProfile" type="hidden" id="hidden_id" />
+      <input asp-for="Index" type="hidden"  />
+      <div class="row" style="margin-bottom: -17px;">
+         <div>
+            <label class="labelProfile">@DicSvc.XLate("Name")</label>
+         </div>
+         <div class="col-2">
+            <input id="nameProfile" class="k-textbox k-input k-textbox" asp-for="Name" required />
+         </div>
+         <div>
+            <label class="labelProfile"> @DicSvc.XLate("Description")</label>
+         </div>
+         <div class="col-3">
+            <input id="descTherapy" class="k-textbox k-input k-textbox" asp-for="Description" />
+         </div>
+         <div>
+            <label class="labelProfile">@DicSvc.XLate("Code")</label>
+         </div>
+         <div class="col-1">
+            <input id="codeProfile" class="k-textbox k-input k-textbox" asp-for="Code" />
+         </div>
+         <div>
+            <label class="labelProfile" style="position: relative; left: 19px;">@DicSvc.XLate("Location")</label>
+         </div>
+         <div class="col-3">
+            <input type="text" asp-for="LocationName" class=" label-name form-control control-required" readonly="readonly" style="margin-left:16px;" />
+            <span class="location-header">
+               <button id="btnLocation" onclick="openLocationsGrid();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Set Location">
+                  <span class="mdi mdi-pencil"></span>
+               </button>
+               <button id="btnClearLocation" onclick="clearLocationField();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Clear Location">
+                  <span class="mdi mdi-close"></span>
+               </button>
+            </span>
+            @Html.HiddenFor(m => m.LocationRef)
+         </div>
+      </div>
+
+   </div>
+</form>
+<div class="card" id="ProfileContainer">
+   <div class="mainLinkContainerProfiles">
+
+      <div style="margin:10px">
+         <label style=" margin-top:10px; font-weight:bold;">@DicSvc.XLate("Actions")</label>
+         <div id="ActionTable" style="display:flex; flex-direction:row;">
+            @(Html.Kendo().Grid(Model.Association)
+                                                                                                       .Name("ActionsProfiles")
+                                                                                                       .Navigatable(true)
+                                                                                                       .Columns(columns =>
+                                                                                                       {
+                                                                                                          columns.Bound(e => e.ChildID).Visible(false);
+                                                                                                          columns.Bound(e => e.Name).Title(DicSvc.XLate("Name")).Width("300px");
+                                                                                                          columns.Bound(e => e.Description).Title(DicSvc.XLate("Description"));
+                                                                                                          //columns.Bound(e => e.LocationRef);
+                                                                                                          columns.Bound(e => e.SearchLevel).Hidden(true);
+
+                                                                                                       })
+                                                                                                       .Events(ev=>ev.DataBound("ActionsPDataBound"))
+                                                                                                       .Editable(e => e.Mode(GridEditMode.InCell))
+                                                                                                                  .Selectable(s => s.Mode(GridSelectionMode.Single))
+                                                                                                                  .Scrollable()
+                                                                                                                  .Editable()
+                                                                                                                         .DataSource(dataSource => dataSource
+                                                                                                                            .Ajax()
+                                                                                                                            .ServerOperation(true)
+                                                                                                                            .Model(model =>
+                                                                                                                            {
+                                                                                                                               model.Id(o => o.ChildID);
+                                                                                                                               model.Field(x => x.Name).Editable(false);
+                                                                                                                               model.Field(x => x.Description).Editable(false);
+                                                                                                                               model.Field(x => x.LocationRef).Editable(false);
+                                                                                                                            }
+                                                                                                                            )
+                                                                                                                        .Read(read => read.Action("VerifyProfilesAssociations", "Therapy", new { ID = Model.IdProfile, type = 0 }))
+                                                                                                                        )
+                                                                                                                 .HtmlAttributes(new { @class = "associationsGrids" })
+                                                                                                                  .NoRecords(x => x.Template("<div class='empty-grid' style='position: relative;left: 400px;'>" + DicSvc.XLate("No Actions linked") + "</div>"))
+
+            )
+            <div style="display:flex; flex-direction:column;">
+               <button id="addProfileAction"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button"><span class="k-icon k-i-plus"></span></button>
+               <button id="removeProfileAction"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button" style="display:none;"><span class="k-icon k-i-minus"></span></button>
+            </div>
+         </div>
+         <label style=" margin-top:10px;font-weight:bold;">@DicSvc.XLate("Mixtures")</label>
+         <div id="MixtureTable"  style="display:flex; flex-direction:row;">
+            @(Html.Kendo().Grid(Model.Association)
+                                                                                                       .Name("MixturesProfiles")
+                                                                                                       .Navigatable(true)
+                                                                                                       .Columns(columns =>
+                                                                                                       {
+                                                                                                          columns.Bound(e => e.ChildID).Visible(false);
+                                                                                                          columns.Bound(e => e.Name).Title(DicSvc.XLate("Name")).Width("300px");
+                                                                                                          columns.Bound(e => e.Description).Title(DicSvc.XLate("Description"));
+                                                                                                          //columns.Bound(e => e.LocationRef);
+                                                                                                          columns.Bound(e => e.SearchLevel).Hidden(true);
+
+                                                                                                       })
+                                                                                                       .Events(ev => ev.DataBound("MixturesPDataBound"))
+                                                                                                       .Editable(e => e.Mode(GridEditMode.InCell))
+                                                                                                                  .Selectable(s => s.Mode(GridSelectionMode.Single))
+                                                                                                                  .Scrollable()
+                                                                                                                  .Editable()
+                                                                                                                         .DataSource(dataSource => dataSource
+                                                                                                                            .Ajax()
+                                                                                                                            .ServerOperation(true)
+                                                                                                                            .Model(model =>
+                                                                                                                            {
+                                                                                                                               model.Id(o => o.ChildID);
+                                                                                                                               model.Field(x => x.Name).Editable(false);
+                                                                                                                               model.Field(x => x.Description).Editable(false);
+                                                                                                                               model.Field(x => x.LocationRef).Editable(false);
+                                                                                                                            }
+                                                                                                                            )
+                                                                                                                        .Read(read => read.Action("VerifyProfilesAssociations", "Therapy", new { ID = Model.IdProfile, type =1 }))
+                                                                                                                        )
+                                                                                                                 .HtmlAttributes(new { @class = "associationsGrids" })
+                                                                                                                  .NoRecords(x => x.Template("<div class='empty-grid' style='position: relative;left: 400px;'>" + DicSvc.XLate("No Mixtures linked") + "</div>"))
+
+            )
+            <div style="display:flex; flex-direction:column;">
+               <button id="addProfileMixture"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button"><span class="k-icon k-i-plus"></span></button>
+               <button id="removeProfileMixture"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button" style="display:none;"><span class="k-icon k-i-minus"></span></button>
+            </div>
+         </div>
+         <label style=" margin-top:10px;font-weight:bold;">@DicSvc.XLate("Protocols")</label>
+         <div id="ProtocolTable" style="display:flex; flex-direction:row; margin-bottom:5px;">
+            @(Html.Kendo().Grid(Model.Association)
+                                                                                                       .Name("ProtocolsProfiles")
+                                                                                                       .Navigatable(true)
+                                                                                                       .Columns(columns =>
+                                                                                                       {
+                                                                                                          columns.Bound(e => e.ChildID).Visible(false);
+                                                                                                          columns.Bound(e => e.Name).Title(DicSvc.XLate("Name")).Width("300px");
+                                                                                                          columns.Bound(e => e.Description).Title(DicSvc.XLate("Description"));
+                                                                                                          columns.Bound(e => e.SearchLevel).Hidden(true);
+
+                                                                                                       })
+                                                                                                       .Events(ev => ev.DataBound("ProtocolsPDataBound"))
+                                                                                                       .Editable(e => e.Mode(GridEditMode.InCell))
+                                                                                                                  .Selectable(s => s.Mode(GridSelectionMode.Single))
+                                                                                                                  .Scrollable()
+                                                                                                                  .Editable()
+                                                                                                                         .DataSource(dataSource => dataSource
+                                                                                                                            .Ajax()
+                                                                                                                            .ServerOperation(true)
+                                                                                                                            .Model(model =>
+                                                                                                                            {
+                                                                                                                               model.Id(o => o.ChildID);
+                                                                                                                               model.Field(x => x.Name).Editable(false);
+                                                                                                                               model.Field(x => x.Description).Editable(false);
+                                                                                                                               model.Field(x => x.LocationRef).Editable(false);
+                                                                                                                            }
+                                                                                                                            )
+                                                                                                                        .Read(read => read.Action("VerifyProfilesAssociations", "Therapy", new { ID = Model.IdProfile, type = 2 }))
+                                                                                                                        )
+                                                                                                                 .HtmlAttributes(new { @class = "associationsGrids" })
+                                                                                                                  .NoRecords(x => x.Template("<div class='empty-grid' style='position: relative;left: 400px;'>" + DicSvc.XLate("No Protocols linked") + "</div>"))
+
+            )
+            <div style="display:flex; flex-direction:column;">
+               <button id="addProfileProtocols"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button"><span class="k-icon k-i-plus"></span></button>
+               <button id="removeProfileProtocols"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button" style="display:none;"><span class="k-icon k-i-minus"></span></button>
+            </div>
+         </div>
+      </div>
+   </div>
+   <div class="card-footer h-10 p-0 m-0  bg-white">
+      @(Html.Kendo().ToolBar()
+                          .Name("toolbarProfile")
+                          .UmsDefaultErrors(DicSvc)
+                          .Items(
+                             items =>
+                             {
+                                if (keyID != 0)
+                                {
+                                   //items.Add().Type(CommandType.Button).Text("Duplicate").Id("btnDuplicateProfile").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+                                   items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode");
+
+                                   items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDeleteProfile").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+                                }
+                             }
+                          )
+                          .UmsDefaultSettings(DicSvc, "")
+      )
+
+   </div>
+</div>
+<div id="ComponentSelectionWindow" style="height:400px; display:flex;flex-direction:row;">
+   @{ await Html.RenderPartialAsync("_MixtureComponentSelection",new TherapyItemModel ()); }
+</div>
+
+<kendo-window name="popupLocations"
+              draggable="false"
+              scrollable="false"
+              visible="false"
+              width="600"
+              modal="true"
+              title="LOCATIONS"
+              height="500"
+              resizable="true">
+   <popup-animation enabled="false" />
+</kendo-window>
+<script>
+   var componentskndWnd;
+      var temp_loc = '@Model.LocationRef';
+   var keyVal2, KeyId2;
+ 
+    var initLocValue = $("#LocationRef").val();
+    var initLocName =  $("#LocationName").val();
+
+  
+   $(document).ready(function () {
+      setWindowMode();
+      
+      $('#btnCopy').off('click').on('click', function () {
+         $("#hidden_id").val(0);
+         //$("#nameProfile").val('');
+         //$("#descTherapy").val('');
+         //$("#codeProfile").val('');
+         changeToEditMode();
+      });
+         $('.btnEdit').off('click').on('click', function () {
+               changeToEditMode();
+      });
+
+
+            $('.btnCancel').off('click').on('click', function (e) {
+               //e.preventDefault();
+               var currentID = $('#hidden_id').val();
+               if (currentID && currentID != '' && currentID != '0') {
+                  ShowProfileDetail(currentID);
+               }
+               else {
+               dialog.close();
+               }
+            });
+
+            $('.btnClose').off('click').on('click', function () {
+               dialog.close();
+               $(this).closest(".k-state-focused").focus();
+            });
+
+      $('#btnDuplicateProfile').off('click').on('click', function () {
+               $("#nameProfile").val("");
+               $("#hidden_id").val("0");
+               changeToEditMode();
+            });
+
+      $('#btnDeleteProfile').off('click').on('click',function () {
+         umsConfirm('@DicSvc.XLate("Confirm Delete")', '@DicSvc.XLate("Do you really want to delete this Profile?")', deleteProfile, function () { });
+            });
+        $('#btnSave').off('click').on('click',function () {
+           if (OnValidation()) {
+              var componentsA = $('#ActionsProfiles').getKendoGrid().dataSource.data();
+              var componentsM = $('#MixturesProfiles').getKendoGrid().dataSource.data();
+              var componentsP = $('#ProtocolsProfiles').getKendoGrid().dataSource.data();
+              var count = 0;
+                     if (componentsA != null) {
+                        for (var i = 0; i < componentsA.length; i++) {
+
+                        var itm = componentsA[i];
+                           var idA = '<input type="hidden" name="AssociationId[' + count + ']"  value="' + itm.IdChild + '" class="_a_"/>'
+                           count++;
+                        $("#@strFormID").append(idA);
+                        }
+                     }
+                   if (componentsM != null) {
+                        for (var i = 0; i < componentsM.length; i++) {
+
+                        var itm = componentsM[i];
+                           var idM = '<input type="hidden" name="AssociationId[' + count + ']"  value="' + itm.IdChild + '" class="_a_"/>'
+                           count++;
+                        $("#@strFormID").append(idM);
+                        }
+                  }
+                  if (componentsP != null) {
+                        for (var i = 0; i < componentsP.length; i++) {
+
+                        var itm = componentsP[i];
+                           var idP = '<input type="hidden" name="AssociationId[' + count + ']"  value="' + itm.IdChild + '" class="_a_"/>'
+                           count++;
+                        $("#@strFormID").append(idP);
+                        }
+              }
+              
+                var finalIndex = 0 ;
+              if ($("#hidden_id").val() == "0") {
+                    var indexCat = [];
+                    var cat = $('#ProfilesGrid').getKendoGrid().dataSource.data();
+                    for (let i = 0; i < cat.length; i++) {
+                    indexCat.push(cat[i].Index);
+                    }
+                    finalIndex = Math.max(...indexCat) + 1;
+
+                }
+                else {
+                   if ($("#Index").val() == '') {
+                      $("#Index").val('0');
+                   }
+                    finalIndex = parseInt($("#Index").val().toString(), 10);
+                }
+              $("#Index").val(finalIndex);
+
+              $("#@strFormID").submit();
+           }
+        });
+
+
+        $("#dialogLocationError").kendoWindow({
+         width: "371px",
+         height: "140px",
+         modal: true,
+         title: "Error",
+         resizable: false,
+         actions: ["Close"],
+         open: function () {
+
+         },
+         close: function () {
+
+         },
+      animation: {
+         open: { effects: "fade:in" },
+         close: { effects: "fade:out" }
+      }
+
+   });
+
+   });
+      var dialog = $("#@strDialogID").data("kendoWindow");
+   var actualmode;
+
+
+   function setWindowMode() {
+      if ('@Model.IdProfile' !== '' && @Model.IdProfile!== 0) {
+         actualmode = 1;
+      } else {
+         actualmode = 2;
+      }
+      setMode();
+   };
+
+   function setMode() {
+      if (actualmode === 2) {
+         changeToEditMode();
+      }
+      else {
+         changeToViewMode();
+      }
+      dialog.center().resize();
+   };
+
+   $('#addProfileAction').off('click').on('click', function (e) {
+            e.preventDefault();
+      typeGridSelected = 1;
+      ShowStandardActionComponent();
+      filterProfileTables(typeGridSelected);
+            return false;
+   });
+   $('#addProfileMixture').off('click').on('click', function (e) {
+            e.preventDefault();
+      typeGridSelected = 2;
+      ShowStandardActionComponent();
+      filterProfileTables(typeGridSelected);
+
+            return false;
+   });
+   $('#addProfileProtocols').off('click').on('click', function (e) {
+            e.preventDefault();
+      typeGridSelected = 3;
+      ShowStandardActionComponent();
+      filterProfileTables(typeGridSelected);
+
+            return false;
+   });
+   var componentskndWnd = $('#ComponentSelectionWindow').usmKendoWindow({
+
+      title: 'Standard Action Selection',
+      height: 400,
+      width: 700,
+      modal: true,
+      visible: false,
+      close: function (e) {
+         $("#errorInsertAction").css("display", "none");
+
+      }
+   });
+   function toolBarShowButtonByClass(clas) {
+      var tb = $("#toolbarProfile").data("kendoToolBar");
+      tb.umsShowButtonByClass(clas);
+   }
+   function toolBarAllEditSaveButton() {
+      var tb = $("#toolbarProfile").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+
+   function changeToEditMode() {
+
+
+         actualmode = 2;
+         toolBarAllEditSaveButton();
+         toolBarShowButtonByClass("modify-mode");
+      if ($("#hidden_id").val() == "0") {
+         $("#btnDeleteProfile").hide();
+      }
+      $('#@strDialogID :input').attr('disabled', false);
+         $('#@strDialogID :input').each(function () {
+
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+         cb.enable(true);
+         }
+
+         cb = $(this).data("kendoNumericTextBox");
+         if (cb) {
+         cb.enable(true);
+         }
+
+         cb = $(this).data("kendoTimePicker");
+         if (cb) {
+         cb.enable(true);
+         }
+         cb = $(this).data("kendoMultiSelect");
+         if (cb) {
+         cb.enable(true);
+         }
+         cb = $(this).data("k-checkbox");
+         if (cb) {
+         cb.enable(true);
+         }
+
+         });
+
+
+
+   };
+
+   function changeToViewMode() {
+      actualmode = 1;
+      toolBarAllEditSaveButton();
+      toolBarShowButtonByClass("view-mode");
+      $('#@strDialogID :input').attr('disabled', true);
+      $('#@strDialogID :input').each(function () {
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+            cb.enable(false);
+         }
+
+         cb = $(this).data("kendoNumericTextBox");
+         if (cb) {
+            cb.enable(false);
+         }
+
+         cb = $(this).data("kendoTimePicker");
+         if (cb) {
+            cb.enable(false);
+         }
+         cb = $(this).data("kendoMultiSelect");
+         if (cb) {
+            cb.enable(false);
+         }
+         cb = $(this).data("k-checkbox");
+         if (cb) {
+            cb.enable(false);
+         }
+      });
+
+
+
+   };
+
+    function OnValidation() {
+      var retValue = false;
+      var validator = $("#@strFormID").kendoValidator().data("kendoValidator");
+      $("#errors").html("");
+      if ($("#errors").html() != "")
+      {
+         $("#errors").html("");//no need to show the message in the error tag. so it's cleared.
+         return false;
+      }
+
+      if (!validator.validate() ) {
+         try {
+            var errors = validator.errors();
+
+               $("#errors").html(buildValidationMessage(errors));
+         }
+         catch (e) {
+               $("#errors").html(e);
+         }
+      }
+      else {
+         $("#errors").html("");
+         retValue = true;
+      }
+
+         return retValue;
+   }
+
+   function OnSuccess(result, status) {
+      if (status == "success") {
+         var grid = $("#ProfilesGrid").data("kendoGrid");
+         grid.dataSource.read();
+         dialog.close();
+      }
+      else {
+         window.umsAlert("Error occured", response.errorMessage, 400, 300);
+      }
+   }
+
+
+   function RemoveItemFromAssociatedArray(dataItem)
+   {
+       let i = associatedItemArray.indexOf(dataItem.IdChild);
+       //TO FIX:  for some reason there are more items with the same IdChild, expected one
+       while( i > -1 )
+        {
+            if( i > -1 )
+            {
+                associatedItemArray.splice(i,1);//remove the element
+            }
+            i = associatedItemArray.indexOf(dataItem.IdChild);
+        }
+   }
+
+
+   function OnFailure(jqXHR, textStatus, errorThrown) {
+      window.umsAlert("Error occured", errorThrown, 400, 300);
+   }
+
+   $("#ActionsProfiles").on("click", "tr.k-state-selected", function () {
+      $("#removeProfileAction").css("display", "inherit");
+   });
+   $("#MixturesProfiles").on("click", "tr.k-state-selected", function () {
+      $("#removeProfileMixture").css("display", "inherit");
+   });
+   $("#ProtocolsProfiles").on("click", "tr.k-state-selected", function () {
+      $("#removeProfileProtocols").css("display", "inherit");
+   });
+
+   $('#removeProfileAction').off('click').on('click', function (e) {
+      var grid = $("#ActionsProfiles").data("kendoGrid");
+      var dataItem = grid.dataItem($("#ActionsProfiles_active_cell").closest("tr"));
+      var datasource = $("#ActionsProfiles").data("kendoGrid").dataSource;
+      grid.removeRow(dataItem);
+      datasource.remove(dataItem);
+      RemoveItemFromAssociatedArray(dataItem);
+   $("#removeProfileAction").css("display", "none");
+   });
+   $('#removeProfileMixture').off('click').on('click', function (e) {
+      var grid = $("#MixturesProfiles").data("kendoGrid");
+      var dataItem = grid.dataItem($("#MixturesProfiles_active_cell").closest("tr"));
+      var datasource = $("#MixturesProfiles").data("kendoGrid").dataSource;
+      grid.removeRow(dataItem);
+      datasource.remove(dataItem);
+      RemoveItemFromAssociatedArray(dataItem);
+      $("#removeProfileMixture").css("display", "none");
+   });
+   $('#removeProfileProtocols').off('click').on('click', function (e) {
+   var grid = $("#ProtocolsProfiles").data("kendoGrid");
+      var dataItem = grid.dataItem($("#ProtocolsProfiles_active_cell").closest("tr"));
+   var datasource = $("#ProtocolsProfiles").data("kendoGrid").dataSource;
+   grid.removeRow(dataItem);
+   datasource.remove(dataItem);
+   RemoveItemFromAssociatedArray(dataItem);
+   $("#removeProfileProtocols").css("display", "none");
+   });
+
+
+
+   function deleteProfile() {
+
+
+        $.ajax({
+            url: '@Url.Action("DeleteProfile", "Therapy")',
+            type: 'POST',
+            data: { ID: '@Model.IdProfile' },
+
+        }).done(function (data) {
+            if (data.success) {
+                $('#@strDialogID').data('kendoWindow').close();
+               var grid = $("#ProfilesGrid").data("kendoGrid");
+                grid.dataSource.read();
+            }
+            else {
+                umsErrorDialog("Error occured", data.errorMessage, 200, 200);
+            }
+            }).fail(function (response) {
+                umsErrorDialog("Error occured", response, 200, 200);
+        });
+
+   }
+
+
+      function openLocationsGrid() {
+        $.ajax({
+            url: '@Url.Action("GetLocations", "SystemConfiguration")',
+            type: 'GET',
+            data: { id: '@Model.LocationRef' }
+        }).done(function (data) {
+
+              var dialogAbout = $("#popupLocations");
+              dialogAbout.data("kendoWindow").content(data);
+              dialogAbout.data("kendoWindow").center().open();
+
+
+
+        });
+   }
+
+   function ProfileOpenLocationErrorPopup()
+   {
+        $("#LocationName").val(initLocName);
+        $("#LocationRef").val(initLocValue);
+        var dialog = $('#dialogLocationError').data("kendoWindow");
+        dialog.center();
+        dialog.open();
+   };
+
+   function clearLocationField() {
+         var keyVal =null;
+         var keyId = '';
+         KeyVal2 = keyVal;
+         KeyId2 = keyId;
+         $.ajax({
+         url: '@Url.Action("CheckAsscoiatedLocations", "Therapy")',
+         type: 'POST',
+            data: {  tempLoc: keyId, associatedItems :associatedItemArray }
+         }).done(function (data) {
+            if (data.data == false) {
+
+                ProfileOpenLocationErrorPopup();
+             }
+             else {
+                temp_loc = keyId.toString();
+                   $("#LocationName").val(keyVal);
+                   $("#LocationRef").val(keyId);
+                var gridObject = $("#MixtureComponentsSelection").data("kendoGrid");
+                //gridObject.dataSource.transport.options.read.url = "/Therapy/ReadFilteredStandardActions?LocationID=" + temp_loc;
+                gridObject.dataSource.transport.options.read.url = "@Url.Action("ReadFilteredStandardActions", "Therapy")"+"?LocationID=" + temp_loc;
+                gridObject.dataSource.read();
+             }
+         });
+   }
+   function RemoveAssociationsP() {
+
+      var components = $('#ActionsProfiles').getKendoGrid().dataSource.data();
+      var components1 = $('#MixturesProfiles').getKendoGrid().dataSource.data();
+      var components2 = $('#ProtocolsProfiles').getKendoGrid().dataSource.data();
+      var temArray = [];
+      var temArray1 = [];
+      var temArray2 = [];
+
+      temp_loc = KeyId2.toString();
+
+      if (components != null) {
+         for (var i = 0; i < components.length; i++) {
+            if (components[i].LocationRef != null) {
+               if (components[i].LocationRef.toString() != temp_loc) {
+                  temArray.push(components[i]);
+                  associatedItemArray.pop(components[i].IdChild);
+
+               }
+
+            }
+
+         }
+         components = temArray;
+         for (var y = 0; y < components.length; y++) {
+            $('#ActionsProfiles').getKendoGrid().dataSource.remove(components[y]);
+         }
+      }
+
+      if (components1 != null) {
+         for (var i = 0; i < components1.length; i++) {
+            if (components1[i].LocationRef != null) {
+               if (components1[i].LocationRef.toString() != temp_loc) {
+                  temArray1.push(components1[i]);
+                  associatedItemArray.pop(components1[i].IdChild);
+
+               }
+
+            }
+
+         }
+
+         components1 = temArray1;
+         for (var y = 0; y < components1.length; y++) {
+            $('#MixturesProfiles').getKendoGrid().dataSource.remove(components1[y]);
+         }
+      }
+      if (components2 != null) {
+         for (var i = 0; i < components2.length; i++) {
+            if (components2[i].LocationRef != null) {
+               if (components2[i].LocationRef.toString() != temp_loc) {
+                  temArray2.push(components2[i]);
+                  associatedItemArray.pop(components2[i].IdChild);
+
+               }
+
+            }
+
+         }
+         components2 = temArray2;
+         for (var y = 0; y < components2.length; y++) {
+            $('#ProtocolsProfiles').getKendoGrid().dataSource.remove(components2[y]);
+         }
+      }
+      $("#LocationName").val(KeyVal2);
+      $("#LocationRef").val(KeyId2);
+      var gridObject = $("#MixtureComponentsSelection").data("kendoGrid");
+      ////gridObject.dataSource.transport.options.read.url = "/Therapy/ReadFilteredStandardActions?LocationID=" + temp_loc;
+      gridObject.dataSource.transport.options.read.url = "@Url.Action("ReadFilteredStandardActions", "Therapy")"+"?LocationID=" + temp_loc;
+      gridObject.dataSource.read();
+
+
+   }
+
+   function onDataBoundLoc(e) {
+        var that = this;
+        var grid = $("#loc-grid").data("kendoGrid");
+        if ($('#LocationRef').val() != '') {
+            grid.items().each(function () {
+            var data = grid.dataItem(this);
+            if (data.ID == $('#LocationRef').val()) {
+                grid.select(this);
+
+            }
+            });
+        }
+
+        $(that.tbody).off("click", "tr").on("click", "tr", function (e) {
+            debugger;
+            var keyVal = grid.dataItem($(e.currentTarget).closest("tr"))['LocationName'];
+            var keyId = grid.dataItem($(e.currentTarget).closest("tr"))['ID'];
+            KeyVal2 = keyVal;
+            KeyId2 = keyId;
+            $.ajax({
+            url: '@Url.Action("CheckAsscoiatedLocations", "Therapy")',
+            type: 'POST',
+            data:  {  tempLoc: keyId, associatedItems :associatedItemArray }
+            }).done(function (data) {
+
+                if (data.data == false) {
+                    ProfileOpenLocationErrorPopup();
+                }
+                else {
+                    temp_loc = keyId.toString();
+            
+                    $("#LocationName").val(keyVal);
+                    $("#LocationRef").val(keyId);
+
+                            var gridObject = $("#MixtureComponentsSelection").data("kendoGrid");
+                            //gridObject.dataSource.transport.options.read.url = "/Therapy/ReadFilteredStandardActions?LocationID=" + temp_loc;
+                            gridObject.dataSource.transport.options.read.url = "@Url.Action("ReadFilteredStandardActions", "Therapy")"+"?LocationID=" + temp_loc;
+                            gridObject.dataSource.read();
+                }
+
+                });
+
+            $('#popupLocations').data("kendoWindow").close();
+        });
+   }
+
+
+
+   function CancelRemoveP() {
+
+   }
+</script>

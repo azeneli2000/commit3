@@ -1,0 +1,142 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@inject IDictionaryService DicSvc
+@model ConfiguratorWeb.App.Models.StandardDatasetViewModel
+@{
+    Layout = null;
+
+}
+<script type="text/javascript">
+
+		var wndItemDelConfirmation = null;
+
+
+		function displayItemDialog_@(Model.sd_ID.ToString("N"))(itemID) {
+			$.ajax({
+				url: '@Url.Action("GetStandardDatasetItem", "Vitals")',
+				type: 'GET',
+				data: { id: itemID },
+				async: false
+			}).done(function (dataHtml) {
+				var itemDialog = $('#sdItemEditWindow').data('kendoWindow');
+				itemDialog.content('');
+				itemDialog.content(dataHtml);
+				if (itemDialog.element.is(":hidden")) {
+					itemDialog.open();
+					itemDialog.center();
+				}
+				if (!itemID || itemID == 0) {
+					$('#sdItemEditWindow').find('#StandardDatasetID').val('@Model.sd_ID');
+				}
+			});
+		}
+
+		 $(document).ready(function () {
+			 wndItemDelConfirmation = $("#deleteItemConfirmation").kendoWindow({
+				title: '@DicSvc.XLate("Delete Confirmation")',
+				modal: true,
+				visible: false,
+				resizable: false,
+				width: 400,
+				height: 200,
+			 }).data("kendoWindow");
+
+
+
+		});
+
+
+		function confirmDeleteItem(e) {
+			e.preventDefault();
+			var grid = this;
+			var row = $(e.currentTarget).closest("tr");
+			wndItemDelConfirmation.center().open();
+			$("#btnDeleteItemYes").click(function () {
+				grid.removeRow(row);
+				wndItemDelConfirmation.close();
+			});
+
+			$("#btnDeleteItemNo").click(function () {
+				wndItemDelConfirmation.close();
+			});
+		}
+
+        function onItemSelected(e) {
+            if (actualmode==2 && $(e.sender.element).attr('id') == 'vitalsDatasetItem_grid_@(Model.sd_ID)') {
+				var item = e.sender.dataItem(e.sender.select());
+				displayItemDialog_@(Model.sd_ID.ToString("N"))(item.ID);
+			}
+		}
+
+</script>
+
+
+<div class="row mb-0 ">
+    <div class="col pt-1 px-0">
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.SDItemViewModel>()
+        .Name("vitalsDatasetItem_grid_"  + Model.sd_ID)
+        .UmsDefaultToolbar("create_datasetitem", DicSvc.XLate("ADD NEW DATASET ITEM"), "displayItemDialog_" + Model.sd_ID.ToString("N") + "();", DicSvc)
+        .UmsDefaultSettings(DicSvc)
+        .Columns(columns =>
+        {
+          columns.Bound(e => e.ID).Visible(false);
+
+          columns.Bound(e => e.Name);
+          columns.Bound(e => e.Label);
+          columns.Bound(e => e.Unit);
+          columns.Bound(e => e.ItemType).ClientTemplate("#: ItemTypeName #");
+          columns.Bound(e => e.Index);
+          columns.Bound(e => e.PlaceHolder);
+          columns.Bound(e => e.Required).ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #= Required ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" });
+        })
+
+        .Events(ev => ev.Change("onItemSelected"))
+        .HtmlAttributes(new { style = "height:380px;width:100%" })
+        .DataSource(dataSource => dataSource
+        .Ajax()
+        .Model(model =>
+        {
+          model.Id(o => o.ID);
+          model.Field(e => e.Name).Editable(false);
+          model.Field(e => e.Label).Editable(false);
+          model.Field(e => e.Unit).Editable(false);
+          model.Field(e => e.ItemType).Editable(false);
+          model.Field(e => e.Index).Editable(false);
+          model.Field(e => e.PlaceHolder).Editable(false);
+          model.Field(e => e.Required).Editable(false);
+
+        })
+        .Sort(sort => sort.Add("Index").Ascending())
+        .Read(read => read.Action("GetAllItemsForDS", "Vitals",new { dsID = Model.sd_ID }))
+        )
+    )
+    </div>
+</div>
+<div id="deleteItemConfirmation">
+    <div class="button-container">
+        <div class="col-md-10 u-col-h-fixed" style="margin-bottom:40px;text-align:center;">
+            <h4>@DicSvc.XLate("Do you really want to delete the Item and all related SubItems?")</h4>
+        </div>
+        <div class="col-md-10 u-col-h-fixed">
+            <button id="btnDeleteItemYes" class="k-button">@DicSvc.XLate("Yes")</button>
+            <button id="btnDeleteItemNo" class="k-button">@DicSvc.XLate("No")</button>
+        </div>
+    </div>
+</div>
+<script>
+
+
+
+
+    function dataSource_requestEndItem_@(Model.sd_ID.ToString("N"))(e) {
+        var response = e.response;
+        if (e.type === 'destroy') {
+            $('#vitalsDatasetItem_grid_@(Model.sd_ID)').data('kendoGrid').dataSource.read();
+        }
+    }
+
+    $(document).ready(function () {
+        var grid = $('#vitalsDatasetItem_grid_@(Model.sd_ID)').data('kendoGrid');
+        grid.dataSource.bind("requestEnd", dataSource_requestEndItem_@(Model.sd_ID.ToString("N")));
+    });
+
+</script>

@@ -1,0 +1,356 @@
+﻿@model ConfiguratorWeb.App.Models.NetworkViewModel
+@{
+    Layout = null;
+    string[] actions = new string[] { "Close" };
+}
+
+
+<style>
+    .btn.border {
+        padding: 1px 6px!important;
+    }
+    /*.k-grid-norecords {
+        padding-left: 46%;
+    }*/
+    
+</style>
+
+<script>
+    function openBedTelligence() {
+        var link = "@Url.Action("Devices", "Telligence")/@Model.Id";
+        window.location = link;
+        //kendo.alert('@(DicSvc.XLate("Staff Station beds must be set using Integrations->Ascom Telligence-> Devices"))\n'+link);
+        return false;
+    }
+
+    function openBedSelection() {
+        kendo.ui.progress($("#NetworkEditWindow"), true); // progess bar will intiate
+        $.ajax({
+            type: "POST",
+            url: '@Url.Action("GetBedsLocations", "Network", new { networkId=Model.Id })',
+            data: JSON.stringify($("#linked-bed-grid").data().kendoGrid.dataSource.view()),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (data) {
+              //  debugger;
+                var wnd = kndWndBedDetails.data("kendoWindow");
+                wnd.content('');
+                wnd.content(data.content.Result);
+                wnd.center().open();
+            },
+            error: function () {
+               kendo.ui.progress($("#NetworkEditWindow"), false);
+            },
+            complete: function () {
+                kendo.ui.progress($("#NetworkEditWindow"), false);
+            }
+        });
+    }
+
+    function openLocations@(Model.Id)() {
+        $.ajax({
+            url: '@Url.Action("GetBedsLocations", "Network", new { networkId=Model.Id })',
+            contentType: 'application/json; charset=utf-8',
+            type: 'POST',
+            data: JSON.stringify($("#linked-bed-grid").data().kendoGrid.dataSource.view()),
+            async: false
+
+            }).done(function (data) {
+                $('#locations_@Model.Id').data("kendoWindow").content(data);
+                $('#locations_@Model.Id').data("kendoWindow").open().center();
+                mergeGridRows("locationsbeds-grid", '@DicSvc.XLate("Default")');
+
+                //set default location
+                var locIdHidden = $("#DefaultLocation_ID_@Model.Id").val();
+                $('input.check-col-def[ums-locId="' + locIdHidden + '"]').prop("checked", true);
+
+                }).fail(function (jqXHR, exception) {
+                    // Our error logic here
+                    var msg = '';
+                    if (jqXHR.status === 0) {
+                        msg = 'Not connect.\n Verify Network.';
+                    } else if (jqXHR.status == 404) {
+                        msg = 'Requested page not found. [404]';
+                    } else if (jqXHR.status == 500) {
+                        msg = 'Internal Server Error [500].';
+                    } else if (exception === 'parsererror') {
+                      //  debugger;
+                        msg = 'Requested JSON parse failed.';
+                    } else if (exception === 'timeout') {
+                        msg = 'Time out error.';
+                    } else if (exception === 'abort') {
+                        msg = 'Ajax request aborted.';
+                    } else {
+                        msg = 'Uncaught Error.\n' + jqXHR.responseText;
+                    }
+                    console.log(msg);
+                });
+    }
+
+
+    function setDomainSelectionGrid() {
+        var dtSource = $("#linked-bed-grid").data().kendoGrid.dataSource.view();
+        //var dtSource = $("#form_@Model.Id").find("#BedList").data().kendoGrid.dataSource.view();
+        for (var i = 0; i < dtSource.length; i++) {
+            console.log(dtSource[i].BedCode);
+        }
+    }
+
+     function onDataBoundBeds(arg) {
+         mergeGridRows("linked-bed-grid", '@DicSvc.XLate("Location Name")');
+    }
+
+    function getLinkedBedsGridRowIndex(data) {
+      return getGridRowIndex("#linked-bed-grid", data);
+    }
+
+     function getCurrentHostname() {
+          $.ajax({
+            url: '@Url.Action("GetCurrentWorkstationName", "Generic")',
+            type: 'GET',
+            async: false
+
+          }).done(function (data) {
+              $('#HostName').val(data);
+        });
+    }
+
+    function openDefaultLocationGrid() {
+        //debugger;
+        var selLocID = $("#LocationID").val();
+        $.ajax({
+            url: '@Url.Action("GetLocations", "Network")',
+            type: 'GET',
+            data: { networkId: '@Model.Id', selectedLocID: selLocID },
+            async: true,
+            cache: false
+
+        }).done(function (data) {
+            var dialog = $("#defaultLocationSelectionDialog").data("kendoWindow");
+            dialog.title('@DicSvc.XLate("DEFAULT LOCATION SELECTION")');
+            dialog.content(data);
+            dialog.center().open();
+        });
+    }
+
+
+    function openModuleSelectionWindow() {
+        $.ajax({
+            url: '@Url.Action("GetDigistatDesktopModules", "Network")',
+            type: 'GET',
+            data: { },
+            async: true,
+            cache: false
+
+        }).done(function (data) {
+            var dialog = $("#networkDesktopModulesDialog").data("kendoWindow");
+            dialog.title('@DicSvc.XLate("MODULES SELETION")');
+            dialog.content(data);
+            dialog.center().open();
+        });
+    }
+
+    function removeDefaultLocation() {
+        $('#DefaultLocation_LocationName').val('');
+        $('#LocationID').val('');
+    }
+
+     function onChangeLocation(e) {
+        var mygrid = this;
+        var item = e.sender.dataItem(e.sender.select())
+        if (item) {
+            $('#NetworkEditWindow #LocationID').val(item.ID);
+            $('#NetworkEditWindow #DefaultLocation_LocationName').val(item.LocationName);
+        }
+
+        var dialogAbout = $("#defaultLocationSelectionDialog");
+        dialogAbout.data("kendoWindow").close();
+    }
+
+    function onDataBoundLocation(e) {
+        var grid = $("#defloc-grid").data("kendoGrid");
+        var data = grid.dataSource.data();
+        for (var i = 0; i < data.length; i++) {
+            if (data[i].ID == '@ViewBag.SelectedLocID') {
+                var select = grid.tbody.find('tr[data-uid="' + data[i].uid + '"]');
+                grid.select(select);
+            }
+        }
+    }
+
+    function onNetTypeChanged(e) {
+       manageLockBed();
+    }
+
+</script>
+
+<div style="height:400px">
+    <div style="width:55%; float:left;">
+        <div class="row mt-2">
+            <div class="col-md-2 u-col-h-fixed">
+                @Html.LabelFor(m => m.HostName)
+            </div>
+            <div class="col-md-9 ">
+                @Html.Kendo().TextBoxFor(m => m.HostName).HtmlAttributes(new { @class = "k-input w-100", @maxlength = "50" })
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-2 u-col-h-fixed">
+                @Html.LabelFor(m => m.Type)
+            </div>
+            <div class="col-md-3 u-col-h-fixed ml-3">
+                @(Html.Kendo().DropDownListFor(m => m.Type)
+                               .HtmlAttributes(new { @style = "width:96%;", id = "NetworkType_" + Model.Id.ToString() })
+                               .DataTextField("Text")
+                               .DataValueField("Value")
+                               .DataSource(source =>
+                               {
+                                   source.Read(read =>
+                                  {
+                                      read.Action("GetNetworkTypeList", "Generic");
+                                  });
+                               })
+                   .Events(ev=>ev.Change("onNetTypeChanged"))
+                      )
+            </div>
+                <div class="col-md-1 u-col-h-fixed ml-5">
+                    @Html.LabelFor(m => m.IsEnabled)
+                </div>
+                <div class="col-md-1 " style="padding-top: 0px;">
+                    @Html.Kendo().CheckBoxFor(m => m.IsEnabled) 
+                </div><div class="col-md-1 u-col-h-fixed ml-5">
+                    @Html.LabelFor(m => m.LockBed)
+                </div>
+                <div class="col-md-1 " style="padding-top: 0px;">
+                    @Html.Kendo().CheckBoxFor(m => m.LockBed) 
+                </div>
+            
+        </div>
+        <div class="row">
+            <div class="col-md-2 u-col-h-fixed">
+                @Html.LabelFor(m => m.WorkstationLabel)
+            </div>
+            <div class="col-md-9 ">
+                @Html.Kendo().TextBoxFor(m => m.WorkstationLabel).HtmlAttributes(new { @class = "k-input k-textbox w-100", @maxlength = "32" })
+            </div>
+        </div>
+        
+        <style>
+            .u-textarea-row-3 {
+                height: 70px;
+                max-height: 70px;
+                min-height: 70px;
+                margin-left: -15px;
+                margin-right: -15px;
+                width: 100%;
+            }
+        </style>
+        <div class="row">
+            <div class="col-md-2 u-col-h-fixed">
+                @Html.LabelFor(m => m.Modules)
+            </div>
+            <div class="col-md-8 ml-3">
+                <div class="input-group">
+                    @Html.TextAreaFor(m => m.Modules, new { @class = "k-textbox u-textarea-row-3 " })
+                    
+                </div>
+            </div>
+            <div class="col-md-1 ml-3">
+                <div class="input-group-append">
+                    <button type="button" id="btnNetworkModuleSelection" onclick="openModuleSelectionWindow();" class="btn border mdi mdi-24px ig-24px lh-1-0  mdi-format-list-bulleted" title="@DicSvc.XLate("Module selection")" /></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-2 u-col-h-fixed">
+                @Html.LabelFor(m => m.WebModules)
+            </div>
+            <div class="col-md-9 ml-3 ">
+                @Html.TextAreaFor(m => m.WebModules, new { @class = "k-textbox u-textarea-row-3  " })
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-2 u-col-h-fixed">
+                @Html.LabelFor(m => m.WebMenu)
+            </div>
+            <div class="col-md-9 ml-3 ">
+                @Html.TextAreaFor(m => m.WebMenu, new { @class = "k-textbox u-textarea-row-3 " })
+            </div>
+        </div>
+
+    </div>
+    <div style="width:43%; float:left;">
+        <div style="float:left; width: 93%; margin-top: .5rem">
+            @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.BedViewModel>(Model.BedList)
+                                       .Name("linked-bed-grid").HtmlAttributes(new { @class = "no-hover" })
+                                       .Events(ev => ev.DataBound("onDataBoundBeds"))
+                                       .Columns(columns =>
+                                       {
+                                           columns.Bound(e => e.BedId).Hidden().ClientTemplate("#= BedId #" + "<input type='hidden' name='BedList[#= getLinkedBedsGridRowIndex(data)#].BedId' value='#= BedId #' />");
+                                           columns.Bound(e => e.IdLocation).Hidden().ClientTemplate("#= IdLocation #" + "<input type='hidden' name='BedList[#= getLinkedBedsGridRowIndex(data)#].IdLocation' value='#= IdLocation #' />").Visible(false);
+                                           columns.Bound(e => e.Location.LocationName).ClientTemplate("#= Location.LocationName #" + "<input type='hidden' name='BedList[#= getLinkedBedsGridRowIndex(data)#].Location.LocationName' value='#= Location.LocationName #' />").Title(DicSvc.XLate("Location Name"));
+                                           columns.Bound(e => e.BedName).ClientTemplate("#= BedName #" + "<input type='hidden' name='BedList[#= getLinkedBedsGridRowIndex(data)#].BedName' value='#= BedName #' /><input type='hidden' name='BedList[#= getLinkedBedsGridRowIndex(data)#].BedIndex' value='#= BedIndex #' />").Title(DicSvc.XLate("Bed Name"));
+                                           columns.Bound(e => e.BedIndex).Visible(false);
+                                       })
+
+                                           .HtmlAttributes(new { style = "height:330px;" })
+                                           .Sortable(false)
+                                           .Scrollable()
+                                           .DataSource(dataSource => dataSource
+                                           .Ajax()
+                                           .Model(model =>
+                                           {
+                                               model.Id(p => p.BedId);
+                                               model.Field(p => p.BedCode);
+                                               model.Field(p => p.BedIndex);
+                                               model.Field(p => p.BedLocation);
+                                               model.Field(p => p.BedName);
+                                               model.Field(p => p.Selected);
+                                               model.Field(p => p.Location.LocationName);
+                                               model.Field(p => p.Location.ID);
+                                               model.Field(p => p.IdLocation);
+                                               model.Field(p => p.PatientId);
+                                               model.Field(p => p.RoomName);
+                                           })
+                                           .ServerOperation(false)
+                                       ).NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+            )
+            <div class="row " style="padding-top: 11px;margin-bottom: 3px;">
+                <div class="col-md-3 pl-0">
+                    @Html.Label("Default location")
+                </div>
+                <div class="col-sm-9 pr-0">
+                    <div class="input-group w-100">
+                        <input asp-for="LocationID" type="hidden" readonly="readonly" class="k-input k-textbox form-control control-required" />
+                        <input asp-for="DefaultLocation.LocationName" readonly="readonly" class="form-control control-required" id="DefaultLocation_LocationName" />
+                        <div class="input-group-append">
+                            <button id="btnDefaultLoc" onclick="openDefaultLocationGrid();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Set Default Location")">
+                                <span class="mdi mdi-18px mdi-pencil"></span>
+                            </button>
+                            <button id="btnDefaultLocRemove" onclick="removeDefaultLocation();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Remove Default Location")">
+                                <span class="mdi mdi-18px mdi-window-close "></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="float:left; width:3%;padding-top: 10px;margin-left: 6px;">
+           <span class="col-12 p-0 m-0">
+              @if (Model.Type != Digistat.FrameworkStd.Enums.NetworkTypeEnum.TelligenceSS)
+              {
+                 <button id="set-location" onclick="openBedSelection();" class="btn btn-default" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Set beds")"><span class="mdi mdi-bed-empty mdi-24px"></span></button>
+              }
+              else
+              {
+                 <button id="set-location" onclick="openBedTelligence();" class="btn btn-default" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("go to Telligence")"><img src="~/fonts/telligence.svg" width="24" /></button>
+              }
+           </span>
+        </div>
+    </div>
+
+
+</div>
+
+

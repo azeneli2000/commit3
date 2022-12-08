@@ -1,0 +1,673 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@inject IDictionaryService DicSvc
+@model ConfiguratorWeb.App.Models.OnLine.ValidationParameterViewModel
+
+@{
+   Layout = null;
+}
+
+<script>
+
+
+   function onSimpleChoiceSelectorDataBound(e) {
+      var currValue = $('#SimpleChoiceGroup').val();
+      if (currValue != '') {
+         $('#SimpleChoiceGroupSelector').data('kendoDropDownList').value(currValue);
+      }
+   }
+
+   function onddValParamSectionsDataBound(e) {
+      var currValue = $('#SectionID').val();
+      if (currValue != '') {
+         $('#DDValParamSections').data('kendoDropDownList').value(currValue);
+      }
+   }
+
+
+
+   function showSectionEditing() {
+      $.ajax({
+         url: '@Url.Action("SectionEditingDialog", "OnlineValidation", new { uniqueCallID = DateTime.Now.Ticks.ToString()  })',
+         type: 'GET',
+         async: false
+      }).done(function (dataHtml) {
+         var dlgSelParam = $('#vpSectionEditingDialog').data('kendoWindow');
+         if (dlgSelParam.content() == '') {
+            dlgSelParam.content(dataHtml);
+         }
+
+         if (dlgSelParam.element.is(":hidden")) {
+            dlgSelParam.open();
+            //dlgSelParam.center();
+         }
+      });
+   }
+
+</script>
+
+
+
+<div>
+   <div class="card px-0 py-2" style="height:530px;" id="divValParamDetail">
+      <form id="frmVPItem">
+         <input type="hidden" id="IsNewItem" />
+         @Html.HiddenFor(m => m.DeviceID)
+         @Html.HiddenFor(m => m.ChannelID)
+         @Html.HiddenFor(m => m.SimpleChoiceGroup)
+         @(Html.Hidden("vpdOriginalParId",""))
+         @(Html.Hidden("vpdOriginalUomId",""))
+         <div class="row mb-2">
+            <div class="col-6">
+               <div class="row mb-1 ml-0 pl-0 ums-header">
+                  @DicSvc.XLate("General").ToUpper()
+               </div>
+               <div class="row">
+                  <div class="col-4 ">
+                     @DicSvc.XLate("Driver")
+                  </div>
+                  <div class="col-8">
+                     <div class="input-group">
+                        @(Html.Kendo()
+                            .DropDownListFor(m => m.DriverID)
+                            .HtmlAttributes(new { @style = "width:100%;" })
+                            //.Name("ddDriver")
+                            .DataTextField("Text")
+                            .DataValueField("Value")
+                            .DataSource(source => source
+                               .Read(read => read.Action("GetDeviceDriverNameList", "Generic"))
+                            )
+                            .OptionLabel(DicSvc.XLate("Leave blank for no filters"))
+                        )
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-4 ">
+                     @DicSvc.XLate("Parameter") *
+                  </div>
+                  <div class="col-8">
+                     <div class="input-group">
+                        @Html.Kendo().TextBox().Name("txtParSummary").HtmlAttributes(new { @class = "k-input k-textbox w-50" })
+                        <span id="dataType"></span>
+                        <button id="btnSelectParameter" type="button" class="btn border mdi  lh-1-0 mdi-pencil"></button>
+                        @Html.HiddenFor(m => m.ParameterID)
+                        @Html.HiddenFor(m => m.ParameterPrint)
+                        @Html.HiddenFor(m => m.ParameterDataType)
+
+                        <input type="hidden" id="hidCompatibleUoMs" />
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-4 ">
+                     @DicSvc.XLate("Unit") *
+                  </div>
+                  <div class="col-8">
+                     <div class="input-group ">
+                        @Html.Kendo().TextBox().Name("txtUnitSummary").HtmlAttributes(new { @class = "k-input k-textbox w-50" })
+                        <button id="btnSelectUnit" type="button" class="btn border mdi  lh-1-0 mdi-pencil"></button>
+                        @Html.HiddenFor(m => m.UnitOfMeasureID)
+                        @Html.HiddenFor(m => m.UnitPrint)
+                     </div>
+                  </div>
+               </div>
+               <div class="row mb-1 ml-0 pl-0 ums-header">
+                  @DicSvc.XLate("Layout").ToUpper()
+               </div>
+               <div class="row">
+                  <div class="col-4 ">
+                     @DicSvc.XLate("Section")
+                  </div>
+                  <div class="col-8">
+                     <div class="input-group ">
+                        @Html.HiddenFor(m => m.SectionID)
+                        @(Html.Kendo().DropDownList()
+                                      .Name("DDValParamSections")
+                                      .HtmlAttributes(new { @class = "w-80" })
+                                      .OptionLabel("Select a section ...")
+                                      .DataTextField("Name")
+                                      .DataValueField("ID")
+
+                                      .DataSource(source =>
+                                      {
+
+                                          source.Custom().Type("aspnetmvc-ajax")
+                                          .Transport(transport =>
+                                              transport.Read(read => read.Action("ReadValidationSections", "OnlineValidation"))
+                                          )
+                                          .Schema(schema => schema
+                                              .Data("Data")
+                                              .Total("Total")
+                                                  )
+                                          .ServerFiltering(false);
+
+                                      })
+                                      .Events(e => e.DataBound("onddValParamSectionsDataBound"))
+                                      .Enable(true)
+                                      .AutoBind(true)
+                          )
+                        <button id="btnEditSections" type="button" class="btn border mdi mdi-24px ig-24px lh-1-0 mdi-folder-edit-outline" title="@DicSvc.XLate("Edit Sections")"></button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+            <div class="col-6">
+               <div class="row mb-2 ml-0 pl-0 ums-header">
+                  @DicSvc.XLate("Other Data Sources").ToUpper()
+               </div>
+               <div class="row">
+                  <div class="col-4 ">
+                     @DicSvc.XLate("Sql Statement")
+                     <div>
+                        <span class="label-note small">
+                           @DicSvc.XLate("The Query must return a record with only one field.")
+                           <br />@DicSvc.XLate("Allowed parameters:")
+                           <br><b>@@PatientID</b>
+                           <br><b>@@DateTimeClinical</b>
+                        </span>
+                     </div>
+                  </div>
+                  <div class="col-8">
+                     <div class="input-group ">
+                        @Html.TextAreaFor(m => m.SQLQuery, new { @class = "k-textarea", @style = "width: 100%;max-height: 300px; resize: none;", @rows = "7" })
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-4 ">
+                     @DicSvc.XLate("Simple Choice")
+                  </div>
+                  <div class="col-8">
+                     <div class="input-group ">
+                        @(Html.Kendo().DropDownList()
+                                   .Name("SimpleChoiceGroupSelector")
+                                   .HtmlAttributes(new { style = "width:100%" })
+                                   .OptionLabel("Select Simple Choice Group ...")
+                                   .DataTextField("Group")
+                                   .DataValueField("Group")
+
+                                   .DataSource(source =>
+                                   {
+
+                                       source.Custom().Type("aspnetmvc-ajax")
+                                       .Transport(transport =>
+                                           transport.Read(read => read.Action("ReadSimpleChoicesGroup", "ClinicalConfiguration"))
+                                       )
+                                       .Schema(schema => schema
+                                           .Data("Data")
+                                           .Total("Total")
+                                               )
+                                       .ServerFiltering(false);
+
+                                   })
+                                   .Events(e => e.DataBound("onSimpleChoiceSelectorDataBound"))
+                                   .Enable(true)
+                                   .AutoBind(true)
+                       )
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="row mb-2">
+            <div class="col-12">
+
+               <div class="row mb-1 mt-1 ml-0 pl-0 ums-header">
+                  @DicSvc.XLate("Manual validation behavior ").ToUpper()
+               </div>
+               <div class="row">
+                  <div class="col-3 ">
+                     @DicSvc.XLate("Always Visible")
+                     <button id="btnAlwaysVisible" class="btn lh-1-0 ig-18px" type="button" data-toggle="tooltip" data-placement="bottom" title="@DicSvc.XLate("Help")">
+                        <span class="mdi  mdi-information-outline mdi-18px"></span>
+                     </button>
+                  </div>
+                  <div class="col-3">
+                     <div class="input-group ">
+                        @Html.Kendo().CheckBoxFor(m => m.IsAlwaysVisible)
+                     </div>
+                  </div>
+                  <div class="col-3 ">
+                     @DicSvc.XLate("Editable")
+                  </div>
+                  <div class="col-3">
+                     <div class="input-group ">
+                        @Html.Kendo().CheckBoxFor(m => m.IsEditable)
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-3 ">
+                     @DicSvc.XLate("Mandatory")
+                  </div>
+                  <div class="col-3">
+                     <div class="input-group ">
+                        @Html.Kendo().CheckBoxFor(m => m.IsMandatory)
+                     </div>
+                  </div>
+                  <div class="col-3 ">
+                     @DicSvc.XLate("Alarmable")
+                     <button id="btnInfoAllarmable" class="btn lh-1-0 ig-18px" type="button" data-toggle="tooltip" data-placement="bottom" title="@DicSvc.XLate("Help")">
+                        <span class="mdi  mdi-information-outline mdi-18px"></span>
+                     </button>
+                  </div>
+                  <div class="col-3">
+                     <div class="input-group ">
+                        @Html.Kendo().CheckBoxFor(m => m.IsManuallyAlarmable)
+                     </div>
+
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-3 ">
+                     @DicSvc.XLate("Simple Choice only")
+                     <button id="btnInfoSimpleChoiceOnly" class="btn lh-1-0 ig-18px" type="button" data-toggle="tooltip" data-placement="bottom" title="@DicSvc.XLate("Help")">
+                        <span class="mdi  mdi-information-outline mdi-18px"></span>
+                     </button>
+                  </div>
+                  <div class="col-3">
+                     <div class="input-group ">
+                        @Html.Kendo().CheckBoxFor(m => m.IsSimpleChoiceOnly)
+                     </div>
+                  </div>
+                  <div class="col-3 " style="display: none">
+                     @DicSvc.XLate("Decimals")
+                  </div>
+                  <div class="col-3" style="display: none">
+                     <div class="input-group ">
+                        @Html.Kendo().NumericTextBoxFor(m => m.Decimal).Min(0).Max(6).Format("#").RestrictDecimals(true).Decimals(0).Step(1).HtmlAttributes(new { @class = "w-35" })
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="row mb-2">
+            <div class="col-12">
+               <div class="row mb-1 ml-0 pl-0 ums-header">
+                  @DicSvc.XLate("Ranges").ToUpper()
+               </div>
+               <div class="row">
+                  <div class="col-2 ">
+                     @DicSvc.XLate("Plausibility")
+                     <button id="btnInfoPlausability" class="btn lh-1-0 ig-18px" type="button" data-toggle="tooltip" data-placement="bottom" title="@DicSvc.XLate("Help")">
+                        <span class="mdi  mdi-information-outline mdi-18px"></span>
+                     </button>
+                  </div>
+                  <div class="col-2">
+                     <div class=" ">
+                        @DicSvc.XLate("Min")
+                        @Html.Kendo().NumericTextBoxFor(m => m.PlausibilityMin).Decimals(4).RestrictDecimals(true).Format("n4")
+                     </div>
+                  </div>
+                  <div class="col-2">
+                     <div class="">
+                        @DicSvc.XLate("Max")
+                        @Html.Kendo().NumericTextBoxFor(m => m.PlausibilityMax).Decimals(4).RestrictDecimals(true).Format("n4")
+                     </div>
+                  </div>
+                  <div class="col-2 ">
+                     @DicSvc.XLate("Normality")
+                     <button id="btnInfoNormality" class="btn lh-1-0 ig-18px" type="button" data-toggle="tooltip" data-placement="bottom" title="@DicSvc.XLate("Help")">
+                        <span class="mdi  mdi-information-outline mdi-18px"></span>
+                     </button>
+                  </div>
+                  <div class="col-2">
+                     <div class="">
+                        <span>@DicSvc.XLate("Min")</span>
+                        @Html.Kendo().NumericTextBoxFor(m => m.RangeMin).Decimals(4).RestrictDecimals(true).Format("n4")
+                     </div>
+                  </div>
+                  <div class="col-2">
+                     <div class="">
+                        @DicSvc.XLate("Max")
+                        @Html.Kendo().NumericTextBoxFor(m => m.RangeMax).Decimals(4).RestrictDecimals(true).Format("n4")
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </form>
+   </div>
+
+   <div class="card-footer h-10 p-0 m-0 border-0 bg-white">
+      @{
+         string postId = "VPDialogDetail"; //use in case of multi toolbar
+      }
+      @(Html.Kendo().ToolBar()
+           .Name("toolbarVPDialogDetail")
+           .UmsDefaultErrors(DicSvc, "validationParamErrors")
+           .Items(items =>
+           {
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Apply")).Id("btnApplyVParam").UmsHtmlButtonSave().Hidden(false);
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Remove")).Id("btnDeleteVParam").UmsHtmlButtonGeneric("modify-mode").Hidden(false);
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnCancelVParam").UmsHtmlButtonGeneric("modify-mode").Hidden(false);
+           })
+           .UmsDefaultSettings(DicSvc, postId)
+        )
+   </div>
+
+</div>
+
+<div id="vpSelectStdParDialog"></div>
+<div id="vpSelectStdUnitDialog"></div>
+<div id="vpSectionEditingDialog"></div>
+<script>
+   $(document).ready(function () {
+
+      $("#vpSectionEditingDialog").umsKendoWindow({
+         width: '50%',
+         title: '@DicSvc.XLate("Sections Editing")',
+         maxHeight: '650px',
+         height: '650px',
+         position: {
+            top: '20%',
+            left: '30%'
+         },
+         close: function(e) {
+            let grid = $('#grdValidatioNSections').data('kendoGrid');
+            if (grid.dataSource.hasChanges()) {
+               debugger;
+               var dirty = $.grep(grid.dataSource.data(), function(item) {
+                  return item.dirty
+               });
+               if (dirty.length>0) {
+                  if (!confirm('@DicSvc.XLate("Some changes will be lost. Are you sure?")')) {
+                     e.preventDefault();
+                     return;
+                  }
+
+
+               }
+
+            }
+            grid.dataSource.read();
+            let ddl = $('#DDValParamSections').data('kendoDropDownList');
+            ddl.dataSource.read();
+            ddl.refresh();
+            //debugger;
+         }
+      });
+
+
+      $("#vpSelectStdParDialog").umsKendoWindow({
+         width: '50%',
+         title: '@DicSvc.XLate("Select Parameter")',
+         maxHeight: '650px',
+         height: '650px',
+         position: {
+            top: '20%',
+            left: '30%'
+         }
+      });
+
+
+      $("#vpSelectStdUnitDialog").umsKendoWindow({
+         width: '50%',
+         title: '@DicSvc.XLate("Select Unit")',
+         maxHeight: '650px',
+         height: '650px',
+         position: {
+            top: '20%',
+            left: '30%'
+         }
+      });
+
+      if($('#IsNewItem').val() == '1'){
+         $('#btnDeleteVParam').hide();
+      }
+   /*
+    *
+    The following sentences (here corrected) in Help buttons didn't show the english articles:
+   Always Visible Help: If enabled, a row will be displayed even if no values are retrieved.
+   Simple Choice only Help: If enabled, the user can insert a value from Simple Choice selection only.
+   Allarmable Help: If enabled, the user can alter alarm status for parameter
+   Plausability Help: If set, the user will be allowed to enter data within this range
+   Normality Help: If set, the parameter will be automatically alarmed if the value is not within this range
+   Change Allarmable into Alarmable
+   Change Plausability into Plausibility
+    */
+      $('#btnAlwaysVisible').off('click').on('click', function () {
+         window.umsAlert('@DicSvc.XLate("Always Visible")', '@DicSvc.XLate("If enabled, a row will be displayed even if no values are retrieved.")');
+      });
+      $('#btnInfoAllarmable').off('click').on('click', function () {
+         window.umsAlert('@DicSvc.XLate("Alarmable")', '@DicSvc.XLate("If enabled, the user can alter alarm status for parameter")');
+      });
+      $('#btnInfoSimpleChoiceOnly').off('click').on('click', function () {
+         window.umsAlert('@DicSvc.XLate("Simple Choice Only")', '@DicSvc.XLate("If enabled, the user can insert a value from Simple Choice selection only.")');
+      });
+      $('#btnInfoPlausability').off('click').on('click', function () {
+         window.umsAlert('@DicSvc.XLate("Plausibility")', '@DicSvc.XLate("If set, the user will be allowed to enter data within this range")');
+      });
+      $('#btnInfoNormality').off('click').on('click', function () {
+         window.umsAlert('@DicSvc.XLate("Normality")', '@DicSvc.XLate("If set, the parameter will be automatically alarmed if the value is not within this range ")');
+      });
+
+      $('#btnEditSections').off('click').on('click',
+         function() {
+            showSectionEditing();
+         });
+
+
+      $('#btnSelectParameter').off('click').on('click',
+         function() {
+            currSel = 0;
+            var currSel = $('#ParameterID').val();
+            if (currSel == '') {
+               currSel = 0;
+            }
+            //debugger;
+            var driverId = $('#DriverID').data('kendoDropDownList').value();
+
+            $.ajax({
+                  url: '@Url.Action("GetStandardParameterSelectorDialog", "DAS3")',
+                  data: {
+                     selectFunction: 'onParameterSelected', parID: currSel, dialogID: 'vpSelectStdParDialog', driverId: driverId },
+                  type: 'GET',
+                  async: false
+               }).done(function (dataHtml) {
+                  //debugger;
+                  var dlgSelParam = $('#vpSelectStdParDialog').data('kendoWindow');
+                  if (dlgSelParam.content() == '') {
+                     dlgSelParam.content(dataHtml);
+                  } else {
+                     spsParId = currSel;
+                  }
+
+                  if (dlgSelParam.element.is(":hidden")) {
+                     dlgSelParam.open();
+                     //dlgSelParam.center();
+                  }
+                  //debugger;
+                  if (driverId.trim().length) {
+                     $('#tabstrip_stdparfilterselector').data("kendoTabStrip").select(1);
+                     var dropdownlist = $("#lblDriver").data("kendoDropDownList");
+                     dropdownlist.value(driverId.trim());
+                     dropdownlist.trigger("change");
+                     //$('#lblDriver').data("kendoDropDownList").value(driverId.trim());
+                  }
+               })
+               .fail(function (jqxhr, textStatus, error) {
+                  //debugger;;
+                  var err = textStatus + ", " + error;
+                  console.error("Request Failed: " + err);
+
+                  debugger;
+               });
+         });
+
+      $('#btnSelectUnit').off('click').on('click', function () {
+         currSel = 0;
+         var currSel = $('#UnitOfMeasureID').val();
+         if (currSel == '') {
+            currSel = 0;
+         }
+         $.ajax({
+               url: '@Url.Action("GetStandardUnitSelectorDialog", "DAS3")',
+               data: { selectFunction: 'onUnitSelected', uomID: currSel, dialogID: 'vpSelectStdUnitDialog', parRelatedUoMs: $('#hidCompatibleUoMs').val() },
+               type: 'GET',
+               async: false
+            }).done(function (dataHtml) {
+               var dlgSelUnit = $('#vpSelectStdUnitDialog').data('kendoWindow');
+               dlgSelUnit.content('');
+               dlgSelUnit.content(dataHtml);
+               if (dlgSelUnit.element.is(":hidden")) {
+                  dlgSelUnit.open();
+                  //dlgSelUnit.center();
+               }
+            })
+            .fail(function (jqxhr, textStatus, error) {
+               //debugger;;
+               var err = textStatus + ", " + error;
+               console.error("Request Failed: " + err);
+            });
+      });
+
+
+      $('#btnApplyVParam').off('click').on('click', function () {
+         //debugger;
+         if (OnValParamValidation()) {
+            var vgItem = createValParamFromForm();
+            updateValParamGrid(vgItem);
+         }
+      });
+      $('#btnDeleteVParam').off('click').on('click', function () {
+         var vgItem = createValParamFromForm();
+         removeItemFromGrid(vgItem);
+         $('#vpEditWindow').data('kendoWindow').close();
+      });
+      $('#btnCancelVParam').off('click').on('click', function () {
+         $('#vpEditWindow').data('kendoWindow').close();
+      });
+
+   });
+
+   function OnValParamValidation() {
+      var retValue = false;
+      var errors = [];
+      if ($('#UnitOfMeasureID').val() == '' || $('#UnitOfMeasureID').val() == '0') {
+         errors.push('@DicSvc.XLate("A Unit of Measure must be selected")');
+      }
+      if ($('#ParameterID').val() == '' || $('#ParameterID').val() == '0' ) {
+         errors.push('@DicSvc.XLate("A Parameter must be selected")');
+      }
+      if (errors.length > 0) {
+         try {
+            $("#validationParamErrors").html(buildValidationMessage(errors));
+         } catch (e) {
+            $("#validationParamErrors").html(e);
+         }
+         retValue = false;
+      } else {
+         $("#validationParamErrors").html("");
+         retValue = true;
+      }
+      return retValue;
+
+   }
+
+   function onParameterSelected(parItem) {
+      //debugger;
+      $('#txtParSummary').val(createStadardItemDescription(parItem.ID, parItem.Print));
+      setDataType(parItem.DataType);
+      $('#ParameterID').val(parItem.ID);
+      $('#ParameterPrint').val(parItem.Print);
+      $('#hidCompatibleUoMs').val(parItem.UOMIds);
+      $('#vpSelectStdParDialog').data('kendoWindow').close();
+      //debugger;
+      var driverID = $('#lblDriver').data("kendoDropDownList").value();
+
+      if (driverID.length) {
+         $('#DriverID').data('kendoDropDownList').value(driverID);
+      }
+   }
+
+
+   function onUnitSelected(parItem) {
+      $('#txtUnitSummary').val(createStadardItemDescription(parItem.ID, parItem.Print));
+      $('#UnitOfMeasureID').val(parItem.ID);
+      $('#UnitPrint').val(parItem.Print);
+      $('#vpSelectStdUnitDialog').data('kendoWindow').close();
+   }
+
+   function setDataType(DataType) {
+      if (typeof (DataType) != 'undefined' && DataType.length > 0) {
+         //debugger;
+         $('ParameterDataType').val(DataType.toUpperCase());
+         if (DataType.toUpperCase() == "NUMERIC") {
+            $('#dataType').html('<span class="btn border mdi mdi-18px mdi-alpha-n" title="@DicSvc.XLateJs("Data type") @DicSvc.XLateJs("numeric")"></span>')
+         } else {
+            if (DataType.toUpperCase() == "STRING") {
+               $('#dataType').html('<span class="btn border mdi mdi-18px mdi-alpha-s title="@DicSvc.XLateJs("Data type") @DicSvc.XLateJs("string")"></span>')
+            } else {
+               $('#dataType').html('<span class="btn border mdi mdi-18px mdi-alpha-u title="@DicSvc.XLateJs("Data type") @DicSvc.XLateJs("not defined")"></span>')
+            }
+         }
+      } else {
+         $('#dataType').html('')
+      }
+   }
+
+   function createStadardItemDescription(ID, print) {
+
+      return '[' + ID + '] ' + print;
+   }
+
+   function removeParamFromGrid() {
+   }
+
+   function createValParamFromForm() {
+      let sections = $('#DDValParamSections').data('kendoDropDownList');
+      let sectValue = sections.value();
+      let sectDescr = sections.text();
+      let sectIndex = sections.dataItem().Index;
+      if (sectValue == "") {
+         sectDescr = "";
+      }
+      var vpItem = {
+         
+         ParameterID: $('#ParameterID').val(),
+         DriverID: $('#DriverID').data('kendoDropDownList').value(),
+         SectionID: parseInt(sectValue)||null,
+         originalParameterID: $('#vpdOriginalParId').val(),
+         originalUnitOfMeasureID: $('#vpdOriginalUomId').val(),
+         ChannelID: "",
+         Decimal: $('#Decimal').data("kendoNumericTextBox").value(),
+         DeviceID: 0,
+         DriverName: $('#DriverID').data('kendoDropDownList').text(),
+         IsAlwaysVisible: $('#IsAlwaysVisible').prop('checked'),
+         IsAutoExecuteQuery: false,
+         IsEditable: $('#IsEditable').prop('checked'),
+         IsMandatory: $('#IsMandatory').prop('checked'),
+         IsManuallyAlarmable: $('#IsManuallyAlarmable').prop('checked'),
+         IsSimpleChoiceOnly: $('#IsSimpleChoiceOnly').prop('checked'),
+         ParameterPrint: $('#ParameterPrint').val(),
+         PlausibilityMin: $('#PlausibilityMin').data("kendoNumericTextBox").value(),
+         PlausibilityMax: $('#PlausibilityMax').data("kendoNumericTextBox").value(),
+         RangeMin: $('#RangeMin').data("kendoNumericTextBox").value(),
+         RangeMax: $('#RangeMax').data("kendoNumericTextBox").value(),
+         SQLQuery: $('#SQLQuery').val(),
+         SectionDescription: sectDescr,
+         SectionIndex: sectIndex,
+         SimpleChoiceGroup: $("#SimpleChoiceGroupSelector").data("kendoDropDownList").value(),
+         UnitOfMeasureID: $('#UnitOfMeasureID').val(),
+         UnitPrint: $('#UnitPrint').val(),
+         ParameterDataType: $('#ParameterDataType').val()
+
+      }
+      return vpItem;
+
+   }
+
+   function updateValParamGrid(vpItem) {
+      //debugger;
+      $('#vpEditWindow').data('kendoWindow').close();
+      if ($('#IsNewItem').val() == '1') {
+         addItemToGrid(vpItem, true);
+      } else {
+         addItemToGrid(vpItem, false);
+      }
+   }
+
+
+</script>

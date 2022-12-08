@@ -1,0 +1,69 @@
+﻿@using System.Linq.Expressions
+@using Kendo.Mvc.UI.Fluent
+@using Microsoft.AspNetCore.Routing
+@using System.Collections.Specialized;
+@using System.Collections;
+
+@model ConfiguratorWeb.App.Models.RoleViewModel
+
+<script>
+    var insertArray = [];
+    var deleteArray = [];
+
+    function getRoleOperatingBlockGridRowIndex(data) {
+        return getGridRowIndex("#gridRoleOperatingBlock", data);
+    }
+
+    function checkOperatingBlockAllowField(el) {
+        debugger
+        var state = $(el).is(':checked');
+        var elName = $(el).attr('elChkIDEnable');
+        $('[name="OperatingBlock\[' + elName + '\].Allow"]').val(state);
+        var uidItem = $($(el).parent()).parent()[0].dataset.uid
+        var roleOperatingBlockItem = $('#gridRoleOperatingBlock').data("kendoGrid").dataSource.data().find(function (el) { return el.uid == uidItem });
+        if (state == true)//false=>true
+        {
+            if (deleteArray.indexOf(roleOperatingBlockItem.OperatingBlockGuid) === -1)
+                insertArray.push(roleOperatingBlockItem.OperatingBlockGuid)
+            else
+                deleteArray.splice(deleteArray.indexOf(roleOperatingBlockItem.OperatingBlockGuid), 1)
+        }
+        if (state == false) //true=>false
+            if (insertArray.indexOf(roleOperatingBlockItem.OperatingBlockGuid) === -1)
+                deleteArray.push(roleOperatingBlockItem.OperatingBlockGuid)
+            else
+                insertArray.splice(insertArray.indexOf(roleOperatingBlockItem.OperatingBlockGuid), 1)
+    }
+
+    function RolesEditable(dataItem) {
+        debugger
+        var res = actualmode == 1
+        return (res);
+    }
+</script>
+
+<div style="height:310px">
+    @(Html.Kendo().Grid<Configurator.Std.Models.StockManagement.RoleOperatingBlock>()
+        .Name("gridRoleOperatingBlock")
+        .Events(ev => ev.DataBound("onDataBound"))
+        .Columns(columns =>
+        {      
+            columns.Bound(e => e.OperatingBlockName).Filterable(ftb => ftb.Multi(true).Search(true))
+            .Editable("RolesEditable");
+            columns.Bound(e => e.OperatingBlockDescription).Filterable(ftb => ftb.Multi(true).Search(true))
+            .Editable("RolesEditable");
+            columns.Bound(e => e.Allow)
+            .ClientTemplate(@"<input name='PermissionCheck[#=getRoleOperatingBlockGridRowIndex(data)#].CheckAllow' type = 'checkbox' #=Allow?checked='checked':''# onclick='checkOperatingBlockAllowField(this)' elChkIDEnable='#=getRoleOperatingBlockGridRowIndex(data)#' value='#=Allow#'  class='check-col  k-checkbox' disabled />
+                            <input type = 'hidden' name='OperatingBlock[#=getRoleOperatingBlockGridRowIndex(data)#].Allow' value='#=Allow#' />")
+            .Editable("RolesEditable")
+            .Width(100);
+        })
+        .UmsDefaultSettings(DicSvc)
+        .HtmlAttributes(new { style = "height:100%;" })
+        .DataSource(dataSource => dataSource
+        .Ajax()
+        .Events(events => events.Error("error_handler_users"))
+        .Read(read => read.Action("ReadOperatingBlocksRole", "StockManagement", new { id = Model.Id }))
+        )
+        )
+</div>

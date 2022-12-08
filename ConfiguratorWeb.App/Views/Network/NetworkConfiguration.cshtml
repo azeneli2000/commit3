@@ -1,0 +1,223 @@
+﻿@{
+   string gridName = "network-grid";
+   int selectedID = ViewBag.DetailId??0;
+   
+   ViewBag.Title = DicSvc.XLate("Network configuration");
+}
+<style>
+    /* Ellipsis for BED Field*/
+    .k-grid tr > :nth-child(5) {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+   
+</style>
+
+
+<div class="h-100 text-center ">
+   <div class="card h-100 m-1 p-2 text-left">
+
+      @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.NetworkViewModel>()
+          .UmsDefaultToolbar("create_network", DicSvc.XLate("ADD NEW NETWORK"), "openDetail();", DicSvc)
+          .Name(gridName)
+          .Navigatable(true)
+          .Columns(columns =>
+          {
+          columns.Bound(e => e.Id).Visible(false);
+          columns.Bound(e => e.HostName);
+          columns.Bound(e => e.Type).ClientTemplate("#=TypeDescription#").Width(120);
+          columns.Bound(e => e.DefaultLocation.LocationName);
+          columns.Bound(e => e.WorkstationLabel);
+          columns.Template("#if(TypeShort==1 && BedList.length>0 ){# #:BedList[0].BedName# #}#").Title(DicSvc.XLateHtml("Bed")).Width(90);
+          columns.Bound(e => e.LockBed).ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #=LockBed ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" }).Width(124);
+          columns.Bound(e => e.IsEnabled).ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #=IsEnabled ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" }).Width(134);
+          columns.Bound(e => e.Modules);
+          })
+          .UmsDefaultPager(DicSvc)
+          .UmsDefaultSettings(DicSvc)
+          .Events(ev => ev.DataBound("onDataBound"))
+          .DataSource(dataSource => dataSource
+          .Ajax()
+          .Model(model =>
+          {
+          model.Id(o => o.Id);
+          model.Field(o => o.HostName).Editable(false);
+          model.Field(o => o.Type).Editable(false);
+          model.Field(o => o.Location.LocationName).Editable(false);
+          model.Field(o => o.LockBed).Editable(false);
+          model.Field(o => o.IsEnabled).Editable(false);
+          model.Field(o => o.Modules).Editable(false);
+          }).PageSize(50)
+          .Read(read => read.Action("ReadNetworks", "Network"))
+          )
+
+      )
+   </div>
+   <div id="NetworkEditWindow" class="pb-0 pt-3"></div>
+   <div id="bedSelectionDialog"></div>
+   <div id="defaultLocationSelectionDialog"></div>
+    <div id="networkDesktopModulesDialog"></div>
+</div>
+
+
+<script>
+
+
+    @{
+       string editItemTitle = DicSvc.XLate("Edit Network");
+       string selDefLocationTitle = DicSvc.XLate("Select Default Location");
+       string moduleSelectionTitle = DicSvc.XLate("Module Selection");
+    }
+    var gridIdName = '@gridName';
+    var kndWnd;
+    var kndWndBedDetails;
+    var defLocWnd;
+    var modulesWnd;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $('#NetworkEditWindow').usmKendoWindow({
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                },
+                title: '@editItemTitle',
+                height: 600,
+                width:'90%'
+            });
+        }
+        if (!defLocWnd) {
+            defLocWnd = $('#defaultLocationSelectionDialog').usmKendoWindow({
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                },
+                title: '@selDefLocationTitle',
+                height: '550px',
+                width: '700px'
+            });
+        }
+        if (!modulesWnd) {
+           modulesWnd = $('#networkDesktopModulesDialog').usmKendoWindow({
+              close: function(e) {
+                 $('#' + gridIdName).data("kendoGrid").table.focus();
+              },
+              title: '@moduleSelectionTitle',
+              height: '550px',
+              width: '700px'
+           });
+        }
+        if (!kndWndBedDetails) {
+           kndWndBedDetails = $('#bedSelectionDialog').usmKendoWindow({
+              close: function(e) {
+                 $('#' + gridIdName).data("kendoGrid").table.focus();
+              },
+              title: '@DicSvc.XLate("BED SELECTION")',
+              height: '500px',
+              width: '700px'
+           });
+        }
+        if ('@selectedID' !== '0') {
+           openDetail({ 'Id': @selectedID });
+        }
+    });
+
+
+    function closeDefaultLocationDialog() {
+       $('#defaultLocationSelectionDialog').data('kendoWindow').close()
+    }
+    function closeBedDialog() {
+       $('#bedSelectionDialog').data('kendoWindow').close();
+    }
+
+    function closeModuleSelectionDialog() {
+       $('#networkDesktopModulesDialog').data('kendoWindow').close()
+    }
+
+  
+    //setLocationsBeds();
+
+    function editSystemOptionDetail(e) {
+       e.preventDefault();
+       var dataItem = $("#" + gridIdName).data("kendoGrid").dataItem(e.masterRow);
+       openDetail(dataItem);
+    }
+
+    function openDetail(dataItem) {
+       var strID = '0';
+       if (dataItem) {
+          strID = dataItem.Id;
+       }
+       $.ajax({
+          type: "GET",
+          url: '@Url.Action("GetNetwork", "Network")',
+            data: { id: strID }
+          }).done(  function (data) {
+              var wnd = kndWnd.data("kendoWindow");
+                wnd.content('');
+                wnd.content(data);
+                wnd.center().open();
+            }).fail(function (xhr, textStatus, errorThrown) {
+            }
+            );
+    }
+
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+        //removed according to directive
+        //setGridKendoTooltip(grid.element.closest('[data-role="grid"]').attr('id'));
+    }
+
+    function onCancel(e) {
+
+        var grid = e.sender;
+        grid.refresh();
+    }
+
+    function onGridError(e) {
+        if (e.errors) {
+            debugger;
+        }
+    }
+
+    //functions for detail
+    function OnSuccess(response) {
+        //debugger;
+        if (response.success) {
+
+            var grid = $("#" + gridIdName).data("kendoGrid");
+            grid.dataSource.read();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+
+    function OnFailure(response) {
+        //debugger;
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+    $(window).resize(function(){
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                var win = $(kendoWindow).data("kendoWindow");
+                win.center();
+                win.trigger('resize');
+                if (typeof(setMode) != "undefined") {
+                    setMode();
+                }
+            }
+        }, 100);
+    });
+    function onGridKeyEnter(item) {
+        openDetail(item);
+    };
+</script>
+
+
+

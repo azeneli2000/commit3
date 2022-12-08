@@ -1,0 +1,506 @@
+﻿@using Digistat.FrameworkStd.Model.ControlBar
+@using ConfiguratorWeb.App.Models.SystemOptions
+@using Newtonsoft.Json
+@using Swashbuckle.AspNetCore.Filters.Extensions
+@model ConfiguratorWeb.App.Models.SystemOptions.BrowserModulesViewModels
+@{
+   Layout = null;
+   string keyID = new Guid().ToString();
+   string keyEmptyValueID = "0";
+   string formId = "form_" + keyID;
+   List<WebModule> repTemp = (List<WebModule> )ViewData["WebModulesList"];
+}
+<script type="text/javascript">
+
+
+   var dataSourceRMC = @Html.Raw(Json.Serialize(Model));
+   var dataSourceRmcTempl = @Html.Raw(Json.Serialize(repTemp));
+   var dataSourceRmcParams = new kendo.data.DataSource();
+   var dataSourceForGrid = new kendo.data.DataSource({
+      data:dataSourceRMC.Module
+   });
+   var firstDataBound = true;
+   function onRmDataBound() {
+      if (firstDataBound) {
+         //debugger;
+         firstDataBound = false;
+         var grid = this;
+         setTimeout(function() {
+               grid.select('tr:eq(0)');
+            },
+            100);
+      }
+   }
+   function onRowChange(arg) {
+      //debugger;
+      //var selected = $.map(this.select(), function(item) {
+      //   return $(item).text();
+      //});
+      var grid = this;
+      var item = grid.dataItem(this.select());
+      if (item) {
+         saveMenuChanges();
+         viewDetail(item);
+      }
+    }
+
+
+    $('.btnInfoBrowserConfig').off('click').on('click', function () {
+            var title = $(this).attr('ums-titleMsg');
+            var msg = $(this).attr('ums-infoMsg');
+        window.umsAlert(title,msg)
+       });
+
+</script>
+<style>
+
+
+   #reportMasterGrid a.k-link {
+      padding: 5px;
+   }
+
+   #reportMasterGrid a.k-grid-filter > span {
+      margin-top: 2px;
+      padding: 5px;
+   }
+
+   .k-widget.k-dropdown {
+      max-height: 32px !important;
+   }
+</style>
+<div class="h-100 ">
+   <div class=" h-90 m-0 p-0  text-left" id="divItemDetail">
+      <form id="@formId"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+            data-ajax="true" data-ajax-method="POST" data-ajax-loading="progressl">
+
+
+         <div class="row" style="margin: 0px !important; max-height: 521px">
+            <div class="col-4 pl-0">
+               <div class="row" style="margin: 0px !important;">
+                  <div class="col-12 pl-0">
+                     @(Html.Hidden("menuOriginalName"))
+                     @(Html.Kendo().Grid(Model.Module)
+                                    .Name("reportMasterGrid")
+                                    .Filterable()
+                                    .HtmlAttributes(new { style = "height:467px;margin:1px;width:100%;" })
+                                    .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate(CommonStrings.NO_RECORD_FOUND) + "</div>"))
+                                    .Sortable()
+                                    .Selectable(e => e.Enabled(true))
+                                    .Scrollable()
+                                    .Navigatable(true)
+                                    .Resizable(resize => resize.Columns(false))
+                                    .Columns(columns =>
+                                    {
+                                       columns.Bound(e => e.Name).ClientFooterTemplate("<span>&nbsp;</span>");
+                                    })
+                                    .DataSource("dataSourceForGrid")
+                                    .Events(ev => ev.Change("onRowChange").DataBound("onRmDataBound"))
+                                 )
+                  </div>
+               </div>
+               <div class="row mt-3">
+                  <div style="max-height: 40px;">
+                     <button type="button" style="max-height: 32px;" class="btn btnKendo " onclick="btnAddMenuClick();">
+                        <span class="mdi mdi-plus"></span>
+                     </button>
+                     <button type="button" style="max-height: 32px;" class="btn btnKendo " onclick="btnDeleteMenuClick();">
+                        <span class="mdi mdi-minus"></span>
+                     </button>
+                  </div>
+               </div>
+            </div>
+            <div class="col-8 mt-3 pl-0">
+               <div class="row">
+                  <div class="col-2 pl-0">
+                     <label for="menuName">@DicSvc.XLate("Name")</label>
+                  </div>
+                  <div class="col-10 p-0">
+                     <input id="menuName" class="k-input k-textbox " />
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-2 pl-0">
+                     <label for="menuPath">@DicSvc.XLate("Address")</label>
+                  </div>
+                  <div class="col-10 p-0">
+                     
+                     <div class="input-group">
+                        <input id="menuPath" class="k-input k-textbox " style="max-width: 89.5%;" placeholder="@DicSvc.XLate("module's Uri")" />
+                        <div class="input-group-append">
+                           <button id="btnWebModules" onclick="getWebModules()" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Select a web module")">
+                              <span class="mdi mdi-pencil"></span>
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-2 pl-0">
+                     <label for="menuCallback">@DicSvc.XLate("Callback")</label>
+                  </div>
+                  <div class="col-10 p-0">
+                     <input id="menuCallback" class="k-input k-textbox " placeholder="@DicSvc.XLate("function for callback")" />
+                  </div>
+               </div>
+               <div class="row d-none">
+                  <div class="col-12 pl-0">
+                     <label>@DicSvc.XLate("Warning"):  <mark>&amp;</mark> @DicSvc.XLate(" will be converted in ")<mark>&amp;amp;</mark></label>
+                  </div>
+               </div>
+
+               <div class="card mt-5">
+
+                   <div class="row my-0">
+                       <div class="col-3 pl-0">
+                           <label>@DicSvc.XLate("Include login")</label>
+                           <button id="btnInfoBrowserIncludeLogin" class="btn lh-1-0 ig-18px btnInfoBrowserConfig" type="button" ums-titleMsg="@DicSvc.XLate("Include login")" ums-infoMsg="@DicSvc.XLate("If set, User ID will be provided to webpage.")" data-toggle="tooltip" data-placement="bottom" title="@DicSvc.XLate("Help")">
+                               <span class="mdi  mdi-information-outline mdi-18px"></span>
+                           </button>
+                       </div>
+                       
+                       <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("menuIncludeLogin").Label("")
+                       </div>
+
+                       <div class="col-2 p-0"></div>
+                       <div class="col-3 pl-0">
+                           <label>@DicSvc.XLate("Include network")</label>
+                           <button id="btnInfoBrowserIncludeNetwork" class="btn lh-1-0 ig-18px btnInfoBrowserConfig" type="button" ums-titleMsg="@DicSvc.XLate("Include network")" ums-infoMsg="@DicSvc.XLate("If set, Network ID will be provided to webpage.")" data-toggle="tooltip" data-placement="bottom" title="@DicSvc.XLate("Help")">
+                               <span class="mdi  mdi-information-outline mdi-18px"></span>
+                           </button>
+                       </div>
+                       <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("menuIncludeNetwork").Label("")
+                       </div>
+                       <div class="col-2 p-0"></div>
+                       <div class="col-3 pl-0">
+                           <label>@DicSvc.XLate("Include patient")</label>
+                           <button id="btnInfoBrowserIncludePatient" class="btn lh-1-0 ig-18px btnInfoBrowserConfig" type="button" ums-titleMsg="@DicSvc.XLate("Include patient")" ums-infoMsg="@DicSvc.XLate("If set, patient ID will be provided to webpage.")" data-toggle="tooltip" data-placement="bottom" title="@DicSvc.XLate("Help")">
+                               <span class="mdi  mdi-information-outline mdi-18px"></span>
+                           </button>
+                       </div>
+                       <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("menuIncludePatient").Label("")
+                       </div>
+                       <div class="col-2 p-0"></div>
+                       <div class="col-3 pl-0">
+                           <label>@DicSvc.XLate("Patient related")</label>
+                           <button id="btnInfoBrowserPatientRelated" class="btn lh-1-0 ig-18px btnInfoBrowserConfig" type="button" ums-titleMsg="@DicSvc.XLate("Patient related")" ums-infoMsg="@DicSvc.XLate("If set, page visualization will require a selected patient. Page will not be displayed if a patient is not selected.")" data-toggle="tooltip" data-placement="bottom" title="@DicSvc.XLate("Help")">
+                               <span class="mdi  mdi-information-outline mdi-18px"></span>
+                           </button>
+                       </div>
+                       <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("menuPatientRelated").Label("")
+                       </div>
+                       <div class="col-2 p-0"></div>
+                       <div class="col-3 pl-0">
+                           <label>@DicSvc.XLate("Receive messages")</label>
+                           <button id="btnInfoBrowserReceiveMessages" class="btn lh-1-0 ig-18px btnInfoBrowserConfig" type="button" ums-titleMsg="@DicSvc.XLate("Receive messages")" ums-infoMsg="@DicSvc.XLate("Allow webpage to retrieve local UMS Messages.")" data-toggle="tooltip" data-placement="bottom" title="@DicSvc.XLate("Help")">
+                               <span class="mdi  mdi-information-outline mdi-18px"></span>
+                           </button>
+                       </div>
+                       <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("menuReceiveMessages").Label("")
+                       </div>
+                       <div class="col-2 p-0"></div>
+                       <div class="col-3 pl-0">
+                           <label>@DicSvc.XLate("Hide toolbar")</label>
+                           <button id="btnInfoBrowserHideToolbar" class="btn lh-1-0 ig-18px btnInfoBrowserConfig" type="button" ums-titleMsg="@DicSvc.XLate("Hide toolbar")"  ums-infoMsg="@DicSvc.XLate("If set, browser module toolbar will not be displayed.")" data-toggle="tooltip" data-placement="bottom" title="@DicSvc.XLate("Help")">
+                               <span class="mdi  mdi-information-outline mdi-18px"></span>
+                           </button>
+                       </div>
+                       <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("menuHideToolbar").Label("")
+                       </div>
+                       <div class="col-2 p-0"></div>
+                       <div class="col-3 pl-0">
+                           <label>@DicSvc.XLate("Suppress errors")</label>
+                           <button id="btnInfoBrowserConfigSuppressErrors" class="btn lh-1-0 ig-18px btnInfoBrowserConfig" type="button" ums-titleMsg="@DicSvc.XLate("Suppress errors")" ums-infoMsg="@DicSvc.XLate("If set, client errors shall not be displayed.")" data-toggle="tooltip" data-placement="bottom" title="@DicSvc.XLate("Help")">
+                               <span class="mdi  mdi-information-outline mdi-18px"></span>
+                           </button>
+                       </div>
+                       <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("menuSuppressErrors").Label("")
+                       </div>
+                       <div class="col-2 p-0"></div>
+                       <div class="col-3 pl-0">
+                           <label>@DicSvc.XLate("Leave Confirmation")</label>
+                           <button id="btnInfoBrowserLeaveConfirmation" class="btn lh-1-0 ig-18px btnInfoBrowserConfig" type="button" ums-titleMsg="@DicSvc.XLate("Leave Confirmation")" ums-infoMsg="@DicSvc.XLate("If set and an appropriately configured/developed web page is displayed, when a user switch to another module, a dialog is displayed: the user can choose to leave/switch anyway or to stay.")" data-toggle="tooltip" data-placement="bottom" title="@DicSvc.XLate("Help")">
+                               <span class="mdi  mdi-information-outline mdi-18px"></span>
+                           </button>
+                       </div>
+                       <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("leaveConfirmation").Label("")
+                       </div>
+                       <div class="col-2 p-0"></div>
+                       <div class="col-3 pl-0">
+                           <label>@DicSvc.XLate("Mandatory User")</label>
+                           <button id="btnInfoBrowserConfigMandatoryUser" class="btn lh-1-0 ig-18px btnInfoBrowserConfig" type="button" ums-titleMsg="@DicSvc.XLate("Mandatory User")" ums-infoMsg="@DicSvc.XLate("If set, web page will not be displayed if a user is not logged on into Digistat")"  data-toggle="tooltip" data-placement="bottom" title="@DicSvc.XLate("Help")">
+                               <span class="mdi  mdi-information-outline mdi-18px"></span>
+                           </button>
+                       </div>
+                       <div class="col-1 p-0">
+                           @Html.Kendo().CheckBox().Name("mandatoryUser").Label("")
+                       </div>
+                   </div>
+               </div>
+
+               
+            </div>
+         </div>
+
+      </form>
+
+   </div>
+   <div class="card-footer h-10 p-0 mx-0 mt-3 border-0 bg-white">
+
+      @{
+         string postId = ""; //use in case of multi toolbar
+      }
+      @(Html.Kendo().ToolBar()
+         .Name("toolbarLogOptions")
+         .UmsDefaultErrors(DicSvc, "errors")
+         .Items(items =>
+         {
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Generate XML")).Id("btnRmcXml")   .UmsHtmlButtonSave();
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnRmcCancel")      .UmsHtmlButtonCancel();
+         })
+         .UmsDefaultSettings(DicSvc, postId)
+         )
+   </div>
+</div>
+
+<script type="text/javascript">
+
+   $(document).ready(function() {
+      //viewDetail();
+      $('#btnRmcCancel').off('click').on('click', function () {
+         //debugger;
+         var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+         objRepoDialog.close();
+      });
+      $('#btnRmcXml').off('click').on('click', function () {
+         //debugger;
+         saveMenuChanges();
+         var xml = BrowserModulesJsonToXML().replaceAll("&amp;", "&").replaceAll("&", "&amp;");
+         if (!validateRmcXml(xml)) {
+            return;
+         }
+         if (editor && !$('#aceEditor').hasClass('d-none')) {
+            editor.getSession().setValue(xml);
+            var textarea = $(textareaIdValueModelGuid).hide();
+            textarea.val(editor.getSession().getValue());
+
+         } else {
+            var textarea = $(textareaIdValueModelGuid);
+            textarea.val(xml);
+         }
+         var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+         objRepoDialog.close();
+      });
+   });
+
+   function validateRmcXml(text2validate) {
+      var xml = text2validate;
+      var oParser = new DOMParser();
+      var oDOM = oParser.parseFromString(xml, "text/xml");
+      if (oDOM.getElementsByTagName('parsererror').length > 0) {
+
+         window.umsAlert("@DicSvc.XLateJs("Browser Modules XML")", (new XMLSerializer()).serializeToString(oDOM));
+         return false;
+      } else {
+
+         return true;
+      }
+   }
+   //----------------------------------------------------------
+
+   function btnAddMenuClick() {
+
+      if ($('#menuName').val() !== "") {
+         saveMenuChanges();
+      }
+
+      var grid = $('#reportMasterGrid').getKendoGrid();
+      grid.clearSelection();
+      var element = { Name: "" };
+      viewDetail(element);
+   }
+   function btnDeleteMenuClick() {
+      //debugger;
+      var grid = $('#reportMasterGrid').getKendoGrid();
+
+      var rows = grid.select();
+
+      if (!rows || rows.length == 0) {
+         alert('select 1 menu to proceed');
+         return;
+      }
+      var menu = dataSourceRMC.Module.find(function (x) { return x.Name === rows[0].innerText; });
+      if (menu) {
+         jQuery(dataSourceRMC.Module).each(function (index) {
+            if (dataSourceRMC.Module[index].Name == menu.Name) {
+               dataSourceRMC.Module.splice(index, 1); // This will remove the object that first name equals to Test1
+               return false; // This will stop the execution of jQuery each loop.
+            }
+         });
+
+         var dataSource = new kendo.data.DataSource({
+            data: dataSourceRMC.Module
+         });
+         grid.setDataSource(dataSource);
+
+         var element = { Name: "" };
+         viewDetail(element);
+      }
+   }
+
+   function BrowserModulesJsonToXML() {
+      //debugger;
+      var xml = '<BrowserModules>\r\n';
+      var menu = '\t<Module Name="{0}" Callback="{1}" Address="{10}" IncludeLogin="{2}" IncludePatient="{3}" IncludeNetwork="{4}" ReceiveMessages="{5}" HideToolbar="{6}" PatientRelated="{7}" SuppressErrors="{8}" LeaveConfirmation="{9}" MandatoryUser="{11}" />\r\n';
+      for (var i in dataSourceRMC.Module) {
+         var r = dataSourceRMC.Module[i];
+         let address = r.Address; // /content\=\"([A-Za-z0-9 _]*)\"/
+         xml += kendo.format(menu, r.Name, r.Callback, r.IncludeLogin, r.IncludePatient, r.IncludeNetwork, r.ReceiveMessages, r.HideToolbar, r.PatientRelated, r.SuppressErrors,r.LeaveConfirmation,
+            address, r.MandatoryUser /*.replace(/[&]/g, '\u0026')*/);
+      }
+
+      xml += '</BrowserModules>';
+      var xml = xml.replace(/<\/?[0-9]{1,}>/g, '');
+
+      return xml;
+   }
+
+   function saveMenuChanges() {
+      //return;
+      var Name = $('#menuName').val();
+
+      if (Name.length == 0)
+         return;
+
+      var NameOriginal = $('#menuOriginalName').val();
+      var isNew = false;
+      var menu = dataSourceRMC.Module.find(function (x) { return x.Name === NameOriginal; });
+      if (!menu) {
+         menu = {};
+         isNew = true;
+      }
+
+      menu.Name = $('#menuName').val();
+      menu.Callback = $('#menuCallback').val();
+      menu.Address = $('#menuPath').val();
+      debugger;
+      menu.IncludeLogin = document.getElementById("menuIncludeLogin").checked ? "True" : "False";
+      menu.IncludeNetwork = document.getElementById("menuIncludeNetwork").checked ? "True" : "False";
+      menu.IncludePatient = document.getElementById("menuIncludePatient").checked ? "True" : "False";
+      menu.PatientRelated = document.getElementById("menuPatientRelated").checked ? "True" : "False";
+      menu.ReceiveMessages = document.getElementById("menuReceiveMessages").checked ? "True" : "False";
+      menu.HideToolbar = document.getElementById("menuHideToolbar").checked ? "True" : "False";
+      menu.SuppressErrors = document.getElementById("menuSuppressErrors").checked ? "True" : "False";
+       menu.LeaveConfirmation = document.getElementById("leaveConfirmation").checked ? "True" : "False";
+       menu.MandatoryUser = document.getElementById("mandatoryUser").checked ? "True" : "False";
+
+
+
+      //menu.Parameters
+      if (isNew) {
+         dataSourceRMC.Module.push(menu);
+      }
+
+      if (isNew || Name != NameOriginal) {
+         var grid = $('#reportMasterGrid').getKendoGrid();
+         var dataSource = new kendo.data.DataSource({
+            data: dataSourceRMC.Module
+         });
+         grid.setDataSource(dataSource);
+      }
+   }
+
+
+   function viewDetail(element) {
+      if (!element) {
+         //element.Name = "@@";
+         //   debugger;
+         return;
+      }
+      //debugger;
+      var item = dataSourceRMC.Module.find(function (x) { return x.Name === element.Name; });
+      if (!item) {
+         item = @Html.Raw(JsonConvert.SerializeObject( new ConfiguratorWeb.App.SysOptionConfig.BrowserModule()));
+      }
+
+      $('#menuOriginalName').val(item.Name);
+      $('#menuName').val(item.Name);
+      $('#menuCallback').val(item.Callback);
+      $('#menuPath').val(item.Address);
+
+
+      document.getElementById("menuIncludeLogin").checked = (item.IncludeLogin && item.IncludeLogin.toString().toLowerCase() == "true");
+      document.getElementById("menuIncludeNetwork").checked = (item.IncludeNetwork && item.IncludeNetwork.toString().toLowerCase() == "true");
+      document.getElementById("menuIncludePatient").checked = (item.IncludePatient && item.IncludePatient.toString().toLowerCase() == "true");
+      document.getElementById("menuPatientRelated").checked = (item.PatientRelated && item.PatientRelated.toString().toLowerCase() == "true");
+      document.getElementById("menuReceiveMessages").checked = (item.ReceiveMessages && item.ReceiveMessages.toString().toLowerCase() == "true");
+      document.getElementById("menuHideToolbar").checked = (item.HideToolbar && item.HideToolbar.toString().toLowerCase() == "true");
+       document.getElementById("menuSuppressErrors").checked = (item.SuppressErrors && item.SuppressErrors.toString().toLowerCase() == "true");
+       document.getElementById("leaveConfirmation").checked = (item.LeaveConfirmation && item.LeaveConfirmation.toString().toLowerCase() == "true");
+       document.getElementById("mandatoryUser").checked = (item.MandatoryUser && item.MandatoryUser.toString().toLowerCase() == "true");
+
+   }
+
+   function getWebModules() {
+      //debugger;
+      var btnSelect = '<span tabindex="0" class="k-buttonLarge k-buttonLarge btnSave btnRed  k-button" id="btnWMSelect" data-overflow="auto">@DicSvc.XLate("Select")</span>';
+      var btnCancel = '<span tabindex="0" class="k-buttonLarge k-buttonLarge btnCancel k-button k-toolbar-last-visible" id="btnWMCancel" data-overflow="auto">@DicSvc.XLate("Cancel")</span>';
+      var content = "<div id='webModulesList'></div><div id='wmUri' class=\"form-check my-2 p-2\"></div><br/><div class='row my-2'>" + btnSelect + btnCancel +"</div>";
+      var arrWebModules = [];
+      @foreach (WebModule wm in repTemp)
+      {
+         <text>
+         arrWebModules.push({text:'@wm.ModuleName',value:'@wm.Url'});
+         </text>
+      }
+      $("<div id='popupWindow'></div>")
+         .appendTo("body")
+         .kendoWindow({
+            width: "600px",
+            modal: true,
+            title: "@DicSvc.XLate("Select a web module")",
+            visible: false,
+            resizable:false,
+            close: function (e) {
+
+               this.destroy();
+            },
+
+            activate: function (e) {
+               var ddl = $('#webModulesList').kendoDropDownList({
+                  dataSource: arrWebModules,
+                  dataTextField: "text",
+                  dataValueField: "value",
+                  change: function(e) {
+                     //debugger;
+                     $('#wmUri').html(this.value());
+                  }
+               }).getKendoDropDownList();
+               ddl.trigger('change');
+               $('#btnWMSelect').off('click').on('click', function () {
+                  //debugger;
+                  var address=$('#wmUri').html();
+                  $('#menuPath').val(address);
+                  var objRepoDialog = $('#popupWindow').data('kendoWindow');
+                  objRepoDialog.close();
+               });
+               $('#btnWMCancel').off('click').on('click', function () {
+                  //debugger;
+                  var objRepoDialog = $('#popupWindow').data('kendoWindow');
+                  objRepoDialog.close();
+               });
+               
+               
+            }
+         })
+         .data('kendoWindow').content(content).center().open();
+   }
+</script>

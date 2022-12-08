@@ -1,0 +1,160 @@
+﻿@{
+    string gridName = "permissions-grid";
+    string popUpWindowName = "IdOfEditWindow";
+
+    ViewBag.Title = DicSvc.XLate("Permission");
+}
+
+@using Digistat.FrameworkStd.Interfaces;
+@using Digistat.FrameworkStd.UMSLegacy;
+@model ConfiguratorWeb.App.Models.PermissionViewModel
+@inject IDictionaryService DicSvc
+@inject ISystemOptionsService sysOptSvc
+@{
+    bool bolNewPermissionMgr = UMSFrameworkParser.ConvertToBoolean(sysOptSvc.GetSystemOption(string.Empty, null, null, null, "UseRolesForPermissions", true).Value);
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+</script>
+
+<div class="card h-100 m-1 p-2 border-0" id="gridContainer">
+    <div id="@popUpWindowName" ></div>
+
+    @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.PermissionViewModel>()
+                                        .Name(gridName)
+                                        .UmsDefaultSettings(DicSvc)
+                                          .UmsDefaultPager(DicSvc)
+                                          .UmsDefaultToolbar("", "", DicSvc)
+                                        .Columns(columns =>
+                                        {
+                                            columns.Bound(e => e.Id).Visible(false);
+                                            columns.Bound(e => e.FunctionName);
+                                            columns.Bound(e => e.PermissionCode).Visible(!bolNewPermissionMgr);
+                                            columns.Bound(e => e.PriorityLevel).Visible(!bolNewPermissionMgr);
+                                            columns.Bound(e => e.ModuleName).Width("20%").Visible(bolNewPermissionMgr);
+                                            columns.Bound(e => e.Description).Visible(bolNewPermissionMgr);
+                                            //columns.Command(command =>
+                                            //{
+                                            //    command.Edit().Text(" ").UpdateText(" ").CancelText(" ");
+                                            //}).Width(80).HtmlAttributes(new { @style = "text-align:center;" });
+                                        })
+                                       //   .ToolBar(tools => tools.Create().Text("ADD NEW PERMISSION"))
+                                       .Events(ev => ev //.Edit("onEdit").Cancel("onCancel").DetailInit("onInitDetailPermission").DetailExpand("detailExpand").DetailCollapse("onCollapse")
+                                           .DataBound("onDataBound"))
+                                       .DataSource(dataSource => dataSource
+                                           .Ajax()
+                                           .Model(model =>
+                                           {
+                                               model.Id(o => o.Id);
+                                               model.Field(o => o.FunctionName).Editable(false);
+                                               model.Field(o => o.PermissionCode).Editable(false);
+                                               model.Field(o => o.PriorityLevel).Editable(false);
+                                           })
+                                           .Events(events => events.Error("error_handler_users"))
+                                           .Read(read => read.Action("ReadPermissions", "SystemAdministration"))
+                                           .PageSize(50)
+                                        //.Update(update => update.Action("UpdatePermission", "SystemAdministration"))
+                                        //.Create(create => create.Action("CreatePremission", "SystemAdministration"))
+                                        )
+
+
+    )
+</div>
+
+<script type="text/javascript">
+
+    @{
+       string editItemTitle = "Edit Permission";
+       string newItemTitle = "Add_Item_PopUpWindow_Title";
+    }
+    var kndWnd;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                maxHeight:500,
+                title: '@DicSvc.XLate(editItemTitle)',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+
+        }
+
+    });
+
+
+    $(window).resize(function () {
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                for (var i = 0; i < kendoWindow.length; i++) {
+                    var win = $(kendoWindow[i]).data("kendoWindow");
+                    if (!win.element.is(":hidden")) {
+                        win.center();
+                        if (win.resize != undefined) {
+                            win.trigger('resize');
+                        }
+
+                    }
+                }
+            }
+        }, 100);
+    });
+    var _minLevel;
+    function displayItemDetail(itemID) {
+        var windowWidget = $(popUpWindowName).data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+        $.ajax({
+            url: '@Url.Action("GetPermission", "SystemAdministration")',
+            type: 'GET',
+            data: { id: itemID }
+        }).done(function (dataHtml) {
+            kendo.ui.progress(windowWidget.element, true);
+			var dialog = $(popUpWindowName ).data('kendoWindow');
+            if (itemID ==='') {
+                dialog.title('@DicSvc.XLate(newItemTitle)');
+            } else {
+                dialog.title('@DicSvc.XLate(editItemTitle)');
+            }
+            dialog.content(dataHtml).center().open();
+
+        });
+    }
+    function productsReadData() {
+        return {
+            minLevel: _minLevel
+    };
+    }
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem( $(e.target).closest('tr'));
+
+                onGridKeyEnter(item);
+            });
+    }
+    function onGridKeyEnter(item) {
+        //TODO:replace Key
+
+        _minLevel = item.PriorityLevel;
+        displayItemDetail(item.Id);
+    };
+
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+
+</script>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg"  xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" 
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"  width="753" height="567" viewBox="0 0 753 567" style="">
+   <title>my vector image</title>
+   <rect id="backgroundrect" width="100%" height="100%" x="0" y="0" fill="#FFFFFF" stroke="none"/>
+   <g class="currentLayer" style="">
+      <title>Layer 1</title>
+      <rect fill="#000000" stroke="#000000" stroke-width="47" stroke-linejoin="round" stroke-dashoffset="" fill-rule="nonzero" id="svg_6" x="46.95440673828125" y="51.163272857666016" width="659.2340698242188" height="463.1427917480469" style="color: rgb(0, 0, 0);" class="selected" rx="31" ry="31" stroke-opacity="1" fill-opacity="1"/>
+      <rect fill="#dadada" stroke="#222222" stroke-width="1" stroke-linejoin="round" stroke-dashoffset="" fill-rule="nonzero" id="svg_14" x="204.35716247558594" y="84.71428680419922" width="344.4285583496094" height="26.571428298950195" style="color: rgb(0, 0, 0);" class="" fill-opacity="1"/>
+      <rect fill="#dadada" stroke="#dadada" stroke-width="17" stroke-linejoin="round" stroke-dashoffset="" fill-rule="nonzero" id="svg_1" x="81.57144165039062" y="137" width="590" height="328" style="color: rgb(0, 0, 0);" class="" stroke-opacity="1"/>
+      <path fill="#dadada" fill-opacity="1" stroke="#000000" stroke-opacity="1" stroke-width="15" stroke-dasharray="none" stroke-linejoin="round" stroke-linecap="butt" stroke-dashoffset="" fill-rule="nonzero" opacity="1" marker-start="" marker-mid="" marker-end="" d="M65.57144,451.0775823333878 C65.57144,388.3411657165993 203.48936,267.2857398592729 377.28574,267.2857398592729 C551.08212,267.2857398592729 687.57147,381.45500328838415 687.57147,444.19141990517267 C687.57147,506.9278365219611 551.08212,494.3915666623581 377.28574,494.3915666623581 C203.48936,494.3915666623581 65.57144,513.8139893095392 65.57144,451.0775823333878 z" id="svg_4" class=""/>
+      <rect fill="#dadada" stroke="#dadada" stroke-width="15" stroke-linejoin="round" stroke-dashoffset="" fill-rule="nonzero" id="svg_2" x="80.50003051757812" y="247" width="592.142822265625" height="197" style="color: rgb(0, 0, 0);" class=""/>
+      <rect fill="#ffffff" stroke="#ffffff" stroke-width="15" stroke-linejoin="round" stroke-dashoffset="" fill-rule="nonzero" id="svg_7" x="143.07144165039062" y="191" width="467" height="220" style="color: rgb(0, 0, 0);" class=""/>
+      <foreignObject fill="#ffffff" stroke="#222222" stroke-width="17" stroke-linejoin="round" stroke-dashoffset="" fill-rule="nonzero" font-size="278" font-family="'Times New Roman', Times, serif" letter-spacing="0" word-spacing="0" marker-start="" marker-mid="" marker-end="" id="svg_11" x="285.73077788902185" y="166.28903984993175" width="480.66265374422073" height="318.8320709613472" style="color: rgb(0, 0, 0);" class="" font-weight="bold" transform="rotate(-0.3602302670478821 789.52947998049,472.51211547850727) ">
+         <p style="border: none;outline: none;font-size: inherit;line-height: 1em;padding:0;margin:0;" xmlns="http://www.w3.org/1999/xhtml">
+            <p xmlns="http://www.w3.org/1999/xhtml" style="border: none;outline: none;font-size: inherit;line-height: 1em;padding:0;margin:0;"></p>
+            <p xmlns="http://www.w3.org/1999/xhtml" style="border: none;outline: none;font-size: inherit;line-height: 1em;padding:0;margin:0;"></p>
+            <p xmlns="http://www.w3.org/1999/xhtml" style="border: none;outline: none;font-size: inherit;line-height: 1em;padding:0;margin:0;"></p>
+            <p xmlns="http://www.w3.org/1999/xhtml" style="border: none;outline: none;font-size: inherit;line-height: 1em;padding:0;margin:0;"></p>
+            <p xmlns="http://www.w3.org/1999/xhtml" style="border: none;outline: none;font-size: inherit;line-height: 1em;padding:0;margin:0;"></p>
+            <p xmlns="http://www.w3.org/1999/xhtml" style="border: none;outline: none;font-size: inherit;line-height: 1em;padding:0;margin:0;"></p>
+            <p xmlns="http://www.w3.org/1999/xhtml" style="border: none;outline: none;font-size: inherit;line-height: 1em;padding:0;margin:0;">T</p>
+            <p style="border: none;outline: none;font-size: inherit;line-height: 1em;padding:0;margin:0;"></p>
+            <p style="border: none;outline: none;font-size: inherit;line-height: 1em;padding:0;margin:0;"></p>
+            <p style="border: none;outline: none;font-size: inherit;line-height: 1em;padding:0;margin:0;"></p>
+            <p style="border: none;outline: none;font-size: inherit;line-height: 1em;padding:0;margin:0;"></p>
+            <p style="border: none;outline: none;font-size: inherit;line-height: 1em;padding:0;margin:0;"></p>
+            <p style="border: none;outline: none;font-size: inherit;line-height: 1em;padding:0;margin:0;"></p>
+         </p>
+      </foreignObject>
+   </g>
+</svg>

@@ -1,0 +1,162 @@
+﻿
+@{
+   Layout = null;
+}
+
+<style>
+   #grdValidatioNSections > div.k-header.k-grid-toolbar > a.k-button.btnRed {
+      color: #ffffff;
+   }
+   a.k-button.k-button-icontext.k-grid-update.k-primary {
+      color: #4caf50;
+   }
+   #grdValidatioNSections input#Index {
+      width: 83px;
+   }
+</style>
+<script>
+    function sectionGrid_error_handler(e) {
+       //debugger;
+       if (e.errors) {
+          var message = "Errors:\n";
+          $.each(e.errors, function (key, value) {
+              if ('errors' in value) {
+                  $.each(value.errors, function () {
+                      message += this + "\n";
+                  });
+              }
+          });
+          window.umsAlert("Error occured", message, 400, 300);
+       } else {
+          if (e.errorThrown) {
+             
+             let responseText = e.xhr.responseText || jsAnInternalErrorOccurredSeeLogsForDetails;
+             window.umsAlert("Error occured", responseText, 400, 300);
+          }
+       }
+
+    }
+
+
+
+   function onSectionBeforeEdit(e) {
+      //debugger;
+      if (e.model.isNew() ) {
+
+         var idx = e.model.Index;
+         if (idx == 0) {
+            var data = $('#grdValidatioNSections').getKendoGrid().dataSource.data();
+            var maxIdx = 0;
+            data.forEach(function(a, b) {
+               maxIdx = Math.max(maxIdx, a.Index);
+            })
+
+            e.model.Index = (maxIdx + 1); // set the value
+               //.change(); // trigger change in order to notify the model binding
+         }
+            
+         
+         
+      }
+    }
+
+   function onSectionSave(e) {
+      //debugger;
+      if (e.model.isNew() && !e.model.dirty) {
+         /*
+          e.container
+          
+            .find("input[name=Index]") 
+            .val("MyCustomValue") // set the value
+            .change(); // trigger change in order to notify the model binding
+         */
+         
+      }
+    }
+   function onSectionRemove(e) {
+      //debugger;
+      if (e.model.isNew() && !e.model.dirty) {
+         /*
+          e.container
+          
+            .find("input[name=Index]") 
+            .val("MyCustomValue") // set the value
+            .change(); // trigger change in order to notify the model binding
+         */
+         //debugger;
+      }
+   }
+   function onSectionEdit(e) {
+      //debugger;
+      e.container.find('#Index').attr('min', 0)
+   }
+   
+</script>
+<div>
+    <div  id="divValidationSectionsContainer">
+        <div class="row">
+            <div class="col-12">
+               @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.OnLine.ValidationSectionViewModel>()
+                  .Name("grdValidatioNSections")
+                  .Columns(columns =>
+                  {
+                     columns.Bound(p => p.Name);
+                     columns.Bound(p => p.Index).Width(100).HtmlAttributes(new {style="width:100px;"});
+                     columns.Command(command => { command.Edit();command.Destroy(); }).Width(200);
+                  })
+                  .EnableCustomBinding(true)
+                  .UmsDefaultPager(DicSvc)
+                  .ToolBar(toolbar =>
+                  {
+                     toolbar.Create().Text("Add new Section");
+                     //toolbar.Save().Text("Save Changes").HtmlAttributes(new { @class="btnRed" });
+                     //toolbar.Search();
+                  })
+                  .Editable(editable => editable.Mode(GridEditMode.InLine).CreateAt( GridInsertRowPosition.Bottom ))
+                  .Scrollable()
+                  .Events(events => events.Save("onSectionSave").Edit("onSectionEdit")
+                     .Remove("onSectionRemove")
+                     .BeforeEdit("onSectionBeforeEdit")
+                     )
+                  .AutoBind(true)
+                  .DataSource(dataSource => dataSource
+
+                     .Ajax()
+                     .Batch(true)
+                     .ServerOperation(false)
+                     .Events(events => events.Error("sectionGrid_error_handler"))
+                     .Model(model =>
+                     {
+                        model.Id(p => p.ID);
+                        model.Field(f => f.Index);
+                     })
+                     .Create("Section_Create", "OnLineValidation")
+                     .Read("ReadValidationSections", "OnLineValidation")
+                     .Update("Section_Update", "OnLineValidation")
+                     .Destroy("Section_Destroy", "OnLineValidation")
+                  ))
+            </div>
+        </div>
+        
+    </div>
+    <div class=" h-10 p-0 m-0">
+      @(Html.Kendo().ToolBar()
+        .Name("toolbarValidationSections")
+        .Items(
+               items =>
+               {
+                   items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Close")).Id("btnSectionEditingClose").UmsHtmlButtonGeneric("view-mode");
+               }
+            )
+        )
+    </div>
+</div>
+<script>
+   $(document).ready(function () {
+   
+      $('#DDValParamSections').data('kendoDropDownList').dataSource.read();
+      $('#btnSectionEditingClose').off('click').on('click', function () {
+          $('#vpSectionEditingDialog').data('kendoWindow').close();
+      })
+   })
+</script>

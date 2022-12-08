@@ -1,0 +1,307 @@
+﻿@model IEnumerable<ConfiguratorWeb.App.Models.BedViewModel>
+@{
+   Layout = null;
+   string NetworkId = (string)ViewBag.NetworkID;
+}
+
+<style>
+    #locationsbeds-grid .k-grouping-row td:nth-child(2) {
+        text-align:center;
+    }
+
+</style>
+<script>
+    function onDataBoundLocationsBeds(arg) {
+        mergeGridRows("locationsbeds-grid", '@DicSvc.XLate("Default Location")');
+        checkSelectAllGroupHeader();
+
+        $(".check-col-sel").off('click').on('click', function (e) {
+            //click on bed selection
+            //set selected
+            var grid = $('#locationsbeds-grid').data().kendoGrid;
+            var selItem = grid.dataItem($(this).closest("tr"));
+            if ($(this).is(":checked")) {
+                selItem.Selected = true;
+            }
+            else {
+                selItem.Selected = false;
+            }
+
+            //check "check all"
+            var locID = $(this).attr("ums-locId");
+            if ($('input.check-col-sel[ums-locId="' + locID + '"]').length == $('input.check-col-sel[ums-locId="' + locID + '"]:checked').length) {
+                $('input.check-header-sel[ums-locId="' + locID + '"]').prop("checked", true);
+            }
+            else {
+                $('input.check-header-sel[ums-locId="' + locID + '"]').prop("checked", false);
+            }
+        });
+
+        $(".check-header-sel").off('click').on('click', function (e) {
+            //debugger;
+            //click on grouped row => check/uncheck all beds in the current group
+            var grid = $('#locationsbeds-grid').data().kendoGrid;
+            var selItem = grid.dataItem($(this).closest("tr"));
+            var locID = $(this).attr("ums-locId");
+
+            if ($(this).is(":checked")) {
+                $('input.check-col-sel[ums-locId="' + locID + '"]').prop("checked", true);
+            }
+            else {
+                $('input.check-col-sel[ums-locId="' + locID + '"]').prop("checked", false);
+            }
+
+            //update data item in ds
+            $('#locationsbeds-grid').find('input.check-col-sel[ums-locId="' + locID + '"]').each(function (index, item) {
+                var selItem = grid.dataItem($(item).closest("tr"));
+                if ($(item).is(":checked")) {
+                    selItem.Selected = true;
+                }
+                else {
+                    selItem.Selected = false;
+                }
+            });
+        });
+    }
+
+    function checkSelectAllGroupHeader() {
+        var groups = $('#locationsbeds-grid').data().kendoGrid.dataSource.view().length;
+        for (i = 0; i < groups; i++) {
+            var allSelected = true;
+            var idLoc = 0;
+            var itemsNumber = $('#locationsbeds-grid').data().kendoGrid.dataSource.view()[i].items.length;
+            for (j = 0; j < itemsNumber; j++) {
+                var item = $('#locationsbeds-grid').data().kendoGrid.dataSource.view()[i].items[j];
+                idLoc = item.IdLocation;
+                if (!item.Selected) {
+                    allSelected = false;
+                    break;
+                }
+            }
+            if (allSelected) {
+                $('input.check-header-sel[ums-locId="' + idLoc + '"]').prop("checked", true);
+            }
+        }
+    }
+
+
+    function setDefaultlocation(checkInput) {
+        var grid = $('#locationsbeds-grid').data().kendoGrid;
+        //$(e.target).closest("tr").toggleClass("k-state-selected");
+        var locID = $(checkInput).attr("ums-locId");
+        var rowSpan = parseInt($(checkInput).closest("td").attr("rowspan"));
+        if ($(checkInput).is(":checked")) {
+            $('input.check-col-sel[ums-locId="' + locID + '"]').prop("checked", true);
+        }
+        else {
+            $('input.check-col-sel[ums-locId="' + locID + '"]').prop("checked", false);
+        }
+
+        $('#locationsbeds-grid').find('input.check-col-sel[ums-locId="' + locID + '"]').each(function (index, item) {
+            var selItem = grid.dataItem($(item).closest("tr"));
+            if ($(item).is(":checked")) {
+                selItem.Selected = true;
+            }
+            else {
+                selItem.Selected = false;
+            }
+        });
+    }
+
+    function closeWindow() {
+        $("#locations_@NetworkId").data("kendoWindow").content("");
+        $("#locations_@NetworkId").data("kendoWindow").close();
+    }
+
+    function clearSelection() {
+       // clear grid
+       $('#locationsbeds-grid').find('input[type="checkbox"]').each(function(index, item) { $(item).prop("checked", false); });
+
+       var groups = $('#locationsbeds-grid').data().kendoGrid.dataSource.view().length;
+       for (i = 0; i < groups; i++) {
+          var itemsNumber = $('#locationsbeds-grid').data().kendoGrid.dataSource.view()[i].items.length;
+          for (j = 0; j < itemsNumber; j++) {
+             var item = $('#locationsbeds-grid').data().kendoGrid.dataSource.view()[i].items[j];
+             item.Selected = false;
+          }
+       }
+    }
+
+    function setLocationsBeds() {
+       //debugger;
+       //set linked-bed-grid
+       var dsModels = [];
+       var groups = $('#locationsbeds-grid').data().kendoGrid.dataSource.view().length;
+       for (i = 0; i < groups; i++) {
+          var itemsNumber = $('#locationsbeds-grid').data().kendoGrid.dataSource.view()[i].items.length;
+          for (j = 0; j < itemsNumber; j++) {
+             var itemToAdd = $('#locationsbeds-grid').data().kendoGrid.dataSource.view()[i].items[j];
+             if (itemToAdd.Selected) {
+                dsModels.push(itemToAdd);
+             }
+          }
+       }
+
+       if ($("#IsMDIDevice").val() === "1" && window["setPortServerBed"]) {
+          if (currentPortGroup === undefined) {
+             setPortServerBed(currentPortGroup, dsModels.length > 0 ? dsModels[0] : null);
+          } else {
+             setPortServerBed(currentPortGroup, dsModels.length > 0 ? dsModels[0] : null);
+             dsModels = getPortServerBeds()
+                .filter(p => { return p.Bed; })
+                .map(p => { return p.Bed })
+                .filter((obj, pos, arr) => {
+                   return arr.map(mapObj => mapObj.BedId).indexOf(obj.BedId) === pos;
+                });
+          }
+       }
+
+
+       var ds = new kendo.data.DataSource({
+          data: dsModels,
+       });
+       var idNetwork = $("#Id").val();
+       $("#linked-bed-grid").data("kendoGrid").setDataSource(ds);
+       $("#linked-bed-grid").data("kendoGrid").refresh();
+       mergeGridRows("linked-bed-grid", '@DicSvc.XLate("Location Name")');
+       manageLockBed();
+    }
+
+    function GetSelectedItems() {
+
+        $("#locationsbeds-grid  tbody").find('tr').each(
+            function () {
+                //var id = $(this).find('#hfID').val();
+                //var IsAdd = $(this).hasClass('k-state-selected');
+                //if (IsAdd == true) {
+                //    // This item is selected
+                //}
+            });
+    }
+
+    function presetDefaultLocation() {
+        var currDefaultLocation = $("#DefaultLocation_ID").val();
+        if (currDefaultLocation != '' && currDefaultLocation!='0') {
+            var objsele = $('input.check-col-sel:checked:first').find("[ums-locId='" + currDefaultLocation + "']");
+            objsele.prop('checked', true);
+        }
+    }
+
+
+
+    function groupHeaderTemplate(IdLocation) {
+        // debugger;
+        var title = '';
+        var grid = $("#locationsbeds-grid").data("kendoGrid"),
+            ds = grid.dataSource;
+        var ds = grid.dataSource;
+        var groups = ds.view();
+        for (var i = 0; i < groups.length; i++) {
+            if (groups[i].value == IdLocation) {
+                title = groups[i].items[0].Location.LocationName;
+            }
+
+        }
+
+        return '@DicSvc.XLate("Location"): ' + title
+    }
+
+</script>
+<div class="h-100">
+<div class=" h-90 pt-1 pb-2" id="bedSelectionContainer">
+
+   @(Html.Kendo().Grid(Model)
+      .Name("locationsbeds-grid")
+      .UmsDefaultSettings(DicSvc)
+      .HtmlAttributes(new { style = "height:100%;", @class = "no-hover" })
+      .ToolBar(toolbar =>
+      {
+         // toolbar.Custom().Text(DicSvc.XLate("Expand")).HtmlAttributes(new { @class = "btnKendo", @id = "btnExpand" });
+         toolbar.Custom().Text(DicSvc.XLate("Collapse")).HtmlAttributes(new { @class="btnKendo ums-collapse",@id="btnExpandCollpase"});
+      })
+      .Columns(columns =>
+      {
+         columns.Bound(e => e.BedId).Visible(false);
+         columns.Bound(e => e.IdLocation).Hidden(true).ClientGroupHeaderTemplate("#= groupHeaderTemplate(value) #");
+         columns.Bound(e => e.Location.LocationName).Visible(false);
+         //columns.Bound(e => e.Default).Title(DicSvc.XLate("Default")).ClientTemplate("<input class='check-col-def' ums-locId='#= LocationRef #' type='checkbox' #= Default ? checked='checked' :'' # />").HtmlAttributes(new { style = "text-align:center;" });
+         //columns.Bound(e => e.Default).Title(DicSvc.XLate("Default Location")).ClientTemplate("<input id='Default_#=BedLocation#' class='check-col-def k-checkbox'  ums-locId='#= Location.ID #' ums-locName='#= Location.LocationName #' type='checkbox' #= Default  ? checked='checked' :'' # /><label class='k-checkbox-label' for='Default_#=BedLocation#'></label>").HtmlAttributes(new { style = "text-align:center;" });
+         columns.Bound(e => e.BedName);
+         columns.Bound(e => e.BedLocation).Visible(false);
+         columns.Bound(e => e.BedIndex).Visible(false);
+         // columns.Bound(e => e.Selected).ClientTemplate("<input class='check-col-sel' ums-locId='#= LocationRef #' ums-bedId='#= IDBed #' type='checkbox' #= Selected ? checked='checked' :'' # />").HtmlAttributes(new { style = "text-align:center;" });
+         columns.Bound(e => e.Selected).Filterable(false)
+            .ClientTemplate("<input id='Selected_#=BedLocation#'  class='check-col-sel k-checkbox' ums-locId='#= Location.ID #' ums-locName='#= Location.LocationName #' ums-bedId='#= BedId #' type='checkbox' #= Selected ? checked='checked' :'' # /><label class='k-checkbox-label' for='Selected_#=BedLocation#'></label>")
+            .ClientGroupHeaderColumnTemplate("<input type='checkbox' ums-locId='#= value #' class='check-header-sel k-checkbox' id='check-all_#=value#'/><label class='k-checkbox-label' for='check-all_#=value#'>"+ DicSvc.XLate("Select all from this location") + "</label>").HtmlAttributes(new { style = "text-align:center;" });
+
+      })
+
+      .Events(ev => ev.DataBound("onDataBoundLocationsBeds"))
+      .DataSource(dataSource => dataSource
+         .Ajax()
+         .ServerOperation(false)
+         .Group(groups => groups.Add(p => p.IdLocation))
+      )
+      .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+    )
+</div>
+    <div class=" h-10 p-0 m-0">
+        @(Html.Kendo().ToolBar()
+      //.HtmlAttributes(new { style = "padding-top:30px;"})
+        .Name("toolbarBedSelection")
+        .Items(
+               items =>
+               {
+                   items.Add().Type(CommandType.Button).Text(DicSvc.XLate("OK")).Id("btnBedSelectionOK").UmsHtmlButtonGeneric("view-mode");
+                   items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Close")).Id("btnBedSelectionCancel").UmsHtmlButtonGeneric("view-mode");
+               }
+            )
+        )
+    </div>
+</div>
+<script>
+
+    
+
+    function setModeBSDialog() {
+        //dialog.center().resize();
+    }
+
+    $(document).ready(function () {
+        $('#btnExpandCollpase').off('click').on('click', function () {
+            //debugger;
+            if ($(this).hasClass("ums-collapse")) {
+                $("#locationsbeds-grid .k-i-collapse").trigger("click");
+                $(this).removeClass("ums-collapse");
+                $(this).addClass("ums-expand");
+                $(this)[0].innerText='@DicSvc.XLate("Expand")';
+            }
+            else {
+                $("#locationsbeds-grid .k-i-expand").trigger("click");
+                $(this).removeClass("ums-expand");
+                $(this).addClass("ums-collapse");
+                $(this)[0].innerText = '@DicSvc.XLate("Collapse")';
+            }
+           
+        });
+
+        $('#btnBedSelectionOK').off('click').on('click', function () {
+           // debugger;
+            //in case the current device is an MDI and selected bed are more than 1, an error message will be shown
+            if ($("#IsMDIDevice").length > 0 && $("#IsMDIDevice").val() == "1" && $('#locationsbeds-grid').find('input[type="checkbox"].check-col-sel:checked').length>1) {
+                umsErrorDialog("Error", '@(DicSvc.XLate("An MDI Staff Station can be bound to only one bed"))', 200, 200);
+                return false;
+            }
+            else {
+                closeBedDialog();
+                setLocationsBeds();
+            }
+        });
+        $('#btnBedSelectionCancel').off('click').on('click', function () {
+            closeBedDialog();
+            $(this).closest(".k-state-focused").focus();
+            
+        });
+        presetDefaultLocation();
+    });
+</script>

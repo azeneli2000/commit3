@@ -1,0 +1,764 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@using Microsoft.AspNetCore.Html
+@model Digistat.FrameworkStd.Model.Export.ExportJobs
+@inject IDictionaryService DicSvc
+@functions {
+   private IHtmlContent rawXlateJs(string text)
+   {
+
+      return Html.Raw(DicSvc.XLateJs(text));
+   }
+}
+@{
+   StringBuilder objSbDelete = new StringBuilder();
+   objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Item \"{0}\" for application \"{1}\" "),
+       Model.exj_Name, DicSvc.XLate("Export Scheduler"));
+   objSbDelete.Append("?");
+}
+@{
+   Layout = null;
+   string keyID = Model.exj_ID.ToString();
+   string keyEmptyValueID = "0";
+   string formId = "form_" + keyID;
+   List<string> repTemp = (List<string>)ViewData["ReportTemplatesListName"];
+}
+<style>
+   .k-numerictextbox .k-align-right.k-input {
+      /*width: 96%;*/
+      text-align: right;
+      /*padding-right: 5px !important;*/
+   }
+
+   .ace_editor {
+      width: 100%;
+      height: 300px;
+   }
+</style>
+<style>
+
+   #importEventContainer {
+      border-left: solid 1px #e3e3e4;
+      border-top: solid 1px #e3e3e4;
+      border-right: solid 1px #e3e3e4;
+      padding-left: 5px;
+   }
+
+      #importEventContainer .k-widget.k-upload.k-header,
+      #ecImport .k-upload {
+         display: inline-block;
+         border-color: transparent;
+         background-color: transparent !important;
+      }
+
+         #ecImport .k-upload .k-dropzone {
+            background-color: transparent;
+         }
+
+   #ecImport .k-dropzone-hint {
+      display: none;
+   }
+
+   input#EventsCatalog {
+      opacity: 0;
+   }
+
+   .k-upload .k-multiple-files-wrapper .k-file-name-size-wrapper {
+      /*margin-bottom: 1px;*/
+   }
+
+   ul.k-upload-files {
+      /*max-height: 250px;
+      overflow: auto;
+      height: 250px;*/
+   }
+
+   .k-upload .k-multiple-files-wrapper .k-file-information {
+      /*font-weight: bold;*/
+   }
+</style>
+<script src="~/lib/ace/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/mode-sql.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/ext-language_tools.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+<script src="~/lib/ace/src-min-noconflict/ext-keybinding_menu.js" type="text/javascript" charset="utf-8" asp-append-version="true"></script>
+
+<div class="h-100 ">
+   <div class="card h-90 m-0 p-0 border-bottom-0 text-left" id="divItemDetail">
+      <form asp-controller="ExportScheduler" id="@formId" asp-action="SaveJobDetail"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+            data-ajax="true" data-ajax-method="POST" data-ajax-loading="progressl">
+
+         <input asp-for="exj_ID" type="hidden" />
+         @(Html.Kendo().TabStrip()
+            .Name("tsJobDetail")
+            .Items(tabstrip =>
+            {
+               tabstrip.Add().Text(DicSvc.XLate("General")).HtmlAttributes(new {id="tbsGeneral"})
+                  .Selected(true)
+                  .Content(@<text>@Html.Partial("_JobGeneral", model:Model)</text>);
+               tabstrip.Add().Text(DicSvc.XLate("File System")).HtmlAttributes(new { id = "tbsFileSys" })
+                  .Content(@<text> @Html.Partial("_JobFileSystem", model: Model) </text>);
+               tabstrip.Add().Text(DicSvc.XLate("Email")).HtmlAttributes(new { id = "tbsEmail" })
+                  .Content(@<text>@Html.Partial("_JobEmail", model:Model)</text>);
+               tabstrip.Add().Text(DicSvc.XLate("Query Parameters")).HtmlAttributes(new { id = "tbsQuery" })
+                  .Content(@<text>@Html.Partial("_JobQueryParam", model:Model)</text>).ContentHtmlAttributes(new { style="height:420px;padding-bottom: 0;"});
+               tabstrip.Add().Text(DicSvc.XLate("History")).HtmlAttributes(new { id = "tbsStat" })
+                  .Content(@<text>@Html.Partial("_JobStatistics", model:Model)</text>).ContentHtmlAttributes(new { style="height:420px;padding-bottom: 0;"});
+
+            })
+         )
+
+      </form>
+      
+   </div>
+   <div class="card-footer h-10 p-0 m-0 border-top bg-white">
+
+      @{
+         string postId = ""; //use in case of multi toolbar
+      }
+      @(Html.Kendo().ToolBar()
+         .Name("toolbarDetail")
+         .UmsDefaultErrors(DicSvc, "errors")
+         .Items(items =>
+         {
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode").Hidden(true);
+            //items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Import")).Id("btnImportJob").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+            //items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Export")).Id("btnExportJob").UmsHtmlButtonGeneric("view-mode").Hidden(true);
+         })
+         .UmsDefaultSettings(DicSvc, postId)
+         )
+   </div>
+
+</div>
+
+<script type="text/javascript">
+   var consolelog = false;
+   var actualmode = 0;
+   var divName = '#divItemDetail';
+   var dialog = $(popUpWindowName).data("kendoWindow");
+   var grid = $('#' + gridIdName).data("kendoGrid");
+   var dataSourceTempl = new kendo.data.DataSource({
+      data: @Html.Raw(Json.Serialize(repTemp))
+   });
+
+   var dataSourceRmcTempl = @Html.Raw(Json.Serialize(repTemp));
+   //grid.setDataSource(dataSource); /*  Html.Raw(Json.Serialize(repTemp))*/;
+
+   function changeToEditMode() {
+      actualmode = 2;
+      $(".modify-mode").show();
+      $(".view-mode").hide();
+      umsHideAllEditSaveButton();
+      toolBarShowButtonByClass("modify-mode");
+      if ('@keyID' == '@keyEmptyValueID') {
+         $('#btnDelete').hide();
+      }
+
+      $(divName + ' :input:not(.read-only)').attr('disabled', false);
+      $(divName + ' :input:not(.read-only)').each(function () {
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+            cb.enable(true);
+         }
+         cb = $(this).data("kendoNumericTextBox");
+         if (cb) {
+            cb.enable(true);
+         }
+         cb = $(this).data("kendoMultiSelect");
+         if (cb) {
+            cb.enable(true);
+         }
+         cb = $(this).data("kendoTextBox");
+         if (cb) {
+            cb.enable(true);
+         }
+
+      });
+      if (editor) {
+         editor.setOptions({ readOnly: false });
+      }
+   }
+
+   function changeToViewMode() {
+      actualmode = 1;
+      $(".view-mode").show();
+      $(".modify-mode").hide();
+      umsHideAllEditSaveButton();
+      toolBarShowButtonByClass("view-mode");
+
+      $(divName + ' :input').attr('disabled', true);
+      $(divName + ' :input').each(function () {
+         var cb = $(this).data("kendoDropDownList");
+         if (cb) {
+            cb.enable(false);
+         }
+         cb = $(this).data("kendoNumericTextBox");
+         if (cb) {
+            cb.enable(false);
+         }
+         cb = $(this).data("kendoMultiSelect");
+         if (cb) {
+            cb.enable(false);
+         }
+
+         cb = $(this).data("kendoTextBox");
+         if (cb) {
+            cb.enable(false);
+         }
+      });
+      if (editor) {
+         editor.setOptions({ readOnly: true });
+         $('.ace_text-input').attr('disabled', false);
+      }
+   }
+   function setWindowMode() {
+      //customize according model key
+      if ('@keyID' !== '@keyEmptyValueID') {
+         actualmode = 1;
+      } else {
+         //$('#BedName').attr('readonly', false);
+         actualmode = 2;
+      }
+   }
+
+   function setMode() {
+      if (actualmode === 2)
+         changeToEditMode();
+      else
+         changeToViewMode();
+   }
+
+   function chkSaveOnFileSystem(parameters) {
+      var tabStrip = $('#tsJobDetail').data("kendoTabStrip");
+      if ($('#tbsFileSys').hasClass("k-state-disabled")) {
+         tabStrip.enable($('#tbsFileSys'));
+      } else {
+         tabStrip.disable($('#tbsFileSys'));
+      }
+   }
+   function chkSendMail(parameters) {
+      var tabStrip = $('#tsJobDetail').data("kendoTabStrip");
+      if ($('#tbsEmail').hasClass("k-state-disabled")) {
+         tabStrip.enable($('#tbsEmail'));
+      } else {
+         tabStrip.disable($('#tbsEmail'));
+      }
+
+   }
+   $(document).ready(function () {
+      //debugger;
+      setAceEditor();
+      if ('@Model.exj_SaveOnFileSystem' != '@true') {
+         var tabStrip = $('#tsJobDetail').data("kendoTabStrip");
+         tabStrip.disable($('#tbsFileSys'));
+      }
+      if ('@Model.exj_SendMail' != '@true') {
+         var tabStrip = $('#tsJobDetail').data("kendoTabStrip");
+         tabStrip.disable($('#tbsEmail'));
+      }
+      $('#exj_Timeout').kendoNumericTextBox({
+         format: "n0",
+         min:0,
+         max: 3600,
+         decimals: 0,
+         restrictDecimals: true
+      }).data('kendoNumericTextBox').wrapper.find("span.k-numeric-wrap").addClass('control-required');
+      $('#exj_FileFormat').kendoDropDownList({
+         dataSource:  [
+            { id: 0, name: "Pdf" },
+            { id: 1, name: "PdfA1" },
+            { id: 2, name: "PdfA2" },
+            { id: 3, name: "PdfA3" },
+            { id: 4, name: "Xls" },
+            { id: 5, name: "Xlsx" },
+            { id: 6, name: "Csv" }
+         ],
+         dataTextField: "name",
+         dataValueField: "id",
+         enable: false,
+         change: function(e) {
+            var value = this.value();
+         }
+      });
+      var ds =  [];
+      //debugger;
+      if (sEmailTo != null && sEmailTo.length) {
+         ds = sEmailTo.split(';');
+      }
+      var em =$('#emailTo').kendoMultiSelect({
+         dataSource:ds,
+         enable: false,
+         noDataTemplate: $("#noDataTemplate").html()
+
+      }).getKendoMultiSelect();
+
+      if (ds.length) {
+         em.value(ds);
+      }
+
+      //debugger;
+
+      $("#lastStatusIcon").html(setLastStatusCell({ exj_LastRunStatusCode: @(Model.exj_LastRunStatusCode.GetValueOrDefault()) , 'LastRunStatusDescription' :'@Model.LastRunStatusDescription' }));
+      $("#lastStatusIcon").kendoTooltip({
+         filter: "span",
+         show: function(e) {
+            if (this.content.text() != "") {
+               $('[role="tooltip"]').css("visibility", "visible");
+            }
+         },
+         hide: function() {
+            $('[role="tooltip"]').css("visibility", "hidden");
+         },
+         content: function(e) {
+            var element = e.target[0];
+            //debugger;
+            if (element.localName =="span") {
+
+               if (element.classList.contains('ums-grid-tooltip')) {
+                  //debugger;
+                  if (element.dataset.title) {
+                     return element.dataset.title;
+                  }
+                  //var txt = element["data-title"];
+               }
+            }
+            return '';
+
+         }
+      });
+      umsHideAllEditSaveButton();
+      setWindowMode();
+      //set up condition to know if it's a new item
+      setMode();
+      $('#btnEdit' + '@postId').off('click').on('click', function () {
+         if (consolelog) console.log("btnEdit called");
+         changeToEditMode();
+      });
+      $('#btnCancel' + '@postId').off('click').on('click', function () {
+         if (consolelog) console.log("btnCancel called");
+         // IF is new add, close the dialog
+         if ('@keyID' == '@keyEmptyValueID') {
+            dialog.close();
+            return;
+         }
+
+         //TODO: reload data
+         window.displayItemDetail({ exj_ID: '@keyID' });
+         changeToViewMode();
+      });
+      $('#btnSave' + '@postId').off('click').on('click', function () {
+         if (consolelog) console.log("btnSave called");
+         actionSave();
+      });
+      $('#btnDelete').off('click').on('click', function () {
+         if (consolelog) console.log("btnDelete called");
+         umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteItem, cancelDeleteItem);
+      });
+      $('#btnCopy').off('click').on('click', function () {
+         if (consolelog) console.log("btnCopy called");
+
+         dialog.title('@DicSvc.XLate("New Job")');
+         $("#exj_ID").val("0");
+         $("#exj_Name").val("");
+         $("#exj_LastRunStatusCode").val("");
+         $("#exj_LastRunDateTime").val("");
+         $("#exj_LastRunMessage").val("");
+         $("#jobStatisticsGrid").hide();
+         $('#exj_Status').val("0");
+         $('#exjStatus').attr('checked', null);
+         var tabStrip = $('#tsJobDetail').data("kendoTabStrip");
+         tabStrip.select(0);
+         tabStrip.disable($('#tbsStat'));
+         changeToEditMode();
+         $('#btnCancel' + '@postId').off('click').on('click', function () {
+            dialog.close();
+            return;
+
+         });
+         $('#btnDelete').hide();
+      });
+      $('#btnExportJob').off('click').on('click', function () {
+
+         window.open('@Url.Action("JobExport")/@keyID', '_blank');
+      });
+      $('#btnImportJob').off('click').on('click', function () {
+         openImportFile();
+
+      });
+      $('#btnClose' + '@postId').off('click').on('click', function () {
+         if (consolelog) console.log("btnClose called");
+         dialog.close();
+      });
+      $("input[data-val-length-max]").each(function (index, element) {
+         element.setAttribute("maxlength", element.getAttribute("data-val-length-max"));
+      });
+
+      $('#exj_ReportMasterTemplate').kendoDropDownList(
+         {
+            optionLabel: '@DicSvc.XLateJs("Select a template")',
+            dataSource: dataSourceTempl,
+            filter: "contains"
+
+         });
+   });
+   function openImportFile() {
+      //debugger;
+      var url = "@Url.Action("JobImport")/@keyID"
+      var html =   " <input type='file' name='files' id='photos'   >"+
+         ' <script> ' +
+         '$("#photos").kendoUpload({' +
+         '   async: {' +
+         '   saveUrl: "@Url.Action("JobImport")/@keyID"' +
+         '   },' +
+         
+         'validation: {'+
+         '   allowedExtensions: [".json"]'+
+         '},'+
+         '   multiple: false' +
+         '});' +
+         '</' +'script>';
+
+      umsAlert("@DicSvc.XLate("Cron format")",html);
+
+   }
+   function openScheduledCronInfo() {
+      var html =
+         "<pre>┌───────────── @DicSvc.XLate("minute") (0 - 59) " +
+         " \r\n│ ┌───────────── @DicSvc.XLate("hour") (0 - 23) " +
+         " \r\n│ │ ┌───────────── @DicSvc.XLate("day of the month") (1 - 31)" +
+         " \r\n│ │ │ ┌───────────── @DicSvc.XLate("month") (1 - 12) " +
+         " \r\n│ │ │ │ ┌───────────── @DicSvc.XLate("day of the week") (0 - 6) (@DicSvc.XLate("Sunday to Saturday"))" +
+         " \r\n│ │ │ │ │" +
+         " \r\n* * * * *" +
+         " \r\n" +
+         "\r\n @DicSvc.XLate("Note: It is also possible to specify '*/n' to run for every 'n-th' interval of time.")"+
+         "\r\n @DicSvc.XLate("Also, specifying multiple specific time intervals can be done with commas(e.g., '1,2,3')")" +
+         " \r\n</pre>";
+
+      umsAlert("@DicSvc.XLate("Cron format")",html);
+   }
+
+   function openFileNameInfo() {
+      var html =
+          "<pre>%D= @DicSvc.XLate("Replaced with execution date (format YYYYMMDD)") " +
+          " \r\n%T= @DicSvc.XLate("Replaced with execution time (format HHmm)")" +
+          " \r\n%N= @DicSvc.XLate("Replaced with the name of the executing job. ")" +
+          " \r\n    @DicSvc.XLate("empty spaces (' ')will be replaced with underscores ('_') ")" +
+          " \r\n%A= @DicSvc.XLate("Replace with ID if report has been generated by a custom Sql query")" +
+          " \r\n</pre>";
+
+      umsAlert("@DicSvc.XLate("File name format")",html);
+   }
+   function openSubfolderInfo() {
+      var html =
+         "<pre>%D= @DicSvc.XLate("Replaced with execution date (format YYYYMMDD)") " +
+         " \r\n%T= @DicSvc.XLate("Replaced with execution time (format HHmm)")" +
+         " \r\n%N= @DicSvc.XLate("Replaced with the name of the executing job. ")" +
+         " \r\n    @DicSvc.XLate("empty spaces (' ')will be replaced with underscores ('_') ")" +
+         " \r\n</pre>";
+
+      umsAlert("@DicSvc.XLate("Subfolder name format")",html);
+   }
+
+   function checkScheduledCron() {
+      kendo.ui.progress($(divName), true);
+      $.ajax({
+         method: "GET",
+         url: "@Url.Action("CheckCronString")",
+         data: { query: $('#exj_TriggerScheduledCron').val() }//,
+         // dataType: "json",
+         // data: JSON.stringify({var:'val'}), // send data in the request body
+         // contentType: "application/json; charset=utf-8",  // if sending in the request body
+         //method: 'GET'
+      }).done(function (data, textStatus, jqXHR) {
+         //debugger;
+         var message = "";
+         var template = "<div>~data~</div>";
+
+         if (data.success) {
+            if (data.result.length) {
+               data.result.forEach(function(item) {
+                  message += template.replace(/~data~/g, item);
+               });
+            }
+
+         } else {
+            message = data.errorMessage;
+         }
+         umsAlert('@rawXlateJs("Crono's string parsing")', message);
+         // because dataType is json 'data' is guaranteed to be an object
+         console.log('done');
+
+      }).fail(function (jqXHR, textStatus, errorThrown) {
+         //debugger;
+         // the response is not guaranteed to be json
+         if (jqXHR.responseJSON) {
+            // jqXHR.reseponseJSON is an object
+            console.log('failed with json data');
+         }
+         else {
+            // jqXHR.responseText is not JSON data
+            console.log('failed with unknown data');
+         }
+      }).always(function (dataOrjqXHR, textStatus, jqXHRorErrorThrown) {
+         //debugger;
+         //console.log('always');
+         kendo.ui.progress($(divName), false);
+      });
+   }
+   function actionSave() {
+      $('#exj_Status').val($('#exjStatus').is(':checked') ? 1 : 0);
+      //debugger;
+      var mailTo = $('#emailTo').data('kendoMultiSelect').value();
+      //debugger;
+      $('#exj_EmailToAddresses').val(mailTo.join(';'));
+      if (OnValidation()) {
+         $("#@formId").submit();
+
+      }
+   }
+
+   function OnValidation() {
+      //debugger;
+      var retValue = true;
+      var customErrors = [];
+      var customFieldValidation = function () {
+         var retFV = false;
+         //Only if we have field not validable by Model
+         try {
+            retFV = ($('#exj_SendMail').is(':checked') || $('#exj_SaveOnFileSystem').is(':checked'));
+            //debugger;
+            if (retFV) {
+               $('#exj_SaveOnFileSystem').parent().parent().parent().removeClass('border-danger').removeClass('k-invalid');
+            } else {
+               $('#exj_SaveOnFileSystem').parent().parent().parent().addClass('border-danger').addClass('k-invalid');
+               customErrors.push('@rawXlateJs("At least one action must be selected")');
+            }
+
+         } catch (e) {
+            //
+         }
+         return retFV;
+      }
+      var validator = $("#@formId").kendoValidator({
+         rules: {
+            fileSystemRequired: function (input) {
+               if ($('#exj_SaveOnFileSystem').is(':checked')) {
+                  //debugger;
+                  if (input.is("[name=exj_FileSystemRootPath]")) {
+                     return input.val() !== "";
+                  }
+               }
+
+               return true;
+            },
+            subfolderPlane: function (input) {
+               if ($('#exj_SaveOnFileSystem').is(':checked')) {
+                  //debugger;
+                  if (input.is("[name=exj_FileSystemSubFolder]")) {
+                     return input.val().indexOf('/')==-1 && input.val().indexOf('\\')==-1;
+                  }
+               }
+
+               return true;
+            },
+            sendMailRequired: function (input) {
+               if ($('#exj_SendMail').is(':checked')) {
+                  //debugger;
+                  if (input.is("[name=exj_EmailFromAddress]") || input.is("[name=exj_EmailSubject]") ) {
+                     return input.val() !== "";
+                  }
+                  if (input.is("[name=emailTo]") ) {
+                     var ms = input.data("kendoMultiSelect");
+                     if(ms.value().length === 0) {
+                        ms.wrapper.find("div.k-multiselect-wrap").addClass('k-invalid');
+                        return false;
+                     } else {
+                        ms.wrapper.find("div.k-multiselect-wrap").removeClass('k-invalid');
+                     }
+                     //return input.val().length !== 0;
+                  }
+
+               }
+
+               return true;
+            },
+            atLeastOneOfFileorMail: function (input) {
+                //debugger;
+               //if (input.is("[name=exj_SaveOnFileSystem]")) {
+               //   var condition = ($('#exj_SendMail').is(':checked') || $('#exj_SaveOnFileSystem').is(':checked'));
+               //   debugger;
+               //   if (condition) {
+               //      input.parent().parent().parent().removeClass('border-danger');
+               //   } else {
+               //      input.parent().parent().parent().addClass('border-danger');
+               //   }
+
+               //   return condition;
+               //}
+
+               return true;
+            }
+         },
+         messages: {
+            fileSystemRequired: function(input) {
+               return getValidationMessage(input);
+            },
+            sendMailRequired: function(input) {
+               return getValidationMessage(input);
+            },
+            atLeastOneOfFileorMail: function(input) {
+               return '@rawXlateJs("At least one action must be selected")';
+            },
+            subfolderPlane: function(input) {
+               return '@rawXlateJs("invalid char in subfolder name (/ or \\)")';
+            }
+
+         }
+      }).data("kendoValidator");
+      var cfv = customFieldValidation();
+      if (!validator.validate() || !cfv ) {
+         //debugger;
+         retValue = false;
+         try {
+            var errors = customErrors.concat(validator.errors());
+            //errors.push(customErrors);
+            $("#errors").html(buildValidationMessage(errors));
+         } catch (e) {
+            $("#errors").html(e);
+         }
+         var tabChilds = $('#tsJobDetail').getKendoTabStrip().tabGroup.children();
+         for (var i = 0; i < tabChilds.length; i++) {
+            //debugger
+            var childId = $(tabChilds[i]).attr('aria-controls');
+            if ($('#' + childId).find('.k-invalid').length) {
+               $(tabChilds[i]).find('.k-link').addClass('border-danger');
+            } else {
+               $(tabChilds[i]).find('.k-link').removeClass('border-danger');
+            }
+         }
+      }
+      else {
+         $("#errors").html("");
+         retValue = true;
+      }
+
+      return retValue;
+   }
+   function getValidationMessage(input) {
+      return input.data("message");
+   }
+   function OnSuccess(response) {
+      if (response.success) {
+         grid.dataSource.read();
+         dialog.close();
+      }
+      else {
+         window.umsAlert("Error occured", response.errorMessage, 400, 300);
+      }
+   }
+   function OnFailure(response) {
+      window.umsAlert("Error occured", response.errorMessage, 400, 300);
+   }
+   function toolBarShowButtonByClass(clas) {
+      var tb = $("#toolbarDetail").data("kendoToolBar");
+      tb.umsShowButtonByClass(clas);
+   }
+   function umsHideAllEditSaveButton() {
+      var tb = $("#toolbarDetail").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+
+
+   function deleteItem() {
+      $.ajax({
+          url: '@Url.Action("DeleteJob")',
+          type: 'POST',
+          data: { jobID: '@keyID' },
+          async: false
+
+      }).done(function (data) {
+          if (data.success != undefined && data.success) {
+              dialog.close();
+              grid.dataSource.read();
+          } else {
+              $('#errors').html('not saved. reason:' + data.errorMessage);
+          }
+      }).fail(function (response) {
+          umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+      });
+
+   }
+
+   function cancelDeleteItem() {
+
+      /* do nothing */
+   }
+
+   var sEmailTo = "";
+   try {
+      sEmailTo = @Html.Raw(Json.Serialize(Model.exj_EmailToAddresses));
+   } catch (e) {
+      console.log(e);
+   }
+   function validateEmail(email) {
+      const re =
+      /^(([^<>()[\]\\.,;:\s@@"]+(\.[^<>()[\]\\.,;:\s@@"]+)*)|(".+"))@@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/gm;
+      return re.test(String(email).toLowerCase());
+   }
+   function addNew(widgetId, value) {
+      var widget = $("#" + widgetId).getKendoMultiSelect();
+      var dataSource = widget.dataSource;
+      //debugger;
+      if (!validateEmail(value)) {
+         umsAlert('@rawXlateJs("Email address validation")',value+ '@rawXlateJs(" is not valid")');
+         return;
+      }
+
+      if (confirm("@rawXlateJs("Do you confirm the insertion of the email address?")")) {
+         //debugger;
+         dataSource.data().push( value);
+
+         dataSource.sync();
+         widget.value(widget.value().concat([value]));
+      }
+   }
+
+   function setAceEditor() {
+      //ace.require("ace/ext/language_tools");
+      editor = ace.edit('aceEditor');
+      editor.setOptions({
+         autoScrollEditorIntoView: true,
+         copyWithEmptySelection: true,
+         readOnly: true,
+         displayIndentGuides: true,
+         enableBasicAutocompletion: true,
+         enableSnippets: true,
+         enableLiveAutocompletion: false,
+         printMargin: false
+      });
+
+      editor.setTheme("ace/theme/chrome");
+      var codeMode = "ace/mode/sql";
+      editor.session.setMode(codeMode);
+
+      var textarea = $("#exj_ParameterQuery").hide();
+      editor.getSession().setValue(textarea.val());
+      editor.getSession().on('change', function () {
+         textarea.val(editor.getSession().getValue());
+         changeFun();
+
+      });
+
+   }
+   var changeFun = function () {
+      //$("#btnSave").attr('disabled', true);
+      //if ($("#Name").val() != defaultValue || $("#Description").val() != defaultDescValue || $("#Labels").val() != defaultLabelValue || $("#Mode").val() != defaultModeValue || $("#Sql").val() != defaultSqlValue || once != defaultOnceValue || permanent != defaultPermValue || $("#IdLocation").val() != defaultLocation) {
+      //   $("#btnSave").attr('disabled', false);
+      //}
+   };
+
+
+</script>

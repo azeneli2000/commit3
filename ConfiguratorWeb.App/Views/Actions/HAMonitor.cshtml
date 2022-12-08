@@ -1,0 +1,343 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@inject IDictionaryService DicSvc
+
+@using Digistat.FrameworkStd.Model
+
+@{
+    ViewBag.Title = DicSvc.XLate("High Availability Monitor");
+}
+
+<style>
+   .haactive {
+      color: green !important;
+      font-weight: bold;
+   }
+   .haactive_with_alarm {
+      color: orange !important;
+      font-weight: bold;
+   }
+   .haidle_alarm {
+      color: red !important;
+   }    
+   .haidle_online {
+      color: black;/*!important;*/
+   }
+   .haidle_online > td > .mdi {
+      color: white !important;
+   }
+   td > .btnKendo {
+      color: #000000;
+      background-color: #dfe6ed !important;
+      border-color: #dfe6ed !important;
+   }
+
+   .dash-view
+   {
+      float: left;
+      width: 25%;
+      max-height: 300px;
+      box-sizing: border-box;
+      border-top: 0;
+      position: relative;
+   }
+   .dash-view:nth-child(even) {
+      border-left-width: 0;
+   }
+   .row-ha {
+      margin-bottom: 0px!important;
+   }
+</style>
+
+<script>
+   function onListViewDataBound(parameters) {
+      $("#ha-grid").removeClass('k-widget');
+   }
+
+   function error_handler_so(e) {
+      debugger;
+      if (e.errors) {
+         var message = "Errors:\n";
+         $.each(e.errors, function (key, value) {
+            if ('errors' in value) {
+               $.each(value.errors, function () {
+                  message += this + "\n";
+               });
+            }
+         });
+         alert(message);
+      }
+   }
+</script>
+<script type="text/javascript">
+   var HAofflineTimeoutInSeconds = @ViewBag.HAofflineTimeoutInSeconds;
+   var timerLimitInMilliseconds = HAofflineTimeoutInSeconds * 1000;
+   var activeStatClass="";
+   var activeStatClassCard="";
+   var activeStatClassMdi="";
+   var whorstState="";
+   var cssClass = "";
+
+   function elabGroup(group) {
+      activeStatClass="haidle";
+      activeStatClassCard = "border-danger";
+      cssClass = "danger";
+      //debugger;
+      if (!group) {
+         return;
+      }
+      
+      for (var j = 0; j < group.items.length; j++) {
+         var dataItem = group.items[j];
+         var status = dataItem.get("Status");
+         
+         if (status == "ACTIVE") {
+            activeStatClass="haactive";
+            activeStatClassCard = "border-success";
+            cssClass = "success";
+            activeStatClassMdi = "mdi-check-bold";
+            if (dataItem.LastUpdateUTC) {
+               if (new Date(kendo.parseDate(dataItem.LastUpdateString).getTime() + timerLimitInMilliseconds) < new Date()) {
+                  activeStatClass = "text-danger";
+                  activeStatClassCard = "border-danger";
+                  cssClass = "danger";
+                  activeStatClassMdi = "mdi-close-circle";
+               }
+            }
+         }
+
+         if (dataItem.LastUpdateUTC) {
+            if (new Date(kendo.parseDate(dataItem.LastUpdateString).getTime() + timerLimitInMilliseconds) < new Date()) {
+               if (activeStatClass =="haactive") {
+                  activeStatClass = "haactive_with_alarm";
+                  activeStatClassCard = "border-warning";
+                  cssClass = "warning";
+                  activeStatClassMdi = "mdi-alert-outline";
+               }
+            }
+         }
+      }
+   }
+</script>
+<script type="text/x-kendo-tmpl" id="template">
+   #
+      
+      //debugger;
+      elabGroup(data);
+   #
+   <div class="col-sm-6 my-2">
+      <div class="card #:activeStatClassCard#">
+         <div class="card-head bg-#:cssClass# p-2" ><h5 class="card-title w-100 #if(cssClass=='warning'){#text-dark#}else{#text-light#}# "> <i class="float-left mdi mdi-18px mr-2 #:activeStatClassMdi#"></i>Application #:value#</h5></div>
+         <div class="card-body">
+            #for (var j = 0; j < data.items.length; j++) {
+               //var row = $(rows[j]);
+               var dataItem = data.items[j];
+               var rowClass="";
+               var mdiClass="";
+               if (dataItem.Status == "ACTIVE") {
+                  rowClass="text-success";
+                  mdiClass="mdi-check-bold";
+               }
+               if (dataItem.LastUpdateUTC) {
+                  if (new Date(kendo.parseDate(dataItem.LastUpdateString).getTime() + timerLimitInMilliseconds) < new Date()) {
+                     rowClass="text-danger";
+                     mdiClass="mdi-close-circle";
+                  }
+               }
+
+            #
+            <div class="row row-ha p-0 mx-0 mt-1 mb-0 #:rowClass#" style="align-items: baseline;">
+               <div class="col-4 ml-0 px-0 ">#:dataItem.Hostname#</div>
+               <div class="col-2">#:dataItem.Status#</div>
+               <div class="col-3">#:dataItem.LastUpdateString#</div>
+               <div class="col-1">#if(rowClass!=''){#<i class="mdi #:mdiClass# mdi-18px"></i>#}#</div>
+               <div class="col-2">#if(rowClass==''){#<a href="\#" class=" mdi mdi-arrow-up-circle-outline text-dark mdi-18px p-0" onclick="HAActiveateAjax('#:dataItem.Application#','#:dataItem.Hostname#')">Activate</a>#}#</div>
+
+            </div>
+            #
+             }
+            #
+
+         </div>
+      </div>
+   </div>
+
+</script>
+<div class="h-100 text-center">
+   <div class="card border-0 h-100 m-1 p-2 text-left w-95">
+       <div class="container-fluid w-100">
+           @if (ViewBag.IsHAEnabled)
+           {
+               @(
+                              Html.Kendo().ListView<ConfiguratorWeb.App.Models.Actions.ServiceStatusViewModel>()
+                                 .Name("ha-grid")
+                                 .TagName("div").HtmlAttributes(new { @class = "w-100 row" })
+                                 .ClientTemplateId("template")
+                                 .DataSource(dataSource => dataSource
+                                    .Ajax()
+                                    .Group(g => g.Add(c => c.Application))
+                                    .Model(model =>
+                                    {
+                                        model.Id(o => new { o.Application, o.Hostname });
+                                        model.Field(o => o.Application);
+                                        model.Field(o => o.Hostname);
+                                        model.Field(o => o.LastUpdateString);
+                                        model.Field(o => o.LastUpdateUTC);
+                                        model.Field(o => o.Status);
+                                    })
+                                    .Events(events => events.Error("error_handler_so"))
+                                    .Read(read => read.Action("ReadHA", "Actions"))
+                                 )
+                                 .Events(ev => ev.DataBound("onListViewDataBound"))
+               )
+           }
+           else
+           {
+               <text>
+           <div class="jumbotron text-center">
+               <h1 class="display-4">@DicSvc.XLate("DIGISTAT HIGH AVAILABILITY is not enabled")</h1>
+               <p class="lead">
+                   @DicSvc.XLate("To enable DIGISTAT HIGH AVAILABILITY please refer to Digistat Server installation manual")
+                </p>
+           </div>
+                       
+               </text>
+           }
+       </div>
+       </div>
+</div>
+
+<script>
+
+   function HAActivate(e) {
+      var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+      HAActiveateAjax(dataItem.Application, dataItem.Hostname);
+
+   }
+   function HAActiveateAjax(Application, Hostname) {
+      $.ajax({
+         url: '@Url.Action("ActivateHANode", "Actions")',
+         data: { Application: Application, Host: Hostname },
+         type: 'POST',
+         success: function (response) {
+            if (response.success) {
+               var grid = $("#ha-grid").data("kendoListView");
+               grid.dataSource.read();
+               console.log("change node");
+            }
+            else {
+               window.umsAlert("Error occured", response.errorMessage, 400, 300);
+            }
+         },
+         error: function () {
+
+         }
+      });
+   }
+   var collapsed = {};
+
+   function rowGroupKey(row, grid) {
+      var next = row.nextUntil("[data-uid]").next(),
+         item = grid.dataItem(next.length ? next : row.next()),
+         groupIdx = row.children(".k-group-cell").length,            
+         field = grid.dataSource.group()[groupIdx].field,
+         groupValue = item[field];
+      return "" + groupIdx + groupValue;
+   }
+
+   //$(function () {
+   //    var grid = $("#ha-grid").data("kendoGrid");
+   //    grid.table.on("click", ".k-grouping-row .k-i-collapse, .k-grouping-row .k-i-expand", function (e) {
+   //        var row = $(this).closest("tr"),
+   //            groupKey = rowGroupKey(row, grid);
+
+   //        if ($(this).hasClass("k-i-collapse")) {
+   //            collapsed[groupKey] = false;
+   //        }
+   //        else {
+   //            collapsed[groupKey] = true;
+   //        }
+   //    });
+   //});
+
+   setInterval(function () {
+      try {
+         var grid = $("#ha-grid").data("kendoListView");
+         grid.dataSource.read();
+      } catch (e) {}
+   }, 10000);
+
+   var first = true;
+
+   function onDataBound(e) {
+      debugger;        
+      var grid = e.sender;
+
+      //if (first) {
+      //
+      //    grid.tbody.children(".k-grouping-row").each(function () {
+      //        grid.collapseRow($(this));
+      //    });
+      //
+      //    first = false;
+      //}
+
+      // iterate the table rows and apply custom row and cell styling
+      var rows = e.sender.tbody.children();
+      for (var j = 0; j < rows.length; j++) {
+         var row = $(rows[j]);
+         var dataItem = e.sender.dataItem(row);
+         var status = dataItem.get("Status");
+            
+         if (status == "ACTIVE") {
+
+            row.children("td").children("[role = 'button']").hide();
+
+            row.addClass("haactive");
+            row.removeClass("haidle");
+         }
+         else {
+
+            row.children("td").children("[role = 'button']").show();
+
+            row.removeClass("haactive");
+                
+            row.addClass("haidle_online");
+         }
+
+         if (dataItem.LastUpdateUTC) {
+            if (new Date(kendo.parseDate(dataItem.LastUpdateString).getTime()+30*60000) < new Date()) {
+               row.addClass("haidle_alarm");
+               row.removeClass("haactive");
+               row.removeClass("haidle_online");
+               row.children("td").children("[role = 'button']").hide();
+               debugger;
+               var v = dataItem.Application;
+               var groupHeader = $('#ha-grid tbody .k-grouping-row').filter(function (index) {
+                  return $(this).find("p")[0].innerText.indexOf(v) >-1;
+               });
+               if (groupHeader.hasClass("haactive")) {
+                  groupHeader.removeClass("haactive");
+                  groupHeader.addClass("haactive_with_alarm");
+               }
+            }
+         }
+      }
+
+      var groups = grid.dataSource.group();
+      if (groups.length) {
+         grid.tbody.children(".k-grouping-row").each(function () {
+            var row = $(this),
+               groupKey = rowGroupKey(row, grid);
+            if (collapsed[groupKey]) {
+               grid.collapseRow(row);
+            }
+         });
+      }
+
+      $(".k-grid-Activate").kendoTooltip({ content: "Activate", position: "top", width: "55px" });
+   }
+
+
+</script>
+
+

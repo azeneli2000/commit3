@@ -1,0 +1,431 @@
+﻿
+@{
+   ViewData["Title"] = "TestScheduler";
+   Layout = null; // "~/Views/Shared/_Layout.cshtml";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8" />
+   <title>Kendo UI Snippet</title>
+
+   <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2019.2.619/styles/kendo.common.min.css" />
+   <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2019.2.619/styles/kendo.rtl.min.css" />
+   <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2019.2.619/styles/kendo.silver.min.css" />
+   <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2019.2.619/styles/kendo.mobile.all.min.css" />
+
+   <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+   <script src="https://kendo.cdn.telerik.com/2019.2.619/js/kendo.all.min.js"></script>
+</head>
+<body>
+<style>
+   .k-slot-cell >.k-link .k-nav-day {
+      text-align: left
+   }
+</style>
+
+   <div style="width: 90%; margin-left: auto; margin-right: auto;">
+      <div id="scheduler" style="width: 100%"></div>
+      <h3>Drag events from the Grid to the Scheduler:</h3>
+      <div id="grid" style="width: 800px"></div>
+   </div>
+
+<script>
+   var CustomAgenda = kendo.ui.AgendaView.extend({
+      endDate: function() {
+         var date = kendo.ui.AgendaView.fn.endDate.call(this);
+         return kendo.date.addDays(date, 31);
+      }
+   });
+
+   var ThreeDayView = kendo.ui.MultiDayView.extend({
+      nextDate: function () {
+         return kendo.date.nextDay(this.startDate());
+      },
+      options: {
+         selectedDateFormat: "{0:D} - {1:D}"
+      },
+      name: "ThreeDayView",
+      calculateDateRange: function () {
+         //create a range of dates to be shown within the view
+         var start = this.options.date,
+            idx, length,
+            dates = [];
+
+         for (idx = 0, length = 3; idx < length; idx++) {
+            dates.push(start);
+            start = kendo.date.nextDay(start);
+         }
+
+         this._render(dates);
+      }
+   });
+   $(function() {
+
+
+      var scheduler = $("#scheduler").kendoScheduler({
+         date: new Date("2013/6/13"),
+         majorTick: 20,
+         startTime: new Date("2013/6/13 10:00"),
+         endTime: new Date("2013/6/13 23:00"),
+         height: 500,
+         //views: ["day", "agenda", "week"],
+         dataBound: function (e) {
+            //create drop area from current View
+            createDropArea(this);
+         },
+         dataSource: {
+            transport: {
+               read: function(e) { e.success([]); },
+               update: function(e) { e.success(""); },
+               destroy: function(e) { e.success(""); },
+               create: function(e) {
+                  var schedulerDS = $("[data-role=scheduler]").data("kendoScheduler").dataSource;
+                  var lastItem = schedulerDS.data()[schedulerDS.data().length-1];
+                  e.data.taskID = lastItem.taskID + 1;
+                  e.success();
+               }
+            },
+            schema: {
+               model: {
+                  id: "taskID",
+                  fields: {
+                     taskID: { type: "number" },
+                     title: { type: "string" },
+                     description: { type: "string" },
+                     start: { type: "date" },
+                     end: { type: "date" },
+                     recurrenceRule: { type: "string" },
+                     recurrenceID: { type: "number", defaultValue: null },
+                     recurrenceException: { type: "string" },
+                     roomId: { from: "RoomID", nullable: true },
+                     attendees: { from: "Attendees", nullable: true },
+                     isAllDay: { type: "boolean" },
+                     image: { type: "string" },
+                     imdb: { type: "string" }
+
+                  }
+               }
+            }
+         },
+         allDaySlot: false,
+         resize: function(e) {
+            if (roomIsOccupied(e.start, e.end, e.event, e.resources) || attendeeIsOccupied(e.start, e.end, e.event, e.resources)) {
+               this.wrapper.find(".k-marquee-color").addClass("invalid-slot");
+               e.preventDefault();
+            }
+         },
+         resizeEnd: function(e) {
+            if (!checkAvailability(e.start, e.end, e.events)) {
+               e.preventDefault();
+            }
+         },
+         move: function(e) {
+            if (roomIsOccupied(e.start, e.end, e.event, e.resources) || attendeeIsOccupied(e.start, e.end, e.event, e.resources)) {
+               this.wrapper.find(".k-event-drag-hint").addClass("invalid-slot");
+            }
+         },
+         moveEnd: function(e) {
+            if (!checkAvailability(e.start, e.end, e.event, e.resources)) {
+               e.preventDefault();
+            }
+         },
+         add: function(e) {
+            if (!checkAvailability(e.event.start, e.event.end, e.event)) {
+               e.preventDefault();
+            }
+         },
+         save: function(e) {
+            if (!checkAvailability(e.event.start, e.event.end, e.event)) {
+               e.preventDefault();
+            }
+         },
+         views: [
+            { type: "ThreeDayView", title: "Three day view", selected: true },
+            "day",
+            { type: "week", selected: false },
+            "timeline"
+         ],
+         group: {
+            resources: [ "room" ],
+            //date: true,
+            orientation: "vertical"
+         },
+         resources: [
+            {
+               field: "roomId",
+               name: "room",
+               dataSource: [
+                  { text: "Room 1", value: 1, color: "#6eb3fa" },
+                  { text: "Room 2", value: 2, color: "#f58a8a" },
+                  { text: "Room 3", value: 3, color: "#f58a8a" },
+                  { text: "Room 4", value: 4, color: "#f58a8a" },
+                  { text: "Room 5", value: 5, color: "#f58a8a" },
+                  { text: "Room 6", value: 6, color: "#f58a8a" },
+                  { text: "Room 7", value: 7, color: "#f58a8a" },
+                  { text: "Room 8", value: 8, color: "#f58a8a" },
+                  { text: "Room 9", value: 9, color: "#f58a8a" }
+               ],
+               title: "Room"
+            }
+         ]
+      }).data("kendoScheduler");
+
+      var grid = $("#grid").kendoGrid({
+         columns: [
+            "taskID" , "title",
+            {field: "start", format: "{0:yyyy/MM/dd HH:mm}"},
+            {field: "end", format: "{0:D}"}
+         ],
+         selectable: "single row",
+         dataSource: {
+            transport: {
+               read: function(e) { e.success(dataS); }
+            }
+         }
+      }).data("kendoGrid");
+
+      function  createDropArea(scheduler) {
+         scheduler.view().content.kendoDropTargetArea({
+            filter: ".k-scheduler-table td, .k-event",
+            drop: function(e) {
+               debugger;
+               var offset = $(e.dropTarget).offset();
+               var slot = scheduler.slotByPosition(offset.left, offset.top);
+               var dataItem = grid.dataItem(grid.select());
+
+               if(dataItem && slot) {
+                  var offsetMiliseconds = new Date().getTimezoneOffset() * 60000;
+                  var newEvent = {
+                     title: dataItem.title,
+                     end: new Date(slot.startDate.getTime() + (dataItem.end - dataItem.start)),
+                     start: slot.startDate ,
+                     isAllDay: slot.isDaySlot,
+                     description: dataItem.description,
+                     imdb: dataItem.imdb,
+                     image: dataItem.image,
+                     roomId:scheduler.resources[0].dataSource.data()[slot.groupIndex].value
+                  };
+                  if (!checkAvailability(newEvent.start, newEvent.end, newEvent)) {
+                     e.preventDefault();
+                     return;
+                  }
+                  grid.dataSource.remove(dataItem);
+                  scheduler.dataSource.add(newEvent);
+               }
+
+            }
+         });
+      }
+
+      var grid = $("#grid").data("kendoGrid"),
+         gridRowOffset = grid.tbody.find("tr:first").offset();
+
+      grid.table.kendoDraggable({
+         filter: "tbody > tr",
+         dragstart: function (e) {
+            //add margin to position correctly the tooltip under the pointer
+            $("#dragTooltip").css("margin-left", e.clientX - gridRowOffset.left - 50);
+         },
+         hint: function (row) {
+
+            //remove old selection
+            row.parent().find(".k-state-selected").each(function() {
+               $(this).removeClass("k-state-selected");
+            });
+
+            //add selected class to the current row
+            row.addClass("k-state-selected");
+
+            var dataItem = grid.dataItem(row);
+            var tooltipHtml = "<div class='k-event' id='dragTooltip'><div class='k-event-template'>" +
+               kendo.format("{0:t} - {1:t}", dataItem.start, dataItem.end) +
+               "</div><div class='k-event-template'>" + dataItem.title +
+               "</div></div>";
+
+            return $(tooltipHtml).css("width", 300);
+         }
+      });
+      function occurrencesInRangeByResource(start, end, resourceFieldName, event, resources) {
+         var scheduler = $("#scheduler").getKendoScheduler();
+
+         var occurrences = scheduler.occurrencesInRange(start, end);
+
+         var idx = occurrences.indexOf(event);
+         if (idx > -1) {
+            occurrences.splice(idx, 1);
+         }
+
+         event = $.extend({}, event, resources);
+
+         return filterByResource(occurrences, resourceFieldName, event[resourceFieldName]);
+      }
+
+      function filterByResource(occurrences, resourceFieldName, value) {
+         var result = [];
+         var occurrence;
+
+         for(var idx = 0, length = occurrences.length; idx < length; idx++) {
+            occurrence = occurrences[idx];
+            if (occurrence[resourceFieldName] === value) {
+               result.push(occurrence);
+            }
+         }
+         return result;
+      }
+
+      function attendeeIsOccupied(start, end, event, resources) {
+         var occurrences = occurrencesInRangeByResource(start, end, "attendee", event, resources);
+         if (occurrences.length > 0) {
+            return true;
+         }
+         return false;
+      }
+
+      function roomIsOccupied(start, end, event, resources) {
+         var occurrences = occurrencesInRangeByResource(start, end, "roomId", event, resources);
+         if (occurrences.length > 0) {
+            return true;
+         }
+         return false;
+      }
+
+      function checkAvailability(start, end, event, resources) {
+
+         //if (attendeeIsOccupied(start, end, event, resources)) {
+         //    setTimeout(function() {
+         //        alert("This person is not available in this time period.");
+         //    }, 0);
+         //
+         //    return false;
+         //}
+
+         if (roomIsOccupied(start, end, event, resources)) {
+            setTimeout(function() {
+               alert("This room is not available in this time period.");
+            }, 0);
+
+            return false;
+         }
+
+         return true;
+      }
+   });
+</script>
+<style>
+   .invalid-slot {
+      background: red !important;
+      cursor: no-drop;
+   }
+</style>
+   <style scoped>
+      #scheduler {
+         width: 800px
+      }
+
+      body {
+         font-family: Verdana;
+         font-size: 10pt
+      }
+   </style>
+
+   <script>
+      //Local data
+      window.dataS = [
+         {
+            taskID: 1,
+            ownerId: 1,
+            title: "Fast and furious 6",
+            image: "../../content/web/scheduler/fast-and-furious.jpg",
+            imdb: "http://www.imdb.com/title/tt1905041/",
+            start: new Date("2013/6/13 17:00"),
+            end: new Date("2013/6/13 18:30")
+         },
+         {
+            taskID: 2,
+            ownerId: 3,
+            title: "The Internship",
+            image: "../../content/web/scheduler/the-internship.jpg",
+            imdb: "http://www.imdb.com/title/tt2234155/",
+            start: new Date("2013/6/13 14:00"),
+            end: new Date("2013/6/13 15:30")
+         },
+         {
+            taskID: 3,
+            ownerId: 2,
+            title: "The Perks of Being a Wallflower",
+            image: "../../content/web/scheduler/wallflower.jpg",
+            imdb: "http://www.imdb.com/title/tt1659337/",
+            start: new Date("2013/6/13 16:00"),
+            end: new Date("2013/6/13 17:30")
+         },
+         {
+            taskID: 4,
+            ownerId: 1,
+            title: "The Help",
+            image: "../../content/web/scheduler/the-help.jpg",
+            imdb: "http://www.imdb.com/title/tt1454029/",
+            start: new Date("2013/6/13 12:00"),
+            end: new Date("2013/6/13 13:30")
+         },
+         {
+            taskID: 5,
+            ownerId: 2,
+            title: "Now You See Me",
+            image: "../../content/web/scheduler/now-you-see-me.jpg",
+            imdb: "http://www.imdb.com/title/tt1670345/",
+            start: new Date("2013/6/13 10:00"),
+            end: new Date("2013/6/13 11:30")
+         },
+         {
+            taskID: 6,
+            ownerId: 1,
+            title: "Fast and furious 6",
+            image: "../../content/web/scheduler/fast-and-furious.jpg",
+            imdb: "http://www.imdb.com/title/tt1905041/",
+            start: new Date("2013/6/13 19:00"),
+            end: new Date("2013/6/13 20:30")
+         },
+         {
+            taskID: 7,
+            ownerId: 3,
+            title: "The Internship",
+            image: "../../content/web/scheduler/the-internship.jpg",
+            imdb: "http://www.imdb.com/title/tt2234155/",
+            start: new Date("2013/6/13 17:30"),
+            end: new Date("2013/6/13 19:00")
+         },
+         {
+            taskID: 8,
+            ownerId: 1,
+            title: "The Perks of Being a Wallflower",
+            image: "../../content/web/scheduler/wallflower.jpg",
+            imdb: "http://www.imdb.com/title/tt1659337/",
+            start: new Date("2013/6/13 17:30"),
+            end: new Date("2013/6/13 19:00")
+         },
+         {
+            taskID: 9,
+            ownerId: 2,
+            title: "The Help",
+            image: "../../content/web/scheduler/the-help.jpg",
+            imdb: "http://www.imdb.com/title/tt1454029/",
+            start: new Date("2013/6/13 13:30"),
+            end: new Date("2013/6/13 15:00")
+         },
+         {
+            taskID: 10,
+            ownerId: 2,
+            title: "Now You See Me",
+            image: "../../content/web/scheduler/now-you-see-me.jpg",
+            imdb: "http://www.imdb.com/title/tt1670345/",
+            start: new Date("2013/6/13 12:30"),
+            end: new Date("2013/6/13 14:00")
+         }
+      ];
+   </script>
+
+</body>
+</html>
+

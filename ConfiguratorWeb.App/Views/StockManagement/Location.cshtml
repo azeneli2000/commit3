@@ -1,0 +1,168 @@
+﻿
+<form id="LocationForm" class="card-body h-90 p-0 border-0" style="display:none">
+
+    <div class="container-fluid">
+        <div class="row mt-3">
+            @*stockroomShortName*@
+            <div class="col-sm-1 u-col-h-fixed">
+                <label class="label-name field-required" for="LocationShortNameTxt">Shortname</label>
+            </div>
+            <div class="col-sm-3 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" data-val="true" data-val-required="The Location Short Name field is required." id="LocationShortNameTxt" disabled>
+                </div>
+            </div>
+            @*stockroomName*@
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+                <label class="label-name field-required" for="LocationNameTxt">Name</label>
+            </div>
+            <div class="col-sm-5 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" id="LocationNameTxt" name="CabinetGroupNameTxt" data-val-required="The Location Name field is required." disabled>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            @*index*@
+            <div class="col-sm-1 u-col-h-fixed">
+                <label class="label-name" for="LocationIndexTxt">Index</label>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" id="LocationIndexTxt" disabled>
+                </div>
+            </div>
+
+            <div class="col-sm-1 u-col-h-fixed ml-5">
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                </div>
+            </div>
+
+            @*description*@
+            <div class="col-sm-1 u-col-h-fixed ml-1">
+                <label class="label-name" for="LocationDescriptionTxt">Description</label>
+            </div>
+            <div class="col-sm-5 u-col-h-fixed">
+                <div class="input-group">
+                    <textarea class="k-input k-textbox" type="text" id="LocationDescriptionTxt" disabled></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-sm-1 u-col-h-fixed">
+                <label class="label-name" for="LocationNumPositionsTxt">Position nr</label>
+            </div>
+            <div class="col-sm-1 u-col-h-fixed">
+                <div class="input-group">
+                    <input class="k-input k-textbox" type="text" id="LocationNumPositionsTxt" disabled>
+                </div>
+            </div>
+            </div>
+    </div>
+</form>
+
+<script>
+    function populateLocationForm() {
+
+        $('#LocationShortNameTxt').val(dataItem.LocationShortName);
+        $('#LocationNameTxt').val(dataItem.LocationName);
+        $('#LocationDescriptionTxt').val(dataItem.LocationDescription);
+        $('#LocationNumPositionsTxt').val(dataItem.LocationPositionNumber);
+        $('#LocationIndexTxt').val(dataItem.LocationIndex);
+        dataItem.Mode = 'Update';
+        console.log(dataItem)
+    }
+    function onCancelLocation() {
+        $("#LocationForm").hide();
+        $("#CabinetForm").show();
+    }
+    function UpdateLocation() {
+        debugger
+        console.log(dataItem.Mode)
+        var locationModel =
+        {
+            LocationId: dataItem.LocationId,
+            CabinetId: dataItem.CabinetId,
+            LocationShortName: $('#LocationShortNameTxt').val(),
+            LocationName: $('#LocationNameTxt').val(),
+            LocationDescription: $('#LocationDescriptionTxt').val(),
+            LocationPositionNumber: $('#LocationNumPositionsTxt').val()
+        }
+            $.ajax({
+                url: '@Url.Action("UpdateLocation", "StockManagement")',
+                type: 'POST',
+                data: {
+                    model: locationModel
+                }
+            }).done(function (data) {
+                if (data.success != undefined && data.success) {         
+                    console.log('location  Updated');
+                } else {
+                    $('#errors').html('not saved. reason:' + data.errorMessage);
+                }
+            }).fail(function (response) {
+                console.log(response)
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            });
+            return;
+
+    }
+    function InsertLocation(){
+        var locationModel =
+        {
+            LocationId: dataItem.LocationId,
+            CabinetId: dataItem.CabinetId,
+            LocationShortName: $('#LocationShortNameTxt').val(),
+            LocationName: $('#LocationNameTxt').val(),
+            LocationDescription: $('#LocationDescriptionTxt').val(),
+            LocationPositionNumber: $('#LocationNumPositionsTxt').val()
+        }
+            $.ajax({
+                url: '@Url.Action("InsertNewLocation", "StockManagement")',
+                type: 'POST',
+                data: {
+                    model: locationModel
+                }
+            }).done(function (data) {
+                if (data.success != undefined && data.success) {
+                    console.log('location Inserted');
+                } else {
+                    $('#errors').html('not saved. reason:' + data.errorMessage);
+                }
+            }).fail(function (response) {
+                console.log(response)
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            });
+    }
+    function DeleteLocation() {
+        debugger
+        $.ajax({
+            url: '@Url.Action("RemoveLocation", "StockManagement")',
+            type: 'POST',
+            data: {
+                locationId: dataItem.LocationId,
+            }
+        }).done(function (data) {
+            if (data.success != undefined && data.success) {
+                console.log('location  deleted');
+            } else {
+                $('#errors').html('not deleted. reason:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            console.log(response)
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+    }
+    function clearLocationForm() {
+        $('#LocationShortNameTxt').val('')
+        $('#LocationNameTxt').val('');
+        $('#LocationDescriptionTxt').val('');
+        $('#LocationNumPositionsTxt').val(0);
+        $('#LocationIndexTxt').val(0);
+
+    }
+</script>
+
+

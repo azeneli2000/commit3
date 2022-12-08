@@ -1,0 +1,175 @@
+﻿@using Digistat.FrameworkStd.Interfaces
+@using Newtonsoft.Json
+@model Digistat.FrameworkStd.Model.Export.ExportJobs
+@inject IDictionaryService DicSvc
+
+<div class="row">
+    <div class="col-6 mt-3">
+        <div class="row">
+            <div class="col-3">
+                <label asp-for="exj_Name" class=" field-required">@DicSvc.XLate("Name")</label>
+            </div>
+            <div class="col-9">
+                <input asp-for="exj_Name" class="form-control control-required" required validationMessage="@DicSvc.XLate("Name is required")" />
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-3">
+                <label asp-for="exj_Host" class="">@DicSvc.XLate("Host")</label>
+            </div>
+            <div class="col-9">
+                <div class="input-group">
+                    <input asp-for="exj_Host" class="form-control "/>
+                    @*<div class="input-group-append">
+                        <button id="btnHostname" onclick="getCurrentHostname();" class="btn border" type="button" data-toggle="tooltip" data-placement="top">
+                            <span>@DicSvc.XLate("Set current hostname")</span>
+                        </button>
+                    </div>*@
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-3">
+                <label asp-for="exj_Status">@DicSvc.XLate("Enabled")</label>
+            </div>
+            <div class="col-9">
+
+               <input @(Model.exj_Status == 1 ? "checked" : "") class="k-checkbox k-checkbox-md k-rounded-md" id="exjStatus" name="exjStatus" type="checkbox" value="@(Model.exj_Status==1?"true":"false")" />
+               <label class="k-checkbox-label" for="exjStatus"></label>
+               @Html.HiddenFor(m => m.exj_Status)
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-3">
+                <label asp-for="exj_ReportMasterTemplate" class="field-required">@DicSvc.XLate("Report Template")</label>
+            </div>
+            <div class="col-9">
+                <div class="input-group">
+                    <input asp-for="exj_ReportMasterTemplate" class="form-control control-required"  required validationMessage="@DicSvc.XLate("Report Template is required")"/>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-3">
+                <label asp-for="exj_FileName" class="field-required">@DicSvc.XLate("File Name")</label>
+            </div>
+            <div class="col-9">
+                <div class="input-group">
+                    <input asp-for="exj_FileName" class="form-control control-required" style="height: auto; " required validationMessage="@DicSvc.XLate("A File Name is required")"/>
+
+                    <span class="input-group-append">
+                        <span onclick="openFileNameInfo();" class="btn border ig-18px"  title="@DicSvc.XLate("Information")">
+                            <span class="mdi mdi-information-outline mdi-18px"></span>
+                        </span>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-3">
+                <label asp-for="exj_FileFormat">@DicSvc.XLate("File Format")</label>
+            </div>
+            <div class="col-9">
+                <input asp-for="exj_FileFormat" />
+
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-3">
+                <label asp-for="exj_Timeout" class="field-required">@DicSvc.XLate("Timeout")</label>
+            </div>
+            <div class="col-9">
+                <input asp-for="exj_Timeout" class="k-align-right w-35 control-required"  required validationMessage="@DicSvc.XLate("A Timeout is required")"/>
+                @DicSvc.XLate("sec.")
+            </div>
+        </div>
+    </div>
+    <div class="col-6 mt-3">
+        <div class="row card p-0">
+            <div class="row mb-4 ml-0 pl-0 ums-header">
+                @DicSvc.XLate("Triggers").ToUpper()
+            </div>
+            <div class="row">
+
+                <div class="col-3">
+                    <label asp-for="exj_TriggerMessage">@DicSvc.XLate("Message")</label>
+                </div>
+                <div class="col-9">
+                    <div class="input-group">
+                        <span class="input-group-prepend">
+
+                            <span class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Enable/Disable")">
+                                @Html.Kendo().CheckBoxFor(m => m.exj_TriggerIsOnMessage)
+                            </span>
+                        </span>
+                        <input asp-for="exj_TriggerMessage" class="form-control " style="height: auto; " oninput="let p=this.selectionStart;this.value=this.value.toUpperCase();this.setSelectionRange(p, p);" />
+
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+
+                <div class="col-3">
+                    <label asp-for="exj_TriggerScheduledCron">@DicSvc.XLate("Scheduling")</label>
+                </div>
+                <div class="col-9">
+                    <div class="input-group">
+                        <span class="input-group-prepend">
+
+                            <span class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Enable/Disable")">
+                                @Html.Kendo().CheckBoxFor(m => m.exj_TriggerIsScheduled)
+                            </span>
+                        </span>
+                        <input asp-for="exj_TriggerScheduledCron" class="form-control" style="height: auto;"  />
+                        <span class="input-group-append modify-mode">
+                            <span onclick="checkScheduledCron();" class="btn border ig-18px" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Check")">
+                                <span class="mdi mdi-clock-check-outline mdi-18px"></span>
+                            </span>
+                        </span>
+                        <span class="input-group-append">
+                            <span onclick="openScheduledCronInfo();" class="btn border ig-18px" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Information")">
+                                <span class="mdi mdi-information-outline mdi-18px"></span>
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row card p-0">
+           <div class="row mb-4 ml-0 pl-0 ums-header">
+              <span class="field-required">@DicSvc.XLate("Actions")</span>
+           </div>
+            <div class="row mb-0">
+
+                <div class="col-3">
+                    <label asp-for="exj_SaveOnFileSystem">@DicSvc.XLate("Save on Filesystem")</label>
+                </div>
+                <div class="col-5" style="margin-left:12px">
+                    @Html.Kendo().CheckBoxFor(m => m.exj_SaveOnFileSystem).HtmlAttributes(new { onchange = "chkSaveOnFileSystem();" })
+                </div>
+            </div>
+            <div class="row mb-0">
+                <div class="col-3">
+                    <label asp-for="exj_SendMail">@DicSvc.XLate("Send E-mail")</label>
+                </div>
+                <div class="col-5" style="margin-left:12px">
+                    @Html.Kendo().CheckBoxFor(m => m.exj_SendMail).HtmlAttributes(new { onchange = "chkSendMail();" })
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+var originalJob = @Html.Raw( JsonConvert.SerializeObject(Model))
+function getCurrentHostname() {
+    $.ajax({
+        url: '@Url.Action("GetCurrentWorkstationName", "Generic")',
+        type: 'GET',
+        async: false
+
+    }).done(function (data) {
+        $('#exj_Host').val(data);
+    });
+}
+</script>

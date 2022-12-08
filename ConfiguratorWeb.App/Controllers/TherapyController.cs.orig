@@ -1,0 +1,243 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Digistat.FrameworkStd.Interfaces;
+using Digistat.FrameworkWebExtensions.Controllers;
+using Microsoft.AspNetCore.Mvc;
+//using ConfiguratorWeb.App.Models.Therapy;
+using Kendo.Mvc.UI;
+using Kendo.Mvc.Extensions;
+using System.Text.Json;
+using Configurator.Std.BL;
+using Digistat.FrameworkStd.Model.Therapy;
+using Microsoft.AspNetCore.Http;
+using ConfiguratorWeb.App.Extensions;
+using ConfiguratorWeb.App.Models.Therapy;
+using ConfiguratorWeb.App.ViewModelBuilders;
+
+namespace ConfiguratorWeb.App.Controllers
+{
+   public class TherapyController : DigistatWebControllerBase
+   {
+      public readonly ITherapyDataManager mobjTherapyDataManager;
+      public TherapyController(IDigistatConfiguration config, IMessageCenterService msgcenter,
+       ISynchronizationService syncSvc, IDictionaryService dicSvc, IDnsCacherService dnssvc, ILoggerService logsvc, ISystemOptionsService sysOptSvc, IDigistatEnvironmentService digEnvSvc,
+       ITherapyDataManager therapyDataManager)
+       : base(config, msgcenter, syncSvc, dicSvc, dnssvc, logsvc, sysOptSvc)
+      {
+         //mobjDigistatConfig = config;
+         //mobjSystemOptionsService = sysOptSvc;
+         //mobjLog = logsvc;
+         //mobjDigEnvironmentService = digEnvSvc;
+         //var tmp = JsonSerializer.Serialize<TherapyItemModel>(_model[0]);
+         mobjTherapyDataManager = therapyDataManager;
+      }
+
+      public IActionResult Index()
+      {
+         ViewBag.SitePath = "Therapy > Config";
+         return View();
+      }
+
+      public IActionResult TherapyConfig()
+      {
+         ViewBag.SitePath = "Therapy > Config";
+         return View("TherapyConfig");
+      }
+
+      [HttpPost]
+      public IActionResult TherapyConfigEdit(TherapyItemModel updatedAction)
+      {
+         if (updatedAction != null)
+         {
+            //string jsonval = Request.Form["QuantityDose.Ways"].ToString();
+            //var tmp = JsonSerializer.Deserialize<List<BoolStringPair>>(jsonval);
+            //updatedAction.QuantityDose.Ways = tmp;
+
+            updatedAction.QuantityDose.RebuildAllowedProperties();
+
+            var objStandardAction = TherapyItemModelBuilder.ToStandardAction(updatedAction);
+            if (updatedAction.Id > 0)
+            {
+               mobjTherapyDataManager.Update(objStandardAction);
+            }
+            else
+            {
+               //creation of a new item
+               mobjTherapyDataManager.Add(objStandardAction);
+            }
+         }
+
+         return PartialView("_StandardActionDetail", updatedAction);
+      }
+
+
+      public JsonResult DeleteAction(int ID)
+      {
+         try
+         {
+            //if (mobjPermSvc.CheckPermission(Configurator.Std.Defs.Permissions.permissionIntegrationTelligenceEdit, CurrentUser))
+            {
+               mobjTherapyDataManager.Delete(ID);
+
+               return Json(new { errorMessage = string.Empty, success = true });
+
+            }
+            //else
+            //{
+            //   return Json(new { errorMessage = mobjDicSvc.XLate(CommonStrings.NO_VALID_PERMISSION), success = false });
+            //}
+         }
+         catch (Exception ex)
+         {
+            return Json(new { errorMessage = ex.Message, success = false });
+         }
+         throw new NotImplementedException();
+      }
+
+      //[HttpPost]
+      //public ActionResult ReadStandardActions(ConfiguratorWeb.App.Models.Therapy.TherapyConfigModel objViewModel)
+      //{
+      //   List<TherapyItemModel> ret = mobjTherapyDataManager.GetBy(objViewModel.NameTherapyFilter, objViewModel.DescriptionTherapyFilter, objViewModel.TypeTherapyFilter);
+
+      //   objViewModel.FilteredActions = ret;
+
+      //   return View("TherapyConfig", objViewModel);
+      //}
+
+
+      [HttpGet]
+      public IActionResult CurrentStandardItem(int selectedItem)
+      {
+         //TODO: un minimo di check sulla presenza o meno dell'id nella lista
+         //return PartialView("_StandardActionDetail", mobjTherapyDataManager.GetByID(selectedItem));
+         try
+         {
+            var ret = mobjTherapyDataManager.GetByID(selectedItem);
+
+            return PartialView("_StandardActionDetail", ViewModelBuilders.TherapyItemModelBuilder.Build(ret));
+         }
+         catch (Exception e)
+         {
+            return StatusCode(StatusCodes.Status403Forbidden);
+         }
+      }
+
+      [HttpGet]
+      public IActionResult CreateStandardItem(int itemIdToDuplicate, string strType)
+      {
+         TherapyItemModel ret = new TherapyItemModel();
+
+         if (itemIdToDuplicate > 0)
+         {
+            var objClone = mobjTherapyDataManager.GetByID(itemIdToDuplicate);
+            if (objClone != null)
+            {
+               ret.Id = 0;
+               ret.ItemType = objClone.ActionType.HasValue? (TherapyItemModel.TherapyItemType) objClone.ActionType : TherapyItemModel.TherapyItemType.Invalid;
+               ret.Name = objClone.Name;
+               ret.Description = objClone.Description;
+            }
+         }
+         else
+         {
+            return StatusCode(StatusCodes.Status403Forbidden);
+         }
+
+         return PartialView("_StandardActionDetail", ret);
+      }
+
+
+      public JsonResult ReadFilteredStandardActions([DataSourceRequest] DataSourceRequest request)
+      {
+         try
+         {
+            string strNameFilter = "";
+            string strDescriptionFilter = "";
+            string strTypeFilter = "";
+
+            if (request.Filters.Any())
+            {
+               foreach (var fdc in request.Filters.ToFilterDescriptor())
+               {
+                  if (fdc.Member == "Name")
+                  {
+                     strNameFilter = fdc.Value.ToString();
+                  }
+                  else if (fdc.Member == "Description")
+                  {
+                     strDescriptionFilter = fdc.Value.ToString();
+                  }
+                  else if (fdc.Member == "ItemTypeString")
+                  {
+                     if (!string.IsNullOrEmpty(strTypeFilter))
+                     {
+                        strTypeFilter += ";";
+                     }
+                     strTypeFilter += fdc.Value.ToString();
+                  }
+               }
+            }
+
+            //IQueryable<SystemOption> objAll = mobjSystemOptionsManager.GetSystemOptions(isGeneralAppSelected);
+
+            //  DataSourceResult data = objAll.ToDataSourceResult(
+            //  request.SortAttributesMapping(SystemOptionViewModelExtensions.SortMappings)
+            //      .GroupAttributesMapping(SystemOptionViewModelExtensions.GroupMappings)
+            //      //.FilterAttributesMapping(SystemOptionViewModelExtensions.FilterMappings)
+            //      , model => SystemOptionViewModelBuilder.Build(model, (request.PageSize == 0)));
+            //  return new JsonResult(data);
+            var resultset = mobjTherapyDataManager.GetBy(strNameFilter, strDescriptionFilter, strTypeFilter).AsQueryable();
+            
+            int total = resultset.Count();
+
+            if (total > request.PageSize)
+            {
+               int pages = total / request.PageSize;
+               if (request.Page > pages)
+               {
+                  request.Page = 1;
+               }
+
+               var start = (request.Page - 1) * request.PageSize;
+               resultset = resultset.Skip(start).Take(request.PageSize);
+
+            }
+
+            List<TherapyItemModel> ret = TherapyItemModelBuilder.BuildList(resultset).ToList();
+            //var datares = ret.ToDataSourceResult(request);
+            var datares = new DataSourceResult() { Data = ret, Total = total };
+
+            return new JsonResult(datares);
+         }
+         catch (Exception exc)
+         {
+            return Json(new { errorMessage = exc.Message, success = false });
+         }
+      }
+
+<<<<<<< HEAD
+      public JsonResult ReadFilteredStandardActionsNEW([DataSourceRequest] DataSourceRequest request)
+      {
+         try
+         {
+            IQueryable<StandardAction> objAll = mobjTherapyDataManager.GetQueryable();
+
+            DataSourceResult ret = objAll.ToDataSourceResult(
+            request, model => ViewModelBuilders.TherapyItemModelBuilder.Build(model));
+                           
+            return new JsonResult(ret);
+         }
+         catch (Exception exc)
+         {
+            return Json(new { errorMessage = exc.Message, success = false });
+         }
+      }
+   }
+=======
+
+
+      }
+>>>>>>> 9681caee264573c3fc3b83fee1ee6e7e2692c032
+}

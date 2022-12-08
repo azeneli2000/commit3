@@ -1,0 +1,397 @@
+﻿@using ConfiguratorWeb.App.Models.DiaryWeb
+@model Category
+@{
+   var gridName = "subjectGrid";
+}
+
+<script>
+
+    function onEdit(e) {    
+      e.sender.closeCell();
+    }
+
+</script>
+
+
+
+
+
+<div id="EditS"></div>
+
+
+
+@(Html.Kendo().Grid(Model?.Subjects)
+         .Name(gridName)
+         .Navigatable(true)
+         .Columns(columns =>
+         {
+            columns.Bound(e => e.Text).Title(DicSvc.XLate("Subject")).HtmlAttributes((new { style = "border-color: rgb(33 37 41 / 31%);" })).Width("80%");
+            columns.Bound(e => e.IsActive).Title(DicSvc.XLate("IsActive")).Width("20%").ClientTemplate("<input class='check-col  k-checkbox k-checkbox-md k-rounded-md'  disabled='disabled' type='checkbox' #=IsActive ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;border-color: rgb(33 37 41 / 31%);" }).Width("25%");
+            columns.Bound(e => e.isEditable).Visible(false);
+
+
+         })
+         //.Events(e => e.DataBound("onDataBound"))
+         .Scrollable()
+         .Selectable(s => s.Mode(GridSelectionMode.Single))
+         .Events(e => e.Edit("onEdit"))
+         .Navigatable(true)
+         .Reorderable(reorder => reorder.Columns(true))
+      .DataSource(dataSource => dataSource
+                  .Ajax()
+                  .ServerOperation(true)
+                   .Model(model =>
+                   {
+
+                      model.Id(o => o.ID);
+                      model.Field(o => o.Category);
+                      model.Field(o => o.Index);
+                      model.Field(o => o.IsActive);
+                      model.Field(o => o.isEditable);
+                      model.Field(o => o.Text).Editable(true);
+                      model.Field(o => o.SubjectsPhrases).Editable(true);
+                   })
+
+      )
+      .HtmlAttributes(new { @style = "height:200px;top:0px;width:732px;" })
+      .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No Subjects found") + "</div>"))
+      )
+
+
+<script>
+
+$('#addSubjectsBtn').off('click').on('click', function (e) {
+         var customAddSubject = $('#EditS').umsKendoWindow({
+
+        title: "@DicSvc.XLate("Edit Subject")",
+        height: 450,
+        width: 1000,
+        modal: true,
+        });
+      customAddSubject = $("#EditS").data("kendoWindow");
+      $("#waysError").css("display", "none");
+      $("#waysError1").css("display", "none");
+
+      $.ajax({
+        url: '@Url.Action("GetSubject", "DiaryWeb")',
+        type: 'POST',
+        data: { s:null },
+
+        })
+        .done(function (dataHtml) {
+        
+     
+        customAddSubject.content('');
+        customAddSubject.content(dataHtml);
+        if (customAddSubject.element.is(":hidden")) {
+        customAddSubject.open();
+        customAddSubject.center();
+
+        }
+        });
+});
+
+
+
+$('#removeSubjectsBtn').off('click').on('click', function (e) {
+      var grid = $("#@gridName").data("kendoGrid");
+      var dataItem = grid.select();
+      var datasource = $("#@gridName").data("kendoGrid").dataSource;
+
+      grid.removeRow(dataItem);
+
+      datasource.remove(dataItem);
+      $("#removeSubjectsBtn").css("display", "none");
+      orderCategoryGridsIndex("@gridName");
+      $("#moveSubjectUp").attr('disabled', true);
+      $("#moveSubjectDown").attr('disabled', true);
+      $("#editSubjectsBtn").css("display", "none");
+});
+
+
+
+  
+
+
+
+   $(document).ready(function () {
+
+    //var dialogx = $("#editSubject").data("kendoWindow");
+    //dialogx.bind("close", window_close);
+    //var dialogy = $("#UpdateSubject").data("kendoWindow");
+    //dialogy.bind("close", window_closeU);
+
+if (!customAddSubject) {
+        customAddSubject = $('#EditS').umsKendoWindow({
+
+        title: "@DicSvc.XLate("Edit Subject")",
+        height: 450,
+        width: 1000,
+        modal: true,
+
+          
+
+        });
+    }
+
+
+   });
+
+   function resetOrderButtons() {
+       var grid = $("#@gridName").data("kendoGrid");
+      grid.clearSelection();
+      $("#moveSubjectUp").attr('disabled', true);
+      $("#moveSubjectDown").attr('disabled', true);
+      $("#removeSubjectsBtn").css("display", "none");
+      $("#editSubjectsBtn").css("display", "none");
+   }
+
+   function window_closeU(e) {
+
+      $("#waysError").css("display", "none");
+      $("#waysError1").css("display", "none"); $("#waysErrorUpdate").css("display", "none");
+      $("#waysError1Update").css("display", "none");
+      $("#removeSubjectsBtn").css("display", "none");
+      $("#SubjectDiaryUpdate").val("");
+      resetOrderButtons();
+   };
+
+
+
+   function window_close(e) {
+
+      $("#waysError").css("display", "none");
+      $("#waysError1").css("display", "none"); $("#waysErrorUpdate").css("display", "none");
+      $("#waysError1Update").css("display", "none");
+      $("#removeSubjectsBtn").css("display", "none");
+      $("#SubjectDiary").val("");
+      resetOrderButtons();
+   };
+
+
+$('#brnCancelGridItemDUpdate').off('click').on('click', function (e) {
+
+         var dialog = $("#EditS").data("kendoWindow");
+
+         $("#waysErrorUpdate").css("display", "none");
+         $("#waysError1Update").css("display", "none");
+         $("#SubjectDiaryUpdate").val("");
+         $("#removeSubjectsBtn").css("display", "none");
+         $("#editSubjectsBtn").css("display", "none");
+
+   resetOrderButtons();
+
+   dialog.close();
+
+      });
+
+
+
+   function Subjects_Grid_Update(id,text)
+   {
+
+      
+      customAddSubject = $("#EditS").data("kendoWindow");
+         var datasource = $("#@gridName").data("kendoGrid").dataSource
+         var grid = $("#@gridName").data("kendoGrid");
+         var grid2 = $("#subjectGridph").data("kendoGrid");
+         var datasource2 = $("#subjectGridph").data("kendoGrid").dataSource;
+      var data = datasource.data();
+
+      var isActiveVal = document.getElementById("IsActiveS").checked;
+      
+      var dataItem = grid.dataItem(grid.select());
+         var i;
+         var count = 0;
+      if ($("#SubjectDiary").val() == "") {
+         //alert("Name is required");
+         $("#waysError1").css("display", "block");
+         $("#waysError").css("display", "none");
+
+         return false;
+         }
+
+        var subph = $('#subjectGridph').getKendoGrid().dataSource.data();
+        var suphP= [];
+        for (let i = 0; i < subph.length; i++)
+        {
+            if (subph[i].Text !== "" ) {
+            suphP.push({ ID:subph[i].ID,  Text: subph[i].Text,Subject:id,Index:subph[i].Index});
+            }
+        }
+
+        if(id == '0')
+        {
+             var arrayIndex = [];
+             var newIndex  ; 
+            for (var k = 0; k < grid.dataSource._data.length; k++) {
+
+             arrayIndex.push(grid.dataSource._data[k].Index);
+
+            }
+            if(arrayIndex.length > 0)
+            {
+                newIndex= Math.max(...arrayIndex)+1;
+            }
+            else
+            {
+                newIndex = 0 ; 
+            }
+            var arrayId = [];
+            for (var k = 0;k< grid.dataSource._data.length; k++) {
+
+            arrayId.push(grid.dataSource._data[k].id);
+
+            }
+
+            var newID = Math.max.apply(Math,arrayId);
+            var isActiveVal = document.getElementById("IsActiveS").checked;
+            datasource.insert({Text: text, Category: '@Model.ID', IsActive: isActiveVal,isEditable:true,SubjectsPhrases:suphP,Index:newIndex});
+            orderGridsIndex("subjectGrid");
+        }
+        else
+        {
+
+
+            dataItem.set("Text", text);
+            dataItem.set("Category" ,'@Model.ID');
+            dataItem.set("IsActive" ,isActiveVal);
+            dataItem.set("SubjectsPhrases" ,suphP);
+        }
+      
+
+      $("#SubjectDiary").val("");
+      resetOrderButtons();
+      customAddSubject.close();
+   }
+
+
+       var gridS = $("#@gridName").data("kendoGrid");  
+$('#editSubjectsBtn').off('click').on('click', function (e) {
+            if (enableGrids) {
+                var customAddSubject = $('#EditS').umsKendoWindow({
+                title: "@DicSvc.XLate("Edit Subject")",
+                height: 450,
+                width: 1000,
+                modal: true,
+                });
+                
+               var dataItemSelectedS = isSeelectedSub;
+                customAddSubject = $("#EditS").data("kendoWindow");
+                var sph = [];
+                for(var j=0; j< dataItemSelectedS.SubjectsPhrases.length; j++)
+                {
+                    sph.push({ ID: dataItemSelectedS.SubjectsPhrases[j].ID, Subject: dataItemSelectedS.SubjectsPhrases[j].Subject, Text: dataItemSelectedS.SubjectsPhrases[j].Text, Index: dataItemSelectedS.SubjectsPhrases[j].Index })
+                }
+               
+
+                var sub = {
+                    ID: dataItemSelectedS.ID,
+                    Text: dataItemSelectedS.Text,
+                    Index: dataItemSelectedS.Index,
+                    Category: dataItemSelectedS.Category,
+                    SubjectsPhrases :sph,
+                    IsActive: dataItemSelectedS.IsActive,
+                    isEditable : dataItemSelectedS.isEditable
+                };
+                $.ajax({
+                    url: '@Url.Action("GetSubject", "DiaryWeb")',
+                    type: 'POST',
+                    data: { s:sub }
+                })
+                .done(function (dataHtml) { 
+                    customAddSubject.content('');
+                    customAddSubject.content(dataHtml);
+                    if (customAddSubject.element.is(":hidden")) {
+                        customAddSubject.open();
+                        customAddSubject.center();
+                    }
+                });     
+        }
+         });
+
+
+
+
+
+
+
+   $("#moveSubjectDown").on("click", function (idx, elem) {
+      //$("#moveSubjectUp").css('display', "flex");
+      //$("#moveSubjectDown").css('display', "flex");
+      
+      $("#moveSubjectUp").attr('disabled', false);
+      var visibleGrid = $("#@gridName").data("kendoGrid");
+      if (visibleGrid.dataSource._data.length > 1) {
+         var selected = visibleGrid.select();
+         if (selected.length > 0) {
+
+            $.each(selected, function (idx, elem) {
+               var dataItem = visibleGrid.dataItem($(this));
+               
+               var index = visibleGrid.dataSource.indexOf(dataItem);
+               var maxIndex = visibleGrid.dataSource._data.length - 1;
+               if (index < maxIndex) {
+                  var newIndex = index + 1;
+                  visibleGrid.dataSource.remove(dataItem);
+                  visibleGrid.dataSource.insert(newIndex, dataItem);
+                  visibleGrid.select("tr:eq(" + (newIndex) + ")");
+                  orderCategoryGridsIndex("@gridName");
+               }
+               if (index == maxIndex - 1) {
+                  $("#moveSubjectDown").attr('disabled', true);
+                  visibleGrid.select("tr:eq(" + (newIndex) + ")");
+               }
+               isSeelectedSub = visibleGrid.dataItem(grid.select());
+       
+          
+            });
+         }
+      }
+
+   });
+
+
+
+
+
+   $("#moveSubjectUp").on("click", function (idx, elem) {
+      
+
+
+      $("#moveSubjectUp").attr('disabled', false);
+      $("#moveSubjectDown").attr('disabled', false);
+
+      var visibleGrid = $("#@gridName").data("kendoGrid");
+      var selected = visibleGrid.select();
+      if (visibleGrid.dataSource._data.length > 1) {
+         if (selected.length > 0) {
+
+            $.each(selected, function (idx, elem) {
+               var dataItem = visibleGrid.dataItem($(this));
+               var index = visibleGrid.dataSource.indexOf(dataItem);
+               if (index > 0) {
+                  var newIndex = index - 1;
+                  visibleGrid.dataSource.remove(dataItem);
+
+                  visibleGrid.dataSource.insert(newIndex, dataItem);
+                  visibleGrid.select("tr:eq(" + (newIndex) + ")");
+                   orderCategoryGridsIndex("@gridName");
+
+               }
+               if (index == 1) {
+                  $("#moveSubjectUp").attr('disabled', true);
+                  visibleGrid.select("tr:eq(" + (newIndex) + ")");
+               }
+              isSeelectedSub = visibleGrid.dataItem(grid.select());
+            });
+         }
+      }
+
+   });
+
+
+
+
+
+</script>

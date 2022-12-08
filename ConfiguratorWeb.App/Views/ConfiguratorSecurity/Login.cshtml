@@ -1,0 +1,122 @@
+﻿@{
+    Layout = "_LayoutEmpty";
+
+    ViewBag.Title = DicSvc.XLate("Login");
+}
+<style>
+    fieldset.form-fields .input-text, fieldset.form-fields .input-dropdown, input[type=submit] {
+        width: 76% !important;
+    }
+    input[type="submit"], input[type="button"], button {
+        margin-right: 0px !important;
+    }
+
+    .input-text-focused:after {
+        border-radius: 0;
+        border-width: 0 0 1px;
+        border-bottom-color: #8e44ad;
+        height: auto;
+        background-color: #8e44ad;
+        transition: 0.2s ease all;
+        padding: 3px 0 5px;
+        transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+    }
+</style>
+
+<section id="loginForm">
+    <div class="card-ums" style="width:350px;margin: 0 auto;">
+        <div class="card-header text-center" data-background-color="blue" >
+            <h4 class="card-title " >Login</h4>
+        </div>
+        @using (Html.BeginForm("LoginCheck", "Security", FormMethod.Post, new { id = "login-form" }))
+        {
+            <fieldset class="form-fields">
+                <ol>
+                    <li>
+                        <div class="form-group">
+                            <input class="input-text username" name="username" id="username" placeholder="Username" />
+                        </div>
+                    </li>
+                    <li>
+                        <div class="form-group">
+                            <input class="input-text password" type="password" name="password" placeholder="Password" />
+                        </div>
+                    </li>
+                    <li>
+                        <div class="form-group">
+                            <div id="msgAuthFailed" class="login-error-msg"></div>
+                        </div>
+                    </li>
+                </ol>
+                @*<div class="form-group row" style="width:663px;">
+                    <label class="form-label align-bottom"></label>
+                    <div class="form-group">
+                        <div id="msgAuthFailed" class="login-error-msg"></div>
+                    </div>
+                </div>*@
+                <div style="padding-bottom: 30px;">
+                    <button type="button" class="highlightButton" style="width: 76%!important;" onclick="submitLogin();">Login</button>
+                </div>
+            </fieldset>
+        }
+
+    </div>
+
+    <br /><br /><br />
+
+</section>
+
+
+<script>
+    $(document).ready(function () {
+        $("#username").focus();
+        $(".input-text").keypress(function (e) {
+            // if the key pressed is the enter key
+            if (e.which == 13) {
+                submitLogin();
+            }
+        });
+    });
+    function submitLogin() {
+        if ($('input[name="username"]').val().length === 0) {
+            $('input[name="username"]').addClass("control-error-validation");
+                $("#msgAuthFailed").html("Invalid username");
+            }
+            else {
+                kendo.ui.progress($('body'), true);
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("LoginCheck", "Security")",
+                    data: $("#login-form").serialize(),
+                    success: function (result) {
+                        //
+                        if (result.success) {
+                            window.location.href = result.redirectTo;
+                            $('input[name="username"]').removeClass("control-error-validation");
+                            $('input[name="password"]').removeClass("control-error-validation");
+                        }
+                        else {
+                           //debugger;
+                           kendo.ui.progress($('body'), false);
+                            $('input[name="username"]').addClass('control-error-validation');
+                            $('input[name="username"]').addClass("");
+                            $('input[name="username"]').val("");
+                            $('input[name="password"]').addClass('control-error-validation');
+                            $('input[name="password"]').addClass("");
+                            $('input[name="password"]').val("");
+                            $("#msgAuthFailed").html(result.errorMessage);
+                        }
+                        $("#coverScreen").hide();
+                    },
+                    error: function (xhr, textStatus, errorThrown) {
+                        // TODO: Show error
+                        //debugger;
+
+                       kendo.ui.progress($('body'), false);
+                        $("#coverScreen").hide();
+                    }
+                });
+            }
+    }
+</script>
+

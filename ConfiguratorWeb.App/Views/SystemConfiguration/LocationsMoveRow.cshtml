@@ -1,0 +1,320 @@
+﻿@{
+   string gridName = "locations-grid";
+   string popUpWindowName = "IdOfEditWindow";
+   string editItemTitle = "Edit location";
+   string newItemTitle = "Add new locations";
+}
+<script>
+   var gridIdName = "@gridName";
+   var popUpWindowName = "#@popUpWindowName";
+</script>
+<script id="locationMoveColTemplate" type="text/x-kendo-template">
+   <button type="button" class="btn w-100" onclick='locationMoveDialog(#=ID#);'><i class="mdi mdi-swap-vertical-bold"></i>@DicSvc.XLate("Move")</button>
+</script>
+<script>
+   var locationMoveColTemplate = kendo.template($('#locationMoveColTemplate').html());
+</script>
+<div id="moveLocDialog">
+   <input type="hidden" id="hidCurrLocationSelected" />
+   <div class="row">
+      <button class="btn w-100 k-buttonLarge k-button" type="button" onclick="moveLocHandler(0)" style="place-content: space-between;"><i class="mdi mdi-arrow-up mdi-24px float-left"></i>@DicSvc.XLate("Move Up")</button>
+   </div>
+   <div class="row">
+      <button class="btn w-100 k-buttonLarge k-button" type="button" onclick="moveLocHandler(1)" style="place-content: space-between;"><i class="mdi mdi-arrow-down mdi-24px float-left"></i>@DicSvc.XLate("Move Down")</button>
+   </div>
+</div>
+<div id="IdOfEditWindow"></div>
+<div class="h-100 text-center">
+   <div class="card h-100 m-1 p-2 text-left">
+      <style>
+         .dragIcon {
+            cursor: move;
+         }
+      </style>
+      
+
+      @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.LocationViewModel>()
+          .Name(gridName)
+          .Filterable()
+          .UmsDefaultSettings(DicSvc)
+          .Resizable(resize => resize.Columns(true))
+          .UmsDefaultToolbar("createNewBed", "ADD NEW LOCATION", "displayDetailDialog('0');", DicSvc)
+          .Columns(columns =>
+          {
+             columns.Bound(e => e.ID).Visible(false);
+             columns.Bound(e => e.LocationIndex).Title(DicSvc.XLate("Index")).Hidden(false).Width(100);
+
+             columns.Bound(e => e.LocationName).Title(DicSvc.XLate("Name"));
+
+             columns.Bound(e => e.LocationCode).Title(DicSvc.XLate("Code"));
+             columns.Bound(e => e.HospitalUnitName).Title(DicSvc.XLate("Hospital Unit"));
+
+             columns.Bound(e => e.ID).Sortable(false).Filterable(false).ClientTemplate("<span class='dragIcon'>↕</span>").Title("&nbsp;").Width(100);
+          })
+          //.Scrollable(s => s.Enabled(false))
+          //.Selectable(s => s.Enabled(false))
+          .Events(ev => ev.DataBound("onDataBound"))
+          .DataSource(dataSource => dataSource
+          .Ajax()
+          .Model(model =>
+          {
+             model.Id(o => o.ID);
+             model.Field(o => o.LocationName).Editable(false);
+             model.Field(o => o.LocationCode).Editable(false);
+             model.Field(o => o.LocationIndex).Editable(false);
+             model.Field(o => o.HospitalUnitGUID).Editable(false);
+             model.Field(o => o.HospitalUnitName).Editable(false);
+          })
+          //.PageSize(20)
+          .Events(events => events.Error("error_handler_so"))
+          .Read(read => read.Action("ReadLocations", "SystemConfiguration"))
+          )
+
+      )
+      @(Html.Kendo().Sortable()
+         .For("#" + gridName)
+         .Filter("table > tbody > tr")
+         .Cursor("move")
+         .Handler(".dragIcon")
+         .HintHandler("noHint")
+         .PlaceholderHandler("placeholderHandler")
+         .ContainerSelector("#" + gridName + " tbody")
+         .Events(events => events.Change("onChange"))
+      )
+   </div>
+</div>
+
+<script>
+    var noHint = $.noop;
+    function placeholderHandler(element) {
+        return element.clone().addClass("k-state-hover").css("opacity", 0.65);
+    }
+    //the change event handler of the Sortable widget
+    function onChange(e) {
+        debugger;
+        var grid = e.sender.element.data("kendoGrid"),
+            skip = grid.dataSource.skip()||0,
+            oldIndex = e.oldIndex + skip,
+            newIndex = e.newIndex + skip,
+            data = grid.dataSource.data(),
+            dataItem = grid.dataSource.getByUid(e.item.data("uid"));
+
+            dataItem.Order = newIndex; //update the order
+            dataItem.dirty = true;
+
+        grid.dataSource.remove(dataItem);
+        grid.dataSource.insert(newIndex, dataItem);
+    }
+    function onChange2(e) {
+        debugger;
+        var grid = e.sender.element.data("kendoGrid"),
+            oldIndex = e.oldIndex , //the old position
+            newIndex = e.newIndex , //the new position
+            view = grid.dataSource.view(),
+            dataItem = grid.dataSource.getByUid(e.item.data("uid")); //retrieve the moved dataItem
+
+        dataItem.Order = newIndex; //update the order
+        dataItem.dirty = true;
+
+        //shift the order of the records
+        if (oldIndex < newIndex) {
+            for (var i = oldIndex + 1; i <= newIndex; i++) {
+                view[i].Order--;
+                view[i].dirty = true;
+            }
+        } else {
+            for (var i = oldIndex - 1; i >= newIndex; i--) {
+                view[i].Order++;
+                view[i].dirty = true;
+            }
+        }
+        grid.dataSource.sync(); //submit the changes through the update transport and refresh the Grid
+    }
+    var kndWnd;
+    var kndWndPosition;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                maxHeight: 280,
+                maxWidth:1100,
+                title: '@DicSvc.XLate(editItemTitle)',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+
+        }
+    });
+
+    $(document).ready(function() {
+        if (!kndWndPosition) {
+            kndWndPosition = $("#moveLocDialog").kendoWindow({
+                width: "300px",
+                height: "150px",
+                modal: false,
+                visible:false,
+                title: '@DicSvc.XLate("Move selected Location")',
+                close: function (e) {
+                    $('#hidCurrLocationSelected').val('');
+                    $('#' + gridIdName).data("kendoGrid").setOptions({ selectable: true });
+                    $('#' + gridIdName).data("kendoGrid").clearSelection();
+                }
+            });
+
+        }
+    });
+
+    $(window).resize(function () {
+        setTimeout(function () {
+            if (kndWnd) {
+                kndWnd.data("kendoWindow").center();
+            }
+        }, 100);
+    });
+
+    function onDataBound(e) {
+        var grid = this;
+        selectOnGrid();
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                if (!$('#moveLocDialog').is(':visible') ){
+                    var item = grid.dataItem($(e.target).closest('tr'));
+                    onGridKeyEnter(item);
+                }
+            });
+    }
+
+
+    function toggleItemDblSelection(tgl) {
+
+        var grid = $("#" + gridIdName).data("kendoGrid");
+        if (tgl) {
+            grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+                function (e) {
+                    var item = grid.dataItem($(e.target).closest('tr'));
+                    if (item.ID) {
+                        displayDetailDialog(item.ID);
+                    }
+
+                });
+        }
+        else {
+            grid.element.off('dblclick', 'tbody tr[data-uid]');
+        }
+    }
+
+    function onCancel(e) {
+        grid.refresh();
+    }
+
+    function error_handler_so(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+    function onGridKeyEnter(item) {
+        displayDetailDialog(item.ID);
+    };
+    function displayDetailDialog(Id) {
+        $.ajax({
+            url: '@Url.Action("GetLocation", "SystemConfiguration")',
+            type: 'GET',
+            data: { id: Id }
+        }).done(function (data) {
+            kndWnd.data("kendoWindow")
+                .content(data)
+                .center().open();
+        });
+    }
+
+
+    //functions used for details
+
+    function OnSuccess(response) {
+        if (response.success) {
+            grid.dataSource.read();
+            dialog.close();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+    function OnFailure(response) {
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+
+    function moveLocation(locID,direction) {
+        $.ajax({
+            url: '@Url.Action("MoveLocation", "SystemConfiguration")?LocationID=' + locID + '&direction=' + direction,
+            contentType: 'application/json; charset=utf-8',
+            type: 'GET'
+        }).done(function(data) {
+            var grid = $("#" + gridIdName).data("kendoGrid");
+            grid.setOptions({ selectable: false });
+            grid.dataSource.read();
+
+        });
+    }
+
+    function moveLocHandler(direction) {
+
+
+
+        var locId = $('#hidCurrLocationSelected').val();
+        moveLocation(locId, direction);
+    }
+
+    function locationMoveDialog(locid) {
+
+        var $hidTmp = $('#hidCurrLocationSelected');
+        if ($hidTmp.val() == '') {
+            selectOnGrid(locid);
+            $('#hidCurrLocationSelected').val(locid);
+            kndWndPosition.data("kendoWindow")
+                .center().open();
+        }
+        else {
+
+            clarLocSelection();
+        }
+    }
+
+
+    function selectOnGrid(id) {
+        var locId = id;
+        if (!locId || locId == '') {
+            locId = $('#hidCurrLocationSelected').val();
+        }
+        if (locId && locId != '') {
+            var grid = $("#" + gridIdName).data("kendoGrid");
+            grid.items().each(function () {
+                var data = grid.dataItem(this);
+                if (data.ID == locId) {
+                    grid.select(this);
+                }
+            });
+            toggleItemDblSelection(false);
+        }
+        else {
+            toggleItemDblSelection(true);
+        }
+    }
+
+    function clarLocSelection() {
+        $('#hidCurrLocationSelected').val('');
+        $('#' + gridIdName).data("kendoGrid").setOptions({ selectable: true });
+        $('#' + gridIdName).data("kendoGrid").clearSelection();
+        kndWndPosition.data('kendoWindow').close();
+    }
+
+</script>

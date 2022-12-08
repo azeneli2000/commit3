@@ -1,0 +1,68 @@
+﻿@model ConfiguratorWeb.App.Models.DeviceDriverViewModel
+@{
+    Layout = null;
+}
+
+
+@*<script>
+    function onChangePermissionLevel() {
+        debugger;
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+        if ($.trim(this.value()) == "") {
+            $("#PermissionLevel_@Model.Id").parent().css("border-color", "red");
+            $("#PermissionLevel_@Model.Id").parent().css("background-color", "#fff8f8");
+        }
+        else {
+            $("#PermissionLevel_@Model.Id").parent().css("border-color", "#f0f0f0");
+            $("#PermissionLevel_@Model.Id").parent().css("background-color", "#fafafa");
+        }
+    }
+</script>*@
+
+<div style="height:360px;padding-top: 10px;">
+    <div class="row">
+        <div class="col-md-4 u-col-h-fixed">
+            <label asp-for="AutoStartDriver" class="label-name">@DicSvc.XLate("Autostart Driver (uncheck it only in SmartCable scenario)")</label>
+        </div>
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.Kendo().CheckBoxFor(m => m.AutoStartDriver).HtmlAttributes(new { @style = "margin-top: 6px;display: block;" })
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4 u-col-h-fixed">
+            <label asp-for="AutoStartWatchDog" class="label-name">@DicSvc.XLate("Autostart Watchdog (used only by monitoring clients module)")</label>
+        </div>
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.Kendo().CheckBoxFor(m => m.AutoStartWatchDog).HtmlAttributes(new { @style = "margin-top: 6px;display: block;" })
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4 u-col-h-fixed">
+            <label asp-for="SendDataToMC" class="label-name">@DicSvc.XLate("Send vital signs data to MessageCenter")</label>
+        </div>
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.Kendo().CheckBoxFor(m => m.SendDataToMC).HtmlAttributes(new { @style = "margin-top: 6px;display: block;" })
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4 u-col-h-fixed">
+            <label asp-for="ForceSendDataWithoutPatient" class="label-name">@DicSvc.XLate("Force DAS to send vital signs data without a patient on bed")</label>
+        </div>
+        <div class="col-md-2 u-col-h-fixed">
+            @Html.Kendo().CheckBoxFor(m => m.ForceSendDataWithoutPatient).HtmlAttributes(new { @style = "margin-top: 6px;display: block;" })
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4 u-col-h-fixed">
+            <label asp-for="DataRate" class="label-name">@DicSvc.XLate("Datarate in seconds. Leave 0 to use default value")</label>
+        </div>
+        <div class="col-md-2 u-col-h-fixed">
+           @(Html.Kendo().NumericTextBoxFor(m => m.DataRate).Decimals(0).Format("#").HtmlAttributes(new { @class = "control-required", @style = "width:58%;" }))
+           @*.Name("DataRate").Value(Model.DataRate).Decimals(0).Format("#").HtmlAttributes(new { @class = "control-required", @style = "width:58%;" }))*@
+        </div>
+    </div>
+
+</div>
+
+     

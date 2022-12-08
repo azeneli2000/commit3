@@ -1,0 +1,258 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@using Kendo.Mvc.Extensions
+@{
+   Layout = "_LayoutOld";
+   string[] actions = new string[] { "Close" };
+}
+
+<div style="text-align:center;height:100%;">
+    <div id="IdOfSecondWindow"></div>
+    <div class="card" style="height:98%;margin: 0px ;padding: 5px;text-align:left;">
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.ListWithGridViewModel>()
+              .Name("id-of-grid")
+              .UmsDefaultSettings(DicSvc)
+              .UmsDefaultToolbar("createNewItem","", DicSvc)
+              .UmsDefaultPager(DicSvc)
+              .Events(ev => ev.Change("onItemSelected"))
+              /*uncomment this to customize excel filename , the default is Grid_{0}.xlsx*/
+              //.Excel(excel => excel.FileName("GridItem_{0}.xlsx".FormatWith(DateTime.Now.ToString("s"))))
+              .Columns(columns =>
+              {
+                  columns.Bound(e => e.ID).Visible(false);
+                  columns.Bound(e => e.TLDeviceID);
+                  columns.Bound(e => e.TLDeviceName);
+                  columns.Bound(e => e.tl_IPAddress);
+                  columns.Bound(e => e.tl_MACAddress);
+                  columns.Bound(e => e.TLLocationDescriptor);
+                  columns.Bound(e => e.tl_DeviceType).Filterable(a =>
+                  {
+                      a.Search(true).Multi(true).CheckAll(true);
+                  }); //select existing values
+                  columns.Bound(e => e.HasNetwork).Filterable(a => a.Multi(true)).ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #= HasNetwork ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" }); ;
+                  columns.Bound(e => e.tl_psv_ID).Filterable(false).ClientTemplate("<input class='check-col  k-checkbox' disabled='disabled' type='checkbox' #= tl_psv_ID!=0 ? checked='checked' :'' # /><label class='k-checkbox-label'></label>").HtmlAttributes(new { style = "text-align:center;" }); ;
+                  columns.Bound(e => e.BedCount)
+                      .HtmlAttributes(new { @class = "umsPreventClick" })
+                      .ClientTemplate(@"<input type='button' onclick='showBeds(#=NetworkID#,#=ID#);' class='btn #= BedCount>0 ? 'btnSave' : 'btnCancel' # ' value='#=BedCount# '></input>")
+                      .HtmlAttributes(new { style = "text-align:center;" });
+
+                  columns.Command(command =>
+                  {
+                      command.Custom("deletecustom").Click("onDeleteItem").Text(" ");
+                  }).Width(120);
+              })
+              .DataSource(dataSource => dataSource
+                          .Ajax()
+                          .Model(model =>
+                          {
+                              model.Id(o => o.ID);
+                              model.Field(o => o.TLDeviceName).Editable(false);
+                              model.Field(o => o.tl_IPAddress).Editable(false);
+                              model.Field(o => o.tl_MACAddress).Editable(false);
+                              model.Field(o => o.TLDeviceID).Editable(false);
+                              model.Field(o => o.TLLocationDescriptor).Editable(false);
+                              model.Field(o => o.HasNetwork).Editable(false);
+                              model.Field(o => o.tl_DeviceType).Editable(false);
+                              model.Field(o => o.HasPortServer).Editable(false);
+                          })
+                          .PageSize(20)
+                          .Events(events => events.Error("error_handler_users"))
+                          .Read(read => read.Action("ReadTelligenceDevicesWithBeds", "Template"))
+                  )
+            )
+
+              
+
+
+
+    </div>
+
+</div>
+<div id="IdOfEditWindow"></div>
+<script id="delete-confirmation" type="text/x-kendo-template">
+    @{ await Html.RenderPartialAsync("_DeleteDialogConfirmWindow"); }
+</script>
+
+<script id="detail" type="text/kendo-tmpl">
+    <div class="tellidevices-detail" data-uidparent="#=ID#" style="width: 99%;display: inline-block;padding: 15px 0;"></div>
+</script>
+
+
+<script type="text/javascript">
+
+    $(function () {
+        $("#createNewItem").on("click", function (e) {
+               displayItemDetail('');
+           });
+    });
+
+    function closeEditDialog() {
+        deselectItem();
+    }
+
+    function onItemSelected(e) {
+       var item = e.sender.dataItem(e.sender.select());
+       displayItemDetail(item.ID);
+    }
+
+    function deselectItem() {
+    $($('#id-of-grid').data('kendoGrid').select()).removeClass("k-state-selected");
+    }
+
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+        $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+
+    function onEditItem(e) {
+        
+        e.preventDefault();
+        if (!$("#id-of-grid").find("tr[data-role='editable']").next().find("td.k-detail-cell").is(":visible")) {
+            $("#id-of-grid").find("tr[data-role='editable']").find(".k-hierarchy-cell>a.k-icon").click();
+        }
+    }
+
+    function onDeleteItem(e) {
+        e.preventDefault();
+        var tr = $(e.target).closest("tr"); //get the row for deletion
+        var $IdGrid = $(e.target).closest("div.k-grid").attr("id");
+        var data = this.dataItem(tr); //get the row data so it can be referred later
+        var kendoWindow = $("<div ></div>").kendoWindow({
+        title: "@DicSvc.XLate("Confirm")",
+        resizable: false,
+        modal: true
+        });
+        //$("#delete-confirmation").find("p.delete-message").empty().append("Are you sure you want to delete the current item?");
+        kendoWindow.data("kendoWindow")
+            .content($("#delete-confirmation").html().replace("{error-message-alert}",'@DicSvc.XLate("Are you sure you want to delete the current item?")'))
+            .center().open();
+
+        kendoWindow.find(".delete-confirm,.delete-cancel")
+            .click(function () {
+            if ($(this).hasClass("delete-confirm")) {
+                //debugger;
+                var grid = $("#" + $IdGrid).data("kendoGrid");
+                //grid.dataSource.remove(data);  //prepare a "destroy" request
+                $.ajax({
+                url: '@Url.Action("ActionDeleteItem", "Template")',
+                    type: 'POST',
+                    data: { id: data.ID },
+                    async: false
+
+                }).done(function (ret) {
+                    grid.dataSource.read();
+                }).fail(function (ret) {
+                    alert(ret);
+                });
+                // grid.dataSource.sync();  //actually send the request (might be ommited if the autoSync option is enabled in the dataSource)
+            }
+
+            kendoWindow.data("kendoWindow").close();
+        })
+        .end();
+    }
+
+    @{
+       string editItemTitle = "Edit PopUpWindow Title";
+       string secondPopUpWindowTitle = "Second PopUpWindow Title";
+    }
+    var kndWnd ;
+    var kndWndBed;
+    $(document).ready(function () {
+       /* Define kendo.windowPopUp for detail */
+       if (!kndWnd) {
+           //debugger;
+           kndWnd = $('#IdOfEditWindow').usmKendoWindow({
+                close: closeEditDialog,
+                title: '@DicSvc.XLate(editItemTitle)',
+                activate: function () {
+                    //debugger;
+                   if (windowPopupResize != undefined)
+                       windowPopupResize (kndWnd);
+               },
+                resize: function () {
+                    //debugger;
+                   if (windowPopupResize  != undefined)
+                       windowPopupResize (kndWnd);
+               }
+           });
+
+       }
+
+        kndWndBed = $('#IdOfSecondWindow').usmKendoWindow({
+            title: '@DicSvc.XLate(secondPopUpWindowTitle)'
+        });
+
+   })
+    function resizeGrid() {
+        $('#id-of-grid').data("kendoGrid").resize();
+   }
+
+    $(window).resize(function(){
+       resizeGrid();
+   });
+    function windowPopupResize(kndWnd) {
+       //debugger;
+       var maxHeight;
+       try {
+           if (kndWnd.element) {
+               maxHeight= kndWnd.element.context.clientHeight;       
+           } else {
+               maxHeight = kndWnd[0].clientHeight;       
+           }
+           
+       } catch (e) {
+           console.log(e);
+       } 
+
+        
+        @*$('#tabDriverSpec').height(maxHeight - 160);
+        var ecd = $("#eventcatalog-div_@Model.Id");
+        if (ecd != undefined) {
+            ecd.height(maxHeight - 160);
+            //$("#eventcatalog-grid_" + @Model.Id).data("kendoGrid").resize();
+        }*@
+
+    }
+    function showBeds(networkID,devID) {
+
+        $.ajax({
+            url: '@Url.Action("DisplayBedLocation", "Telligence")?networkId=' + networkID + '&TLdeviceID=' + devID,
+            contentType: 'application/json; charset=utf-8',
+            type: 'GET'
+
+        }).done(function (data) {
+            $('#IdOfSecondWindow').data("kendoWindow").content(data);
+            $('#IdOfSecondWindow').data("kendoWindow").open().center();
+
+        })
+    }
+    function displayItemDetail(itemID) {
+        var windowWidget = $("#IdOfEditWindow").data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+        $.ajax({
+            url: '@Url.Action("GetDevice", "Template")',
+            type: 'GET',
+            data: { id: itemID },
+            async: false
+        }).done(function (dataHtml) {
+            kendo.ui.progress(windowWidget.element, true);
+            var itemDialog = $('#IdOfEditWindow').data('kendoWindow');
+            itemDialog.content(dataHtml);
+            itemDialog.open();
+            itemDialog.center();
+
+        });
+    }
+
+
+</script>

@@ -1,0 +1,243 @@
+﻿@using ConfiguratorWeb.App.Models.SystemMonitoring;
+@using Digistat.FrameworkStd.Model.Monitoring;
+@model ChartModel;
+@{
+   var item = Model;
+}
+<div id="timerangechart" style="width:25%;height:32px;float:right"> </div>
+
+
+<div id="indicators-chart" style="top:50px!important;" ></div>
+
+<script>
+   var dataSourcec = [];
+   var timerange = $("#timerangechart").kendoDropDownList({
+
+      dataTextField: "text",
+      dataValueField: "value",
+      change: changeHour,
+      dataSource: [ ],
+
+   }).data("kendoDropDownList");
+
+  
+
+   var diffHours = parseFloat('@Model.LastUpdateIndicator'.replaceAll(',', '.'));
+   var i = 0; 
+   if (diffHours <= 48) {
+         dataSourcec[i] = { text: '48h', value: 48 };
+      ++i;
+         }
+   if (diffHours <= 24 ) {
+         dataSourcec[i] = { text: '24h', value: 24 };
+      ++i;
+         }
+   if (diffHours  <= 12) {
+         dataSourcec[i] = { text: '12h', value: 12 };
+      ++i;
+         }
+   if (diffHours <= 8) {
+         dataSourcec[i] = { text: '8h', value: 8 };
+      ++i;
+   }
+   if (diffHours <= 4) {
+       dataSourcec[i] = { text: '4h', value: 4 };
+      ++i;
+   }
+
+   dataSourcec.reverse();//
+   
+   var newDs = new kendo.data.DataSource({
+      data: dataSourcec
+   });
+   var dropdownlist = $("#timerangechart").data("kendoDropDownList");
+   dropdownlist.setDataSource(dataSourcec);
+   dropdownlist.refresh();
+
+   var selectedHour = 0;
+
+   function changeHour(e) {
+      selectedHour = e.sender.element[0].value;
+      $('#indicators-chart').data('kendoChart').dataSource.read({ hour: selectedHour });
+      //$('#indicators-chart').data('kendoChart').refresh();
+   }
+
+   function createChart() {
+      $("#indicators-chart").kendoChart({
+         dataSource: {
+            transport: {
+               read: {
+
+                  url: '@Url.Action("GetChartIndicator", "SystemMonitoring")',
+                  type: "POST",
+                  dataType: "json",
+                  data: {
+                        nameAppliaction: '@Model.nameAppliaction',
+                        indicator: '@Model.indicator',
+                        component: '@Model.component',
+                        hour: selectedHour
+                  }
+               }
+            },
+            schema: {
+               data: function (response) {
+                  return response.Data;
+               },
+               model: {
+                  fields: {
+                     value: {
+                        type: "string"
+                     },
+                     date: {
+                        type:"date"
+                     }
+                  }
+               }
+            }
+            ,
+
+
+         },
+
+         seriesDefaults: {
+            type: "line",
+            style: "normal"
+         },
+         title: {
+            text: '@Model.indicator'
+         },
+         legend: {
+            position: "bottom"
+         },
+         series:
+            [{
+               tooltip: {
+                  visible: true,
+                  //format: "{0}",
+                  //template:"#= category #: #= value #",
+                  template:"<div style='font-weight:bold;'>#= value # (#=kendo.toString(category, 'G')#)</div>"
+               },
+               type: "line",
+               field: "value",
+               categoryField: "date",
+               markers: {
+                  visible: false
+               },
+               color: "#fc6c38",
+               //aggregate: "avg"
+            }
+            ],
+         categoryAxis: {
+            majorGridLines: {
+               visible: false,
+            },
+            type: "date",
+            line: {
+               visible: true,
+            },
+
+            baseUnit: "minutes",
+            baseUnitStep: 1,
+
+            labels: {
+               visible: true,
+               dateFormats: {
+                  hours: "HH:mm",
+                  //minutes:"dd/HH:mm"
+                  //days : "G"
+               },
+               step: 10,
+            }
+         },
+         valueAxis: [
+            {
+               title: {
+                  text: ""
+               },
+               majorGridLines: {
+                  visible: false,
+               }
+
+            },
+         ],
+         dataBound: function (e) {
+            debugger;
+            var data = this.dataSource.data();
+
+            if (data.length > 0) {
+               var firstDate = data[0].date;
+               var lastDate = data[data.length - 1].date;
+
+               var diffMs = (lastDate - firstDate);
+               var diffMins = Math.round(diffMs / 60000);
+
+
+               if (diffMins < 30) {
+                  this.options.categoryAxis.labels.step = 1;
+               }
+               else if (diffMins > 60 && diffMins <= 240) {
+                  this.options.categoryAxis.labels.step = 10;
+               }
+
+               else if (diffMins > 240 && diffMins <= 720) {
+                  this.options.categoryAxis.labels.step = 30;
+               }
+
+               else if (diffMins > 720 && diffMins <= 1440) {
+                  this.options.categoryAxis.labels.dateFormats.minutes = "dd/HH:mm";
+                  this.options.categoryAxis.labels.step = 120;
+               }
+
+               else if (diffMins > 1440 && diffMins <= 2880) {
+                  this.options.categoryAxis.labels.dateFormats.minutes = "dd/HH:mm";
+                  this.options.categoryAxis.labels.step = 240;
+               }
+           
+
+               if (data.length > 120 && data.length < 500) {
+                  this.options.categoryAxis.baseUnitStep = 1;
+               }
+               else if (data.length > 500 && data.length < 1500) {
+                  this.options.categoryAxis.baseUnitStep = 10;
+
+               }
+               else if (data.length > 1500) {
+                  this.options.categoryAxis.baseUnitStep = 50;
+
+               }
+               else if (data.length > 30 && data.length <= 120) {
+                  this.options.categoryAxis.baseUnitStep = 1;
+
+               }
+         }
+         else
+         {
+            return;
+         }
+
+         }
+      });
+
+   }
+
+
+
+      timerange.select(0);
+
+   selectedHour = $("#timerangechart").data("kendoDropDownList").value();
+ 
+    createChart();
+   
+
+   jQuery(window).on("resize", function (event) {
+      var chartDiv = jQuery("#indicators-chart");
+      var chart = chartDiv.data("kendoChart");
+
+      chart.options.transitions = false;
+
+      chartDiv.css({ display: "none" });
+      chartDiv.css({ width: chartDiv.parent().innerWidth()-50, display: "block" });
+
+      chart.redraw();
+   });
+</script>

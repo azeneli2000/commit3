@@ -1,0 +1,270 @@
+﻿@model ConfiguratorWeb.App.Models.UserViewModel
+@using Digistat.FrameworkStd.Interfaces;
+@using Digistat.FrameworkStd.UMSLegacy;
+@{
+    Layout = null;
+}
+@inject ISystemOptionsService sysOptSvc
+@{
+    bool bolNewPermissionMgr = UMSFrameworkParser.ConvertToBoolean(sysOptSvc.GetSystemOption(string.Empty, null, null, null, "UseRolesForPermissions", true).Value);
+}
+<script>
+    function onChangePermissionLevel() {
+        //debugger;
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+        if ($.trim(this.value()) == "") {
+            $("#PermissionLevel_@Model.Id").parent().css("border-color", "red");
+            $("#PermissionLevel_@Model.Id").parent().css("background-color", "#fff8f8");
+        }
+        else {
+            $("#PermissionLevel_@Model.Id").parent().css("border-color", "#f0f0f0");
+            $("#PermissionLevel_@Model.Id").parent().css("background-color", "#fafafa");
+        }
+    }
+
+
+    function getRoleGridRowIndex(data) {
+        return getGridRowIndex("#user-roles", data);
+    }
+
+
+    function onAllowedSelect(e) {
+        
+    }
+
+    function onAllowedDeselect(e) {
+
+    }
+
+
+    function onAllowedChange(e) {
+        syncAllowedSelect();
+        //debugger;
+        $('#UserPermission_Denied').data('kendoMultiSelect').refresh();
+    }
+
+    function syncAllowedSelect() {
+        var objHidden = $('[name="AllowedPermissions"]');
+        var objMultiSel = $('#UserPermission_Allowed');
+        var objSelected = objMultiSel.data('kendoMultiSelect').dataItems();
+        var strSerialized = '';
+        if (objSelected) {
+            for (var i = 0; i < objSelected.length; i++) {
+                strSerialized += '#§#' + objSelected[i].FunctionName;
+            }
+        }
+        objHidden.val(strSerialized);
+    }
+
+    function onAllowedDataBound() {
+        var strAllowed = $('#AllowedPermissions').val();
+        if (strAllowed) {
+            var aAllowd = strAllowed.split('#§#');
+            $('#UserPermission_Allowed').data('kendoMultiSelect').value(aAllowd);
+        }
+    }
+
+    function onDeniedSelect(e) {
+
+    }
+
+    function onDeniedDeselect(e) {
+
+    }
+
+
+    function onDeniedChange(e) {
+        syncDeniedSelect();
+        $('#UserPermission_Allowed').data('kendoMultiSelect').refresh();
+    }
+
+    function syncDeniedSelect() {
+        var objHidden = $('[name="DeniedPermissions"]');
+        var objMultiSel = $('#UserPermission_Denied');
+        var objSelected = objMultiSel.data('kendoMultiSelect').dataItems();
+        var strSerialized = '';
+        if (objSelected) {
+            for (var i = 0; i < objSelected.length; i++) {
+                strSerialized += '#§#' + objSelected[i].FunctionName;
+            }
+        }
+        objHidden.val(strSerialized);
+    }
+
+    function onDeniedDataBound() {
+        var strDenied = $('#DeniedPermissions').val();
+        if (strDenied) {
+            var aDenied = strDenied.split('#§#');
+            //debugger;
+            $('#UserPermission_Denied').data('kendoMultiSelect').value(aDenied);
+        }
+    }
+
+
+    function rebindAllowableDeniable() {
+        $("#UserPermission_Allowed").data("kendoMultiSelect").dataSource.read();
+        $("#UserPermission_Denied").data("kendoMultiSelect").dataSource.read();
+        
+    }
+
+    function getCurrentRoleIds() {
+        //debugger;
+        var roleIds = '';
+        var rolesGrid = $("#user-roles").data("kendoGrid");
+        var data = rolesGrid.dataSource.data();
+        var totalNumber = data.length;
+
+        for (var i = 0; i < data.length; i++) {
+            roleIds = roleIds + ';' + data[i].RoleID;
+        }
+        return {
+            roles: roleIds
+        }
+    }
+
+</script>
+
+<div style="height:270px">
+    <div class="row mt-2 mb-0">
+        @if (!bolNewPermissionMgr)
+        {
+            <div class="col-lg-4 permissions-card  p-0">
+                <div id="permissions_" class="card  row ">
+                    <div class="row mb-4 ml-0 pl-0 ums-header">
+                        @DicSvc.XLate("Permissions")
+                    </div>
+                    <div class="row">
+                        <div class="col-6 ">
+                            @Html.LabelFor(m => m.PermissionLevel, new { @class = " field-required" })
+                        </div>
+                        <div class="col-6 w-90">
+                            @(Html.Kendo().NumericTextBox<int>().Name("PermissionLevel_" + Model.Id).Value(Model.PermissionLevel).Decimals(0).Format("#")
+                                                                                .Max(99)
+                                                                                .Min(0)
+                                                                                .Events(e => e.Change("onChangePermissionLevel")).HtmlAttributes(new { @class = "control-required w-95" }))
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 ">
+                            @Html.LabelFor(m => m.PermissionModifier, new { @class = "" })
+                        </div>
+                        <div class="col-6 w-90">
+                            @Html.Kendo().TextBoxFor(m => m.PermissionModifier).HtmlAttributes(new { @class = "k-input k-textbox  w-95" })
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        }
+        else
+        {
+            <div class="col-lg-8 roles-card ml-0  p-0">
+                @Html.HiddenFor(m => m.PermissionLevel, new { @Id = "PermissionLevel_" + Model.Id, @Value = Model.PermissionLevel })
+                @Html.HiddenFor(m => m.PermissionModifier, new {  @Value = Model.PermissionModifier })
+
+                @Html.HiddenFor(m => m.AllowedPermissions, new { @Value = Model.AllowedPermissions })
+
+                @Html.HiddenFor(m => m.DeniedPermissions, new { @Value = Model.DeniedPermissions })
+
+                <div id="roles_" class="card  row ">
+                    <div class="row mb-4 ml-0 pl-0 ums-header">
+                        @DicSvc.XLate("Roles")
+                    </div>
+                    <div class="row">
+                        <div style="float:left; width: 93%; margin-top: .5rem">
+                            @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.UserRoleViewModel>(Model.UserRoles)
+                                                        .Name("user-roles").HtmlAttributes(new { @class = "no-hover" })
+                                                        //.Events(ev => ev.DataBound("onDataBoundBeds"))
+                                                        .Columns(columns =>
+                                                        {
+                                                            columns.Bound(e => e.RoleID).Hidden().Editable("false").ClientTemplate("#=RoleRef.RoleName# <input type='hidden' name='UserRoles[#=getRoleGridRowIndex(data)#].RoleID' value='#=RoleID#' />");
+                                                            columns.Bound(e => e.RoleRef.RoleName).Title(DicSvc.XLate("Role")).Editable("false");
+                                                        })
+
+                                                            .HtmlAttributes(new { style = "height:185px;" })
+                                                            .Sortable(false)
+                                                            .Scrollable()
+                                                            .DataSource(dataSource => dataSource
+                                                            .Ajax()
+                                                            .Model(model =>
+                                                            {
+
+                                                            })
+                                                            .ServerOperation(false)
+                                                        ).NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+                            )
+                        </div>
+                        <div style="float:left; width:3%;padding-top: 10px;margin-left: 6px;">
+                            <span class="col-12 p-0 m-0">
+                                <button id="set-roles" onclick="openRoleEditor();" class="btn btn-default" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Set Roles for User")"><span class="mdi mdi-account-group mdi-24px"></span></button>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+
+
+            </div>
+            <div class="col-lg-4 permExceptions-card ml-0  p-0">
+                <div id="permExceptions_" class="card  row ">
+                    <div class="row mb-4 ml-0 pl-0 ums-header">
+                        @DicSvc.XLate("Additional permissions")
+                    </div>
+                    <div class="row">
+                        <div style="float:left; width: 93%; margin-top: .5rem">
+                            @(Html.Kendo().MultiSelect()
+                                    .Events(ev=>ev.Select("onAllowedSelect").Deselect("onAllowedDeselect").DataBound("onAllowedDataBound").Change("onAllowedChange"))
+                                    .Name("UserPermission_Allowed")
+                                    .DataTextField("FunctionName")
+                                    .DataValueField("FunctionName")
+                                    .Placeholder("Select permissions to add...")
+                                    .AutoBind(false)
+                                    .Enable(false)
+
+                                    .DataSource(source =>
+                                    {
+                                        source
+                                        .Read(read =>
+                                        {
+                                            read.Action("GetAllowablePermissionsForFoles", "SystemAdministration").Data("getCurrentRoleIds");
+                                        })
+                                        .ServerFiltering(true);
+                                    })
+                            )
+                        </div>
+                    </div>
+                </div>
+                <div id="permExceptionsDeny_" class="card  row ">
+                    <div class="row mb-4 ml-0 pl-0 ums-header">
+                        @DicSvc.XLate("Denied permissions")
+                    </div>
+                    <div class="row">
+                        <div style="float:left; width: 93%; margin-top: .5rem">
+                            @(Html.Kendo().MultiSelect()
+                                    .Events(ev => ev.Select("onDeniedSelect").Deselect("onDeniedDeselect").DataBound("onDeniedDataBound").Change("onDeniedChange"))
+                                    .Name("UserPermission_Denied")
+                                    .DataTextField("FunctionName")
+                                    .DataValueField("FunctionName")
+                                    .Placeholder("Select permissions to deny...")
+                                    .AutoBind(false)
+                                    .Enable(false)
+                                    .DataSource(source =>
+                                    {
+                                        source.Read(read =>
+                                        {
+                                            read.Action("GetDeniablePermissionsForFoles", "SystemAdministration").Data("getCurrentRoleIds");
+                                        })
+                                        .ServerFiltering(true);
+                                    })
+                            )
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+    </div>
+</div>
+
+

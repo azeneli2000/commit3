@@ -1,0 +1,104 @@
+﻿@model IEnumerable<ConfiguratorWeb.App.Models.BedViewModel>
+@{
+   Layout = null;
+}
+<style>
+   #locationsbeds-grid .k-grouping-row td:nth-child(2) {
+      text-align: center;
+   }
+</style>
+<script>
+    //events for bed selection
+    function onChangeBedsCameraCon(arg) {
+       //debugger;
+       var mygrid = this;
+       var model = mygrid.dataItem(mygrid.select());
+       
+       $('#camBedId').val(model.BedId);
+       $('#camBedName').val(model.Location.LocationName + ' - ' + model.BedName);
+       
+       var dialogAbout = $("#bedSelectionDialog");
+       dialogAbout.data("kendoWindow").close();
+
+       //disable location button
+    }
+
+    function onDataBoundBeds(e) {
+        //var grid = $("#locationsbeds-grid").data("kendoGrid");
+        //var data = grid.dataSource.data();
+        //for (var i = 0; i < data.length; i++) {
+        //    if (data[i].BedId == $('#outputstateEditWindow #BedId').val()) {
+        //        var select = grid.tbody.find('tr[data-uid="' + data[i].uid + '"]');
+        //        grid.select(select);
+        //    }
+        //}
+    }
+
+    function groupHeaderTemplate(IdLocation) {
+        // debugger;
+        var title = '';
+        var grid = $("#locationsbeds-grid").data("kendoGrid"),
+            ds = grid.dataSource;
+        var ds = grid.dataSource;
+        var groups = ds.view();
+        for (var i = 0; i < groups.length; i++) {
+            if (groups[i].value == IdLocation) {
+                title = groups[i].items[0].Location.LocationName;
+            }
+        }
+        return '@DicSvc.XLate("Location"): ' + title;
+    }
+
+</script>
+<div class="h-100">
+   <div class=" h-90 pt-1 pb-2" id="bedSelectionContainer">
+
+
+      @(Html.Kendo().Grid(Model)
+         .Name("locationsbeds-grid").HtmlAttributes(new { style = "height:100%;", @class = "no-hover" })
+         .ToolBar(toolbar =>
+         {
+            // toolbar.Custom().Text(DicSvc.XLate("Expand")).HtmlAttributes(new { @class = "btnKendo", @id = "btnExpand" });
+            toolbar.Custom().Text(DicSvc.XLate("Collapse")).HtmlAttributes(new { @class = "btnKendo ums-collapse", @id = "btnExpandCollpase" });
+         })
+         .Columns(columns =>
+         {
+            columns.Bound(e => e.BedId).Visible(false);
+            columns.Bound(e => e.IdLocation).Hidden(true).ClientGroupHeaderTemplate("#= groupHeaderTemplate(value) #");
+            columns.Bound(e => e.Location.LocationName).Visible(false);
+            columns.Bound(e => e.BedName);
+            columns.Bound(e => e.BedLocation).Visible(false);
+            columns.Bound(e => e.BedIndex).Visible(false);
+         })
+         .Events(ev => ev.DataBound("onDataBoundBeds").Change("onChangeBedsCameraCon"))
+         .Sortable(false)
+         .Scrollable()
+         .Selectable()
+         .Filterable()
+         .DataSource(dataSource => dataSource
+            .Ajax()
+            .ServerOperation(false)
+            .Group(groups => groups.Add(p => p.IdLocation))
+         )
+         .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>")))
+   </div>
+</div>
+<script>
+    $(document).ready(function () {
+        $('#btnExpandCollpase').off('click').on('click', function () {
+            //debugger;
+            if ($(this).hasClass("ums-collapse")) {
+                $("#locationsbeds-grid .k-i-collapse").trigger("click");
+                $(this).removeClass("ums-collapse");
+                $(this).addClass("ums-expand");
+                $(this)[0].innerText='@DicSvc.XLate("Expand")';
+            }
+            else {
+                $("#locationsbeds-grid .k-i-expand").trigger("click");
+                $(this).removeClass("ums-expand");
+                $(this).addClass("ums-collapse");
+                $(this)[0].innerText = '@DicSvc.XLate("Collapse")';
+            }
+        });
+    });
+</script>

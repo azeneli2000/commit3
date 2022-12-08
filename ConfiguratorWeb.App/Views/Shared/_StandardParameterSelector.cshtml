@@ -1,0 +1,231 @@
+﻿@{
+    Layout = null;
+}
+
+<script>
+   
+   var drvId = "@(ViewBag.driverID??"")";
+   var spsParId = "@(ViewBag.selectedID ?? "0")";
+   var isLoadedAtLeastOnce = false;
+   var grdSelParam_IsSelectedFromCaller = false;
+
+   function on_StdParSelectorDialog_ParameterSelected(e) {
+      //debugger;
+      if (!grdSelParam_IsSelectedFromCaller) {
+         var gridObj = $('#stdParamSelectorAllTable').data('kendoGrid');
+         var selectedRows = gridObj.select();
+         var dataItem = gridObj.dataItem(selectedRows[0]);
+         @if (!string.IsNullOrEmpty(ViewBag.selectFunction))
+             {
+                string strOut = ViewBag.selectFunction;
+                @strOut<text>(dataItem);</text>
+             }
+      }
+   }
+
+   function on_StdParSelectorDialog_DataBound(e) {
+      //debugger;
+       if (spsParId != 0) {
+           var grdSelParm = $('#stdParamSelectorAllTable').data('kendoGrid');
+           grdSelParm.items().each(function() {
+               var data = grdSelParm.dataItem(this);
+               if (data.ID == spsParId) {
+                   grdSelParam_IsSelectedFromCaller = true;
+                   grdSelParm.select(this);
+                   scrollGridToSelected(grdSelParm);
+                   grdSelParam_IsSelectedFromCaller = false;
+               }
+           });
+       }
+   }
+
+   function scrollGridToSelected(gr) {
+      if (gr.select().length === 0) {
+         return;
+      }
+      var scrollContentOffset = gr.element.find("tbody").offset().top;
+      var selectContentOffset = gr.select().offset().top;
+      var distance = selectContentOffset - scrollContentOffset;
+
+      gr.element.find(".k-grid-content").animate({
+         scrollTop: distance
+      }, 400);
+
+      //g.content.scrollTop(g.select().position().top);
+
+   }
+
+
+
+   $(document).ready(function () {
+      //debugger;
+      @if (!string.IsNullOrEmpty(ViewBag.dialogID))
+          {
+             <text>
+                $('#btnStdParSelectorClose').off('click').on('click', function() {
+                   $('#@ViewBag.dialogID').data('kendoWindow').close();
+                });
+             </text>
+          }
+
+      $('#btnGetAllStdPars').off('click').on('click', function () {
+         $('#stdParamSelectorAllTable').data('kendoGrid').dataSource.read();
+      });
+      //debugger;
+      //if (drvId.trim().length) {
+      //   $('#tabstrip_stdparfilterselector').data("kendoTabStrip").select("li:contains('tabstriptabstrip_stdparfilterselector-driver')"); //tabstriptabstrip_stdparfilterselector-driver')
+      //   $('#lblDriver').data("kendoDropDownList").value(drvId.trim());
+      //}
+   });
+
+   function getDeviceOrDriverSelection() {
+      var ret = null;
+      var tabStringIndex = $("#tabstrip_stdparfilterselector").data("kendoTabStrip").select().index();
+      switch (tabStringIndex) {
+      case 0:
+         if ($('#lbDeviceTypes').data("kendoDropDownList").value()) {
+            ret = { devTypeID: $('#lbDeviceTypes').data("kendoDropDownList").value() };
+         }
+         break;
+      case 1:
+         if ($('#lblDriver').data("kendoDropDownList").value()) {
+            ret = { driverID: $('#lblDriver').data("kendoDropDownList").value() };
+         }
+         break;
+      }
+
+      return ret;
+   }
+
+   function OnDriverSelected(e) {
+      var grid = $('#stdParamSelectorAllTable').data('kendoGrid');
+      grid.dataSource.read();
+      //if (spsParId !== "") {
+      //   debugger;
+      //   // Retrieve all data from the DataSource
+      //   var data = grid.dataSource.data();
+      //   var res = $.grep(data, function (d) {
+      //      return d.ID == spsParId;
+      //   });
+      //}
+   }
+
+   function onDeviceTypeSelected(e) {
+      $('#stdParamSelectorAllTable').data('kendoGrid').dataSource.read();
+   }
+
+   function onTabStripSelectionChanged(e) {
+      $('#stdParamSelectorAllTable').data("kendoGrid").dataSource.data([]);
+      $('#lblDriver').data("kendoDropDownList").value('');
+      $('#lbDeviceTypes').data("kendoDropDownList").value('');
+   }
+
+
+</script>
+ <div style="text-align:center;">
+
+     <div class="row">
+         <div class="col-12">
+             <kendo-tabstrip name="tabstrip_stdparfilterselector" style="margin-top: -13px;" on-select="onTabStripSelectionChanged">
+                 <scrollable enabled="true" />
+                 <popup-animation>
+                     <open effects="fade:in" />
+                 </popup-animation>
+                 <items>
+                     <tabstrip-item text="@DicSvc.XLate("Device Type")" selected="true" id="tabstriptabstrip_stdparfilterselector-deviceType">
+                         <content>
+                             <div class="row">
+                                 <div class="col-12">
+                                     @(Html.Kendo().DropDownList().HtmlAttributes(new { @style = "width:100%" })
+                                                        .Name("lbDeviceTypes")
+                                                        .DataTextField("Value")
+                                                        .DataValueField("Text")
+                                                        .DataSource(source => source
+                                                        .Read(read => read.Action("GetStandardDeviceTypeAsDictionary", "Connect"))
+                                                        )
+                                                        .Events(e => e.Change("onDeviceTypeSelected"))
+                                                        .OptionLabel(DicSvc.XLate("Select a Device Type ..."))
+                                     )
+                                 </div>
+                             </div>
+                         </content>
+                     </tabstrip-item>
+                     <tabstrip-item text="@DicSvc.XLate("Driver")" id="tabstriptabstrip_stdparfilterselector-driver">
+                         <content>
+                             <div class="row">
+                                 <div class="col-12">
+                                     @(Html.Kendo().DropDownList()
+                                        .HtmlAttributes(new { @style = "width:100%" })
+                                        .Name("lblDriver")
+                                        .DataTextField("Text")
+                                        .DataValueField("Value")
+                                        .DataSource(source => source
+                                          .Read(read => read.Action("GetDeviceDriverNameList", "Generic"))
+                                        )
+                                        .Events(e => e.Change("OnDriverSelected"))
+                                        .OptionLabel(DicSvc.XLate("Select a Driver ..."))
+                                     )
+                                 </div>
+                             </div>
+
+                         </content>
+                     </tabstrip-item>
+                     <tabstrip-item text="@DicSvc.XLate("All")" id="tabstriptabstrip_stdparfilterselector-driver">
+                         <content>
+                             <div class="row">
+                                 <div class="col-12">
+                                     <button type="button" class="k-button" id="btnGetAllStdPars">@DicSvc.XLate("Retrieve all available parameters")</button>
+                                 </div>
+                             </div>
+                         </content>
+                     </tabstrip-item>
+                 </items>
+             </kendo-tabstrip>
+         </div>
+     </div>
+     <div class="row">
+         <div class="col-12">
+             @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.StandardParameterViewModel>
+                               ()
+                               .Name("stdParamSelectorAllTable").HtmlAttributes(new { @style = "width:100%; height: 400px;" })
+                               .Columns(columns =>
+                               {
+                                   columns.Bound(e => e.ID).Width(100);
+                                   columns.Bound(e => e.Print);
+                                   columns.Bound(e => e.Description);
+                                   columns.Bound(e => e.DataType).Filterable(f=>f.Multi(true));
+                               })
+                               .Scrollable()
+                               .DataSource(dataSource => dataSource
+                               .Ajax()
+                               .PageSize(1000000)
+                               .Model(model =>
+                               {
+                                   model.Id(o => o.ID);
+                               })
+                               .ServerOperation(false)
+                               .Read(read => read.Action("GetStandardParameters", "DAS3").Data("getDeviceOrDriverSelection"))
+                               ).NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No parameters found") + "</div>"))
+                               .Selectable(o => o.Enabled(true).Mode(GridSelectionMode.Single).Type(GridSelectionType.Row))
+
+                               .Sortable().Filterable()
+                               .Pageable(p => p.Numeric(false)
+                                     .PreviousNext(false))
+                                     .AutoBind(false)
+                               .Events(e => e.Change("on_StdParSelectorDialog_ParameterSelected").DataBound("on_StdParSelectorDialog_DataBound"))
+             )
+         </div>
+     </div>
+
+     <div class="card-footer h-10 p-0 m-0 border-0 bg-white">
+         @(Html.Kendo().ToolBar()
+            .Name("toolBarStdParSelector")
+            .Items(items =>
+            {
+                items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Close")).Id("btnStdParSelectorClose").UmsHtmlButtonGeneric("modify-mode").Hidden(false);
+            })
+         )
+     </div>
+
+
+ </div>

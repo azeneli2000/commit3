@@ -1,0 +1,97 @@
+﻿@{
+    Layout = null;
+}
+
+   <script>
+    var isBounded = false;
+
+    function onChangeDll(e) {
+        /*debugger*/;
+        if (!isBounded) {
+            var mygrid = this;
+            var item = e.sender.dataItem(e.sender.select());
+            if (item) {
+                $('#@ViewBag.IdToSet').val(item.Text);
+                $('#@ViewBag.IdToSet').trigger("change");
+            }
+
+            if (!dasBrokerWnd) {
+               //debugger;
+               dasBrokerWnd = $('#dllSelectionDialog').usmKendoWindow({
+                  height: '500px',
+                  width: '700px'
+               }).getKendoWindow();
+            }
+            dasBrokerWnd.close();
+
+        }
+        else {
+            isBounded = false;
+        }
+    }
+
+    function onDataBoundDll(e) {
+        isBounded = true;
+        //debugger;
+        var grid = $("#cdssDll-grid").data("kendoGrid");
+        var data = grid.dataSource.data();
+        for (var i = 0; i < data.length; i++) {
+            if (data[i].Value == '@ViewBag.SelectedDll') {
+                var select = grid.tbody.find('tr[data-uid="' + data[i].uid + '"]');
+                grid.select(select);
+                return false;
+            }
+        }
+    }
+
+   function err_loading(data) {
+      //debugger;
+      var msg = "";
+      if (typeof (data.errors.taskCancelled) != "undefined" && data.errors.taskCancelled) {
+         msg = "@DicSvc.XLate("Communication with the server was unsuccessful. Please, try again.")";
+      } else {
+         if (data.errors.errorMessage.indexOf('CancellationTokenSource')>-1) {
+            msg = "@DicSvc.XLate("Communication with the server was unsuccessful. Please, try again.")";
+         } else {
+            msg = data.errors.errorMessage;
+         }
+      }
+      window.umsAlert("@DicSvc.XLate("Error")", msg, 400);
+
+      if (dasBrokerWnd)
+         dasBrokerWnd.close();
+   }
+   </script>
+
+<div style="text-align:center;">
+
+   @(Html.Kendo().Grid<SelectListItem>()
+      .Name("cdssDll-grid")
+      .HtmlAttributes(new { style = "height:455px;margin-top:10px;" })
+      .Columns(columns =>
+      {
+         columns.Bound(e => e.Value).Visible(false);
+         columns.Bound(e => e.Text).HtmlAttributes(new { @style = "text-align:left;" });
+      })
+      .Pageable(pager => pager
+         .Input(false)
+         .Numeric(true)
+         .Info(true)
+         .PreviousNext(true)
+         .Refresh(false)
+         .PageSizes(false)
+      ) //it's not working
+      .Sortable(true)
+      .Filterable()
+      .Selectable()
+      .Scrollable()
+      .Events(ev => ev.Change("onChangeDll").DataBound("onDataBoundDll"))
+      .DataSource(dataSource => dataSource
+         .Ajax()
+         .Read(read => read.Action("ReadCDSSDllList", "CDSS"))
+         .Events(e=>e.Error("err_loading"))
+         .ServerOperation(false)
+         .PageSize(20)
+      )
+      .NoRecords(x => x.Template("<div class='text-center'>" + DicSvc.XLate("No records found") + "</div>")))
+</div>

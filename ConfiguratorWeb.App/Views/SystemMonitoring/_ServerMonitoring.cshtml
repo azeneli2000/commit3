@@ -1,0 +1,352 @@
+﻿<style>
+
+   #ServerList {
+      position: relative;
+      min-height: 400px;
+      padding: 10px 5px;
+      height: auto;
+      /* Avoid cutout if font or line is bigger */
+      font: small-caption;
+      font-size: small;
+      overflow: hidden;
+   }
+
+   #srvMinCntnt .card {
+      margin: 26px 5px 5px 5px;
+      height: 100%;
+      max-height: 500px;
+      /*width: 100%;*/
+      border: 1px solid;
+      border-color: #4a90e2;
+      }
+
+   #serverPopupCard {
+      overflow: hidden;
+
+   }
+
+      #serverPopupCard .card {
+         height: 100%;
+         border: 1px solid;
+         border-color: #4a90e2;
+      }
+
+      #srvMinCntnt .card-head,
+      #serverPopupCard .card-head {
+         background-color: #4a90e2;
+         height: 40px;
+      }
+
+   #srvMinCntnt .card-body {
+      text-align: center;
+      width: 100%;
+      overflow: auto;
+      padding: 0.5%;
+   }
+   #serverPopupCard .card-body {
+      text-align: center;
+      height: 100%;
+      width: 100%;
+      overflow: auto;
+      padding: 0.5%;
+   }
+
+   #srvMinCntnt i.float-right,
+   #serverPopupCard i.float-right {
+      /*position: relative;
+      top: -30px;*/
+   }
+</style>
+
+@{var listViewName = "ServerList";}
+<script type="text/javascript">
+   setTimeout(function () {
+      $('#refreshButtonServer').prop("disabled", false);
+   }, 5000);
+
+
+   function ServerViewRefresh() {
+      serverTableCounter = 0;
+      $("#ServerList").css("height", "300px");
+      //$("#srvMinCntnt").css("height", "10px");
+
+      $("#@listViewName").data("kendoListView").dataSource.read();
+   }
+
+   serverAutorefresh = new MonitoringAutoRefresh(5000, $("#MonitoringServersAutorefresh"), $('#MonitoringServersCountdownRefresh'));
+
+   var todayServer = new Date();
+   var serverTableCounter = 0;
+   var serverListViewName = "@listViewName";
+
+   var srvExpandedItem = null;
+   function onSrvToggleTile(e) {
+      $('body').toggleClass('stop-scrolling');
+
+      var tile = $(e.target).closest("div[id*='_card']");
+      var listView = $("#@listViewName").data("kendoListView");
+      var obj = listView.dataItem(tile);
+      if (obj != null) {
+         $('body').append(
+            $('<div>').prop({
+               id: "serverPopupCard"
+            })
+         );
+
+         var win = $("#serverPopupCard").kendoWindow({
+            title: false,
+            modal: true,
+            maxWidth: "90%",
+            maxHeight: "90%",
+            minWidth: "90%",
+            minHeight: "90%",
+            width: "90%",
+            height: "90%"
+         }).data("kendoWindow");
+
+         srvExpandedItem = obj;
+         srvExpandedItem.expanded = true;
+         var scriptTemplate = kendo.template($("#serverTemplateMonitoring").html());
+
+         win.content(scriptTemplate({ data: srvExpandedItem, Data: srvExpandedItem.Data }));
+         win.center().open();
+         for (var j = 0; j < srvExpandedItem.Data.Components.length; j++) {
+            var component = srvExpandedItem.Data.Components[j];
+            for (var k = 0; k < component.Tables.length; k++) {
+               var table = component.Tables[k];
+               var compName = srvExpandedItem.Data.Name.replaceAll(' ', '');
+               var tableName = table.Name.replaceAll(' ', '');
+               var idTable2 = "@listViewName" + '_' + compName + '_' + tableName + "1";
+
+               var idTable_handle2 = idTable2 + "_handle";
+               addGrid(idTable2, idTable_handle2, table);
+            }
+         }
+      } else {
+         srvExpandedItem.expanded = false;
+         srvExpandedItem = null;
+
+         var win = $("#serverPopupCard").data("kendoWindow");
+         win.content("");
+         win.close();
+
+         $("#serverPopupCard").remove();
+      }
+   }
+
+
+   function onServerDataBound(e) {
+      onDataBoundDynamicGrid(e);
+      todayServer = new Date();
+      $("#lastRefreshServer").text('@DicSvc.XLate("Last Update")' + ": " + kendo.toString(todayServer, "T"));
+   }
+
+
+   function onListViewServerRequestEnd(e) {
+      var val = '@DicSvc.XLate("Next Update")' + ": ...";
+
+      if (serverAutorefresh != undefined) {
+         serverAutorefresh.timeoutMilliSec = 20000;//300000; //5 minutes
+      }
+
+      if (e.response.result != undefined && e.response.result.success) {
+         var next = new Date(e.response.result.NextUpdate);
+         var d1 = new Date();
+         var diff = Math.ceil(Math.abs(next - d1));
+         if (next.getFullYear() != 1 && (diff / 1000 < e.response.result.UpdateFreq * 2 * 60)) {
+            val = '@DicSvc.XLate("Next Update")' + ": " + kendo.toString(next, "T");
+            if (serverAutorefresh != undefined) {
+               serverAutorefresh.timeoutMilliSec = diff;
+            }
+         }
+      }
+
+      if (serverAutorefresh != undefined) {
+         serverAutorefresh.SetRefreshInterval(ServerViewRefresh);
+      }
+      $("#nextServerRefresh").text(val);
+      $("#ServerList").css("height", "auto");
+
+   }
+
+</script>
+
+<div class="float-left">
+   <div id="nextServerRefresh" style="margin-right: 8px; font-weight:bold;height:22px;"></div>
+   @Html.Kendo().CheckBox().Name("MonitoringServersAutorefresh").Checked(false).Label(DicSvc.XLate("Auto update", Digistat.FrameworkStd.Enums.StringParseMethod.Html))
+   &nbsp;&nbsp;
+   <span id="MonitoringServersCountdownRefresh" style="margin-left:10px;"></span>
+</div>
+
+<div style="height: 46px; float: right; padding-bottom:10px;">
+   <button class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base" style="width:90px;float: right; border:1px solid;" disabled="disabled" id="refreshButtonServer">@DicSvc.XLate("Refresh")</button>
+   <div id="lastRefreshServer" style="margin: 8px;float: right; font-weight:bold;"></div>
+   
+</div>
+
+<div id="srvMinCntnt" class="h-100 text-center" style="margin-top: 50px">
+   @(
+                                                                      Html.Kendo().ListView<ConfiguratorWeb.App.Models.SystemMonitoring.MonitoringInfo>()
+                                                                         .Name(listViewName)
+                                                                         .TagName("div")
+                                                                         .ClientTemplateId("serverTemplateMonitoring")
+                                                                         .DataSource(source =>
+                                                                         {
+                                                                            source.Custom()
+                                                                            .Transport(transport =>
+                                                                            {
+                                                                               transport.Read("GetServers", "SystemMonitoring");
+                                                                            })
+
+                                                                            .Schema(schema => { schema.Data("result.Data"); })
+                                                                            .Events(cev => cev.RequestEnd("onListViewServerRequestEnd"));
+                                                                         } 
+                                                                         //.DataSource(dataSource => dataSource
+                                                                         //   .Ajax()
+                                                                         //   .Model(model =>
+                                                                         //   {
+                                                                         //      model.Id(o => o.Data.Name);
+                                                                         //      model.Field(o => o.StatusValue);
+                                                                         //      model.Field(o => o.Data.Anomalies);
+                                                                         //      model.Field(o => o.Data.Components);
+                                                                         //      model.Field(o => o.Data.CurrentUser);
+                                                                         //      model.Field(o => o.Data.Module);
+                                                                         //      model.Field(o => o.Data.ReceivingTimeUTC);
+                                                                         //      model.Field(o => o.Data.SubModules);
+                                                                         //      model.Field(o => o.Data.Type);
+                                                                         //   })
+                                                                         //   //.Events(events => events.Error("error_handler_so"))
+                                                                         //   .Read(read => read.Action("GetServers", "SystemMonitoring"))
+                                                                           )
+                                                                           .Events(ev => ev.DataBound("onServerDataBound"))
+                                                                           )
+</div>
+
+<script type="text/x-kendo-tmpl" id="serverTemplateMonitoring">
+      #
+
+      var idCard = Data.Name + "_card";
+      #
+         <div class="card" id="#:idCard#">
+            <div class="card-head p-2">
+               <i class="float-right mdi mdi-18px mr-2 #if(data.expanded){#mdi-arrow-collapse#}else{#mdi-arrow-expand#}# text-white" onclick='onSrvToggleTile(event)' style="cursor:pointer;" />
+               <h5 class="card-title w-100 text-white"> #:Data.Name#</h5>
+            </div>
+            <div class="card-body">
+               #
+
+               if(data.Data.Components.length > 0)
+               {
+               for(var k = 0; k < data.Data.Components.length; k++)
+               {
+
+               if(data.Data.Components[k].Indicators.length >0 || data.Data.Components[k].Tables.length >0)
+               {
+               #
+               <div style="font-weight:bold; padding-bottom: 5px; padding-top: 14px;">#:data.Data.Components[k].Name#</div>
+               <hr style="width:100%;text-align:left;margin-left:0;color:black;padding-bottom:7px;">
+               #
+               }
+
+               if(data.Data.Components[k].Indicators.length > 0)
+               {
+               for(var i = 0; i < data.Data.Components[k].Indicators.length; i++)
+               {
+
+               var indicatorVal = data.Data.Components[k].Indicators[i].Value;
+               if(data.Data.Components[k].Indicators[i].Type == "DATE" && indicatorVal != null  && indicatorVal != "" )
+               {
+               indicatorVal = kendo.toString(new Date(data.Data.Components[k].Indicators[i].Value),"G");
+               }
+               else if(data.Data.Components[k].Indicators[i].Type == "NUMBER"  && indicatorVal != null  && indicatorVal != "")
+               {
+               idicatorVal = parseFloat(indicatorVal).toLocaleString();
+               }
+               #
+               <div class="row" style="align-items: baseline;">
+                  <div class="col-2 ml-0 px-0 ">#:data.Data.Components[k].Indicators[i].Name#</div>
+                  <div class="col-2">#:indicatorVal#</div>
+                  #
+                  if(data.Data.Components[k].Indicators[i].ChartEnabled)
+                  {
+                  #
+                  <div class="col-4">
+                     <i class="mdi mdi-chart-line mdi-18px" style="cursor:pointer!important"></i>
+                  </div>
+                  #
+                  }
+                  #
+               </div>
+               #
+               }
+               }
+
+               if(data.Data.Components[k].Tables.length >0)
+               {
+               for(var w =0; w < data.Data.Components[k].Tables.length; w++)
+               {
+               var finalCounter;
+               if (data.expanded) {
+               finalCounter = 1;
+               } else {
+               serverTableCounter += 1;
+               finalCounter = serverTableCounter;
+               }
+               var compName =  data.Data.Name.replace(/^[^a-z]+|[^\w:.-]+/gi, "");
+               var tableName = data.Data.Components[k].Tables[w].Name.replace(/^[^a-z]+|[^\w:.-]+/gi, "");
+               var idTable = serverListViewName + '_' + compName +'_'+ tableName + finalCounter;
+               var idTable_handle = idTable +"_handle"
+               #
+
+               <div id="#:idTable#">
+                  <div id="#:idTable_handle#"></div>
+               </div>
+               #
+               }
+               }
+               }
+               }
+               if(data.Data.ReceivingTimeUTC != null)
+               {
+               var dateTileFooterServer = new Date(data.Data.ReceivingTimeUTC)
+               #
+               <hr style="width:100%;text-align:left;margin-left:0;opacity: 0.21;padding-bottom:7px;">
+               <div style="width:100%;text-align:center;opacity: 0.84;">
+                  <div style="font-weight:bold; padding-bottom: 5px; padding-top:5px;">@DicSvc.XLate("Last Update")</div>
+                  #=kendo.toString(dateTileFooterServer,"G")#
+               </div>
+               #
+               }
+               #
+            </div>
+   </div>
+</script>
+<script>
+
+
+   $("#refreshButtonServer").click(function (e) {
+
+      $('#refreshButtonServer').prop("disabled", true);
+      setTimeout(function () {
+         $('#refreshButtonServer').prop("disabled", false);
+      }, 5000);
+
+      ServerViewRefresh();
+
+      e.preventDefault();
+   });
+
+
+   $(document).ready(function () {
+      $("#MonitoringServersAutorefresh").off('click').on('click', function () {
+         if ($("#MonitoringServersAutorefresh").is(':checked')) {
+
+            serverAutorefresh.SetRefreshInterval(ServerViewRefresh);
+         }
+         else {
+            serverAutorefresh.Stop();
+         }
+
+      });
+   });
+</script>

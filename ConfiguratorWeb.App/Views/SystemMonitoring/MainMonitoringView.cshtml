@@ -1,0 +1,410 @@
+﻿@using ConfiguratorWeb.App.Extensions
+
+@{
+   ViewData["Title"] = "View";
+
+}
+
+
+<div class="h-100 ">
+   <div class="card h-90 pt-0 pb-2" id="cardContainer" style="position:relative;">
+      <div id="tabstrip" style="position: absolute; width: 100%; height: 100%; left: 0; top: 0; overflow-x: auto; min-width: 200px;"></div>
+   </div>
+</div>
+
+<style>
+   body {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 110px;
+      width: 100%;
+   }
+
+   .main-panel {
+      position: relative;
+      width: 100%;
+      height: 100%;
+   }
+
+
+   .k-grid td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+   }
+
+   #tabstrip > .k-content {
+      overflow: visible;
+   }
+
+   .resizeOffsetGrids{
+      min-width:1000px;
+   }
+</style>
+
+<script>
+   var chartCounter = 0;
+   var prefixChart = "chartMonitoirng";
+
+   function onDataBoundDynamicGrid(e) {
+      var context = e.sender.element[0].id;
+      var tc = 0
+      for (var i = 0; i < e.items.length; i++) {
+         var item = e.items[i];
+         for (var j = 0; j < item.Data.Components.length; j++) {
+            var component = item.Data.Components[j];
+            for (var k = 0; k < component.Tables.length; k++) {
+               tc += 1;
+               var compName = e.items[i].Data.Name.replace(/^[^a-z]+|[^\w:.-]+/gi, "");
+               var tableName = e.items[i].Data.Components[j].Tables[k].Name.replace(/^[^a-z]+|[^\w:.-]+/gi, "");
+               var idTable2 = context + '_' + compName + '_' + tableName + tc.toString();
+
+               var idTable_handle2 = idTable2 + "_handle"
+               addGrid(idTable2, idTable_handle2, e.items[i].Data.Components[j].Tables[k]);
+            }
+         }
+      }
+
+   }
+   
+</script>
+
+
+<script>
+   var mainTabStrip;
+   var mainTabStripSelected = [];
+   var ProbeCheck = false;
+   var ProbeRequest = [];
+
+   var mainAutorefresh;
+   var serverAutorefresh;
+
+   var onTabStripTabSelect = function (e) {
+      // access the shown item via e.item (Element)
+      ProbeCheck = false;
+      if (ProbeRequest.length > 0) {
+         console.log('ProbeRequests: ' + ProbeRequest.length);
+         ProbeRequest.forEach(function (value, index, array) {
+            //console.log('aborted request ' + index);
+            value.abort('changed tab');
+         });
+      }
+
+      if (mainAutorefresh != undefined) { 
+         mainAutorefresh.Stop();
+      }
+
+      if (serverAutorefresh != undefined) {
+         serverAutorefresh.Stop();
+      }
+
+   if (mainTabStrip != undefined)
+      {
+         if (mainTabStripSelected.indexOf(e.item.innerText) == -1) {
+            mainTabStripSelected.push(e.item.innerText);
+            //skip reload on first tab open
+            console.log("first load of " + e.item.innerText);
+         }
+         else {
+            e.contentElement.innerHTML = "";
+            mainTabStrip.reload(e.item);
+            console.log("reload of " + e.item.innerText);
+         }
+      }
+   };
+
+   $(document).ready(function () {
+         mainTabStrip = $("#tabstrip").kendoTabStrip({
+         animation: { open: { effects: "fadeIn" } },
+         dataTextField: "text",
+         dataContentUrlField: "contentUrl",
+         dataImageUrlField: "imageUrl",
+         dataSpriteCssClass: "spriteCssClass",
+         dataSource:
+            [{
+               text: "@DicSvc.XLate("MAIN")",
+               contentUrl:"@Url.Action("MainView", "SystemMonitoring")"
+            },
+            {
+               text: "@DicSvc.XLate("SERVER")",
+               contentUrl:"@Url.Action("ServerView", "SystemMonitoring")"
+            },
+            {
+               text: "@DicSvc.XLate("HA")",
+               contentUrl: "@Url.Action("HAMonitorPartial", "Actions")"
+            },
+            {
+               text: "@DicSvc.XLate("DESKTOPS")",
+               contentUrl: "@Url.Action("NetworkProbePartial", "Actions")"
+            },
+            {
+               text: "@DicSvc.XLate("MOBILE")",
+               contentUrl: "@Url.Action("MonitorPartial", "Mobile")"
+            },
+            {
+               text: "@DicSvc.XLate("USER ISSUES")",
+               contentUrl: "@Url.Action("UserIssuesMonitoring", "SystemMonitoring")"
+            },
+            {
+               text: "@DicSvc.XLate("REPORTING")",
+               contentUrl: "@Url.Action("ReportingMonitoring", "SystemMonitoring")"
+               }],
+         show: onTabStripTabSelect
+      }).data('kendoTabStrip');
+
+      mainTabStrip.select(0);
+   });
+
+   
+   function RemoveProbeRequest(req) {
+      var i = ProbeRequest.indexOf(req);
+      if (i != -1) {
+         //console.log('removed request '+i);
+         ProbeRequest.splice(i, 1);
+      }
+   }
+
+</script>
+
+<style>
+   .no-scrollbar .k-grid-header {
+      padding: 0 !important;
+   }
+
+   .no-scrollbar .k-grid-content {
+      overflow-y: hidden;
+   }
+
+</style>
+
+<div id="chart">
+
+</div>
+<script>
+   var defaultDatec = "0001-01-01T00:00:00.0000000"; 
+   
+   function toggleScrollbar(e) {
+      var gridWrapper = e.sender.wrapper;
+      gridWrapper.toggleClass("no-scrollbar", true);
+
+   }
+
+   function addGrid(parentDivID, key, table) {
+      $('#' + parentDivID).append(
+         $('<div>').prop({
+            id: key,
+            style: "width:100%; padding-bottom: 21px;", //TODO: config
+            className: ''
+         })
+      );
+
+      var model = createModel(table.Columns);
+      var columns = createColumns(table.Columns);
+      var grid = $("#" + key).kendoGrid({
+         dataSource: {
+            transport: {
+               read: function (options) {
+                  options.success(createItems(table.Data, table.Columns));
+               }
+            },
+            pageSize: 5,
+            schema: {
+               model: model
+            }
+         },
+         columns: columns,
+         pageable: {
+            alwaysVisible: false
+         },
+         sortable: {
+            mode: "single",
+            allowUnsort: false
+         },
+         
+         editable: false,
+         filterable: true,
+         resizable: true,
+         dataBound: toggleScrollbar
+      });
+   }
+
+
+
+   function createColumns(columns) {
+      var i = 0;
+      var columnWidth = 100;
+      if (columns.length >= 6) {
+         columnWidth = 250;
+      }
+      return columns.map(function (col) {
+         var format = "";
+         var type = col.Type.toLowerCase();
+         if (type == "date") {
+            format = "{0:G}"; //TODO:check: other pages use italian format {0: dd/MM/yyyy HH:mm}
+         } else if (type == "number") {
+            format = "{0:#,#.###}";
+         }
+         return {
+            field: "col_" + i++,
+            width: columnWidth,
+            title: col.Field,
+            format:  format, 
+            headerAttributes: { "title": col.Field.toString() }
+         }; 
+      });
+   }
+
+   function createModel(columns) {
+      var model = {};
+      var fields = {};
+
+      for (var i = 0; i < columns.length; i++) {
+         var colID = "col_" + i;
+         fields[colID] = {
+            editable: false,
+            type: columns[i].Type.toLowerCase()
+         };
+      }
+
+      model.fields = fields;
+      return model;
+   }
+
+   const currentCultureDecimalSeparator = (1.1).toLocaleString().substring(1, 2);
+
+   function createItems(data,columns) {
+      var items = [];
+      for (var i = 0; i < data.length; i++) {
+         var d = {};
+         for (var j = 0; j < data[i].length; j++) {
+            if (data[i][j] == defaultDatec) {
+               d["col_" + j] = ""; 
+            }
+            else {
+               if (columns[j].Type == 'NUMBER') {
+                  d["col_" + j] = parseFloat(data[i][j]);
+               }
+               else
+               {
+                  d["col_" + j] = data[i][j];
+               }
+            }
+         }
+         items.push(d);
+      }
+
+      //data.forEach(tab => {
+      //   var d = {};
+      //   for (var c in tab) {
+      //      d["col_" + c] = tab[c];
+      //   }
+      //   items.push(d)
+      //});
+      return items;
+   }
+</script>
+
+<script>
+ 
+
+   function onGridError(e) {
+      if (e.errors) {
+         debugger;
+      }
+   };
+
+   function OnFailure(response) {
+      window.umsAlert("Error occured", response.errorMessage, 400, 300);
+   };
+
+   function OnSuccess(response) {
+      if (response.success) {
+         grid.dataSource.read();
+         dialog.close();
+      }
+      else {
+         umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+      }
+   }
+
+   function resizeGrid(gridId) {
+      $(window).resize(function () {
+         var bodyheight = $("#cardContainer").height();
+         var newGridHeight = bodyheight - 100;
+
+         var gridElement = $("#" + gridId);
+         gridElement.height(newGridHeight);
+         gridElement.data("kendoGrid").resize();
+      }).resize();
+   }
+
+
+   MonitoringAutoRefresh = function (timeout, autoCheckBox, countdownLabel) {
+      this.interval = 0;
+      this.timeoutTimer = 0;
+      this.refreshInMessage = "auto update in {0} sec <i class='mdi mdi-clock-fast'></i> ";
+      this.timeoutId = 0;
+      this.timeoutMilliSec = timeout;
+      this.objAutorefreshCheckbox = autoCheckBox;
+      this.objCountdown = countdownLabel;
+
+      this.Stop = function () {
+         if (this.timeoutId !== 0) {
+            clearTimeout(this.timeoutId);
+         }
+
+         if (this.interval !== 0) {
+
+            clearTimeout(this.interval);
+            this.objCountdown.html('');
+         }
+      }
+
+      this.SetRefreshInterval = function(functionRefresh) {
+
+         if (this.timeoutId !== 0) {
+            clearTimeout(this.timeoutId);
+         }
+         if (this.interval !== 0) {
+
+            clearTimeout(this.interval);
+            this.objCountdown.html('');
+         }
+         if (this.timeoutMilliSec > 0 && this.objAutorefreshCheckbox.is(':checked')) {
+            //this.timeoutTimer = Math.ceil(this.timeoutMilliSec / 1000);
+            
+            this.timeoutId = setTimeout(function (obj, functionRefresh) { obj.StartCountDown(functionRefresh); }, this.timeoutMilliSec, this, functionRefresh);
+
+         }
+         else {
+            this.objCountdown.hide();
+         }
+      }
+
+      this.StartCountDown= function(functionRefresh)
+      {
+         this.timeoutTimer = 20;
+         $(this.objCountdown).html((this.refreshInMessage).format(this.timeoutTimer));
+         this.objCountdown.show();
+         this.interval = setInterval(UpdateRefreshInterval, 1000, this, functionRefresh);
+      }
+   };
+
+
+   function UpdateRefreshInterval(objMonitoringAutorefresh, functionRefresh) {
+      objMonitoringAutorefresh.timeoutTimer--;
+
+      //if (objMonitoringAutorefresh.timeoutTimer <= 10) {
+         
+      //   objMonitoringAutorefresh.objCountdown.show();
+      //}
+
+      $(objMonitoringAutorefresh.objCountdown).html((objMonitoringAutorefresh.refreshInMessage).format(objMonitoringAutorefresh.timeoutTimer));
+      if (objMonitoringAutorefresh.timeoutTimer <= 0) {
+         clearInterval(objMonitoringAutorefresh.interval);
+         functionRefresh();
+         objMonitoringAutorefresh.objCountdown.hide();
+      }
+   }
+</script>

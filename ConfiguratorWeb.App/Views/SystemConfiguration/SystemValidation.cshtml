@@ -1,0 +1,162 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@{
+    string gridName = "system-validation-grid";
+   ViewBag.Title = DicSvc.XLate("System Validation");
+}
+<script>
+    var gridIdName = "@gridName";
+
+
+    function checkCanValidateConfiguration() {
+        $.ajax({
+            type: "GET",
+            url: '@Url.Action("CanValidateConfiguration", "SystemConfiguration")',
+        }).done(function (data) {
+            if (!data.success) {
+                window.umsAlert("Warning", data.errorMessage, 400, 200);
+            } else {
+                window.umsAlert("Result",'@DicSvc.XLate("Configuration is valid")',400,200)   
+            }
+            }).fail(function (xhr, textStatus, errorThrown) {
+                window.umsAlert("An Error occurred", errorThrown, 400, 300);
+            }
+        );
+    }
+
+
+    function showReasonDialog() {
+        $('#txtValidationReason').val('');
+        var reasDlg = $("#divValidationReasonDialog").data('kendoWindow');
+        reasDlg.center();
+        reasDlg.open();
+    }
+
+    function validateConfiguration() {
+        var strReason = $('#txtValidationReason').val();
+        if (strReason && strReason != '') {
+            $.ajax({
+                type: "GET",
+                url: '@Url.Action("ValidateConfiguration", "SystemConfiguration")',
+                data: { reason: strReason }
+            }).done(function (data) {
+                if (!data.success) {
+                    window.umsAlert("Warning", data.errorMessage, 400, 200);
+                } else {
+                    debugger;
+                    $("#divValidationReasonDialog").data('kendoWindow').close();
+                    $('#@gridName').data('kendoGrid').dataSource.read();
+
+                }
+            }).fail(function (xhr, textStatus, errorThrown) {
+                window.umsAlert("An Error occurred", errorThrown, 400, 300);
+            }
+            );
+        } else {
+            window.umsAlert('@DicSvc.XLate("Mandatory data missing")','@DicSvc.XLate("Please provide a reason for validation")' , 300, 200);
+        }
+            
+        
+        
+    }
+
+</script>
+
+<style>
+    
+
+    .k-grid td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+</style>
+<div id="divValidationReasonDialog" style="display:none;">
+    <div class="card pt-1 pb-2">
+        <div class="row h-40">
+            <div class="col-md-4 ">
+                <label>@DicSvc.XLate("Reason for validation")</label>
+            </div>
+            <div class="col-md-8 ">
+                <textarea cols="30" rows="3" style="height:100px;" class="form-control k-textbox" id="txtValidationReason" ></textarea>
+            </div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-md-6">
+
+            </div>
+            <div class="col-md-6 mr-0">
+                <div class="input-group text-right">
+
+                    <button id="btnDefaultLoc" onclick="validateConfiguration();" class="k-buttonLarge k-button btnKendo" type="button" title="@DicSvc.XLate("Sign Configuration")">
+                        @DicSvc.XLate("Sign Configuration")
+                    </button>
+                    <button id="btnDefaultLocRemove" onclick="closeReasonDialog();" class="k-buttonLarge k-button btnKendo" type="button" title="@DicSvc.XLate("Cancel")">
+                        @DicSvc.XLate("Cancel")
+                    </button>
+
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+</div>
+<div class="h-100 text-center">
+    <div class="card h-100 m-1 p-2 text-left">
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.CDASValidationViewModel>()
+                                     .Name(gridName)
+                                     .UmsDefaultSettings(DicSvc)
+                                    
+
+
+
+        .UmsDefaultToolbar("validCurrentConfig", "Validate Current Configuration", "showReasonDialog();", DicSvc)
+        .Columns(columns =>
+        {
+            columns.Bound(e => e.TimeStamp).Width(180).Format("{0: dd/MM/yyyy HH:mm}").Title(DicSvc.XLate("Date/Time"));
+            columns.Bound(e => e.UserID).Title(DicSvc.XLate("User"));
+            columns.Bound(e => e.ID).Visible(false);
+            columns.Bound(e => e.Reason).Title(DicSvc.XLate("Reason"));
+        })
+        .Events(ev => ev //.Edit("onEdit").Cancel("onCancel").DetailInit("onInitDetailLocation").DetailExpand("detailExpand").DetailCollapse("onCollapse")
+        .DataBound("onDataBound"))
+        .DataSource(dataSource => dataSource
+        .Ajax()
+        .Model(model =>
+        {
+        })
+        .Read(read => read.Action("ReadSystemValidations", "SystemConfiguration"))
+        )
+
+        )
+
+
+
+
+    </div>
+</div>
+
+<script>
+
+    function onDataBound(e) {
+
+    }
+
+    function closeReasonDialog() {
+        $("#divValidationReasonDialog").data('kendoWindow').close();
+    }
+
+
+    $(document).ready(function () {
+        //var windowWidget = $("#divValidationReasonDialog").data("kendoWindow");
+        var reasonDialog = $('#divValidationReasonDialog').usmKendoWindow({
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                },
+                title: '@DicSvc.XLate("Configuration Signing")',
+            height: '250px',
+                width:'700px'
+            });
+    });
+  
+</script>

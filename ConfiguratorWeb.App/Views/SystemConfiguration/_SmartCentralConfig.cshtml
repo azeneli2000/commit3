@@ -1,0 +1,876 @@
+﻿@using System.Collections
+@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@using ConfiguratorWeb.App.SysOptionConfig
+@using Digistat.FrameworkStd.Enums
+@model ConfiguratorWeb.App.SysOptionConfig.SmartCentralConfig
+
+@{
+   Layout = null;
+   string formIdRmc = "form_" + new Guid().ToString();
+   List<( int Value,string Name)> repTemp = (List<( int Value,string Name)> )ViewData["DeviceTypeOrderListName"];
+
+}
+
+<script type="text/javascript">
+
+   function toFirstUpper(target) {
+      var string = target.toString();
+      return string.charAt(0).toUpperCase() + string.substring(1);
+   }
+
+   var dataSourceRMC = @Html.Raw(Json.Serialize(Model));
+   var dataSourceRmcTempl = @Html.Raw(Json.Serialize(repTemp));
+   var dataSourceRmcParams = new kendo.data.DataSource();
+   //debugger;
+   //var orderedDevice = dataSourceRMC.DeviceTypeOrder;
+   var orderedDevice = dataSourceRmcTempl.map(function (a, b) { return a.Item1; });
+
+   function onRowChange(arg) {
+      //debugger;
+      var selected = $.map(this.select(), function(item) {
+         return $(item).text();
+      });
+      var grid = this;
+      var item = grid.dataItem(this.select());
+      if (item) {
+         saveMenuChanges();
+         viewDetail(item);
+      }
+   }
+   function saveMenuChanges() {
+
+      var Name = $('#menuName').val();
+
+      if (Name.length == 0)
+         return;
+
+      var NameOriginal = $('#menuOriginalName').val();
+      var isNew = false;
+      var menu = dataSourceRMC.Menu.find(function(x) { return x.Name === NameOriginal; });
+      if (!menu ) {
+         menu = {};
+         isNew = true;
+      }
+
+      menu.Name                   = $('#menuName').val();
+      menu.Callback               = $('#menuCallback').val();
+      menu.Path                   = $('#menuPath').val();
+      menu.Template               = $('#menuTemplate').val();
+      menu.Preview                = document.getElementById("menuPreview").checked ? "True" : "False";
+      menu.Print                  = document.getElementById("menuPrint").checked ? "True" : "False";
+      menu.UseWindowsPrintDialog  = document.getElementById("menuUseWindowsPrintDialog").checked ? "True" : "False";
+      menu.WatermarkEnabled       = document.getElementById("menuWatermarkEnabled").checked ? "True" : "False";
+      menu.OutlineEnabled         = document.getElementById("menuOutlineEnabled").checked ? "True" : "False";
+      menu.PrintButtonEnabled     = document.getElementById("menuPrintButtonEnabled").checked ? "True" : "False";
+      menu.ExportFormats          = $("#menuExportFormats").data("kendoMultiSelect").value().join(";");
+      //debugger;
+      if (isNew || menu.Parameters == undefined) 
+         menu.Parameters = {Parameter:[]};
+
+
+      if ($('#tempParKey').val() != "") {
+         //debugger;
+         var oldVal = $('#tempParValue').val();
+         var dsItem = dataSourceRmcParams.data().find(function(x) { return x.Name === $('#tempParKey').val(); });
+         if (dsItem) {
+            dsItem.Value = oldVal;
+         }
+         $('#tempParKey').val("");
+      }
+
+      menu.Parameters.Parameter = dataSourceRmcParams.data().toJSON();
+
+      //menu.Parameters
+      if (isNew) {
+         dataSourceRMC.Menu.push(menu);
+      }
+
+      if (isNew || Name != NameOriginal) {
+         var grid = $('#reportMasterGrid').getKendoGrid();
+         var dataSource = new kendo.data.DataSource({
+            data:dataSourceRMC.Menu
+         });
+         grid.setDataSource(dataSource);
+      }
+   }
+   function onChangePrinterDefaultSetting() {
+      var bChecked = document.getElementById("printerDefaultSetting").checked;
+      setMenuPreviewArea(bChecked);
+      if (!bChecked) {
+         $('.ums-printerArea *').prop("disabled", true).off('click');
+         $('#printerCopies').getKendoNumericTextBox().enable(false);
+         $('#printerDuplex').getKendoDropDownList().enable(false);
+      } else {
+         $('.ums-printerArea *').prop("disabled", false).on('click');
+         $('#printerCopies').getKendoNumericTextBox().enable(true);
+         $('#printerDuplex').getKendoDropDownList().enable(true);
+      }
+   }
+   function onChangeMenuPreview() {
+      var bChecked = document.getElementById("menuPreview").checked;
+      setMenuPreviewArea(bChecked);
+   }
+   function setMenuPreviewArea(bChecked) {
+      if (bChecked != undefined && bChecked==true) {
+         $('.card.ums-preview-area *').prop("disabled", false).on('click');
+         $('#menuExportFormats').getKendoMultiSelect().enable(true);
+
+      } else {
+         //$('.card.ums-preview-area').hide();  
+         $('.card.ums-preview-area *').prop("disabled", true).off('click');
+         $('#menuExportFormats').getKendoMultiSelect().enable(false);
+      }
+   }
+   function viewDetail(element) {
+      //if (!element.Name) {
+      //   debugger;
+      //}
+      //debugger;
+      var item = dataSourceRMC.Menu.find(function(x) { return x.Name === element.Name; } );
+      if (!item ) {
+         item = [];
+         item.Name = "";
+         item.Callback               = "";
+         item.Path                   = "";
+         item.Template               = "";
+         item.Preview                = "False";
+         item.Print                  = "False";
+         item.UseWindowsPrintDialog  = "False";
+         item.WatermarkEnabled       = "False";
+         item.OutlineEnabled         = "False";
+         item.PrintButtonEnabled     = "False";
+         item.ExportFormats          = "";
+         item.Parameters             = [];
+      }
+
+      $('#menuOriginalName').val(item.Name);
+      $('#menuName').val(item.Name);
+      $('#menuCallback').val(item.Callback);
+      $('#menuPath').val(item.Path);
+      $('#menuTemplate').val(item.Template);
+
+      document.getElementById("menuPrint").checked = (item.Print && item.Print == "True");
+      document.getElementById("menuPreview").checked = (item.Preview && item.Preview == "True");
+      
+      setMenuPreviewArea(document.getElementById("menuPreview").checked);
+
+      document.getElementById("menuWatermarkEnabled").checked = (item.WatermarkEnabled && item.WatermarkEnabled=="True");
+      document.getElementById("menuOutlineEnabled").checked = (item.OutlineEnabled && item.OutlineEnabled=="True");
+      document.getElementById("menuPrintButtonEnabled").checked = (item.PrintButtonEnabled && item.PrintButtonEnabled=="True");
+      document.getElementById("menuUseWindowsPrintDialog").checked = (item.UseWindowsPrintDialog && item.UseWindowsPrintDialog=="True");
+      var msUnit = $("#menuExportFormats").data("kendoMultiSelect");
+      msUnit.value([]);
+      if (item.ExportFormats && item.ExportFormats.length>0) {
+
+         msUnit.value(item.ExportFormats.split(";"));
+         //onExportFormatsChange();
+      }
+      //debugger;
+      var listbox1 = $("#menuParameters").getKendoListBox();
+      dataSourceRmcParams = new kendo.data.DataSource({
+         transport: {
+            read: function(e) {
+               // On success.
+               e.success(item.Parameters.Parameter);
+               // On failure.
+               // e.error("XHR response", "status code", "error message");
+            }
+         }
+      });
+      ;
+      listbox1.setDataSource(dataSourceRmcParams);
+      $('#tempParValue').val('');
+   }
+   function getTemplateParameters() {
+      var templateName = $('#menuTemplate').val();
+      if (templateName.length>0) {
+         $.ajax({
+            url: '@Url.Action("ReadReportTemplateParams", "ReportMaster")',
+            type: 'GET',
+            data: {templateName:templateName}
+
+         }).done(function (data) {
+            //debugger;
+            try {
+               if (!data) {
+                  return;
+               }
+               dataSourceRmcParams = new kendo.data.DataSource({
+                  transport: {
+                     read: function(e) {
+                        // On success.
+                        e.success(data);
+                        // On failure.
+                        // e.error("XHR response", "status code", "error message");
+                     }
+                  }
+               });
+               var listbox1 = $("#menuParameters").getKendoListBox();
+               //listbox1.remove(listbox1.items());
+               listbox1.setDataSource(dataSourceRmcParams);
+               //if (data.length>0) {
+               //   for (var i = 0; i < data.length; i++) {
+               //      listbox1.add({ Name:data[i].Key,Value: data[i].Value});
+               //   }
+               //}
+            } catch (e) {
+
+            }
+            $('#tempParValue').val('');
+         });
+      }
+   }
+
+
+</script>
+<style>
+   #menuExportFormats_taglist > li ,
+   #uiExportFormats_taglist > li {
+      color: #ffffff;
+      border-width: 1px;
+      border-style: solid;
+      background-color: #4A90E2 !important;
+      border-color: #386caa !important;
+      padding: 4px !important;
+   }
+
+   .k-multiselect-wrap {
+      max-height: 65px !important;
+      height: 65px !important;
+      overflow: auto !important;
+   }
+   #reportMasterGrid  a.k-link {
+      padding: 5px;
+   }
+   #reportMasterGrid  a.k-grid-filter > span{
+      margin-top: 2px;
+      padding: 5px;
+   }
+   .k-widget.k-dropdown {
+      max-height: 32px !important;
+   }
+
+   #lstDeviceTypeOrder .k-block, .k-panel {
+      border-width: 2px;
+      border-style: dashed;
+   }
+   
+   .move {
+      cursor: move;
+   }
+
+   .itempanel {
+      width: 300px;
+      height: 400px;
+      border: 3px solid black;
+      border-radius: 3px;
+   }
+
+   #lstDeviceTypeOrder .tags {
+      margin: 5px;
+      padding: 3px;
+      color: black;
+   }
+
+   .tagitemcls {
+      width: 24px;
+      margin-left: 0px;
+      margin-top: 5px;
+      padding-top: 6px;
+      padding-bottom: 8px;
+      padding-left: 2px;
+   }
+
+
+</style>
+
+<div class="h-100 ">
+   <div class="card m-0 p-0 text-left" id="divItemDetail" style="height: 93% !important;">
+
+      <form id="@formIdRmc" style="overflow: auto"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+            data-ajax="true" data-ajax-method="POST" data-ajax-loading="progressl">
+
+         <kendo-tabstrip name="tabstrip">
+            <popup-animation>
+               <open effects="fade:in" />
+            </popup-animation>
+            <items>
+               <tabstrip-item text="@DicSvc.XLateHtml("Grid Layout")" selected="true">
+                  <content>
+                     <div class="row" style="margin: 0px !important; max-height: 521px">
+                        
+                        <div class="col-6 mt-3 pl-0">
+                           <div class="row">
+                              <div class="col-4 pl-0">
+                                 <label>@DicSvc.XLateHtml("My Patient Bed Count")</label>
+                              </div>
+                              <div class="col-8 p-0">
+                                 @(Html.Kendo().NumericTextBox<int>().Name("ctlMyPatientBedCount").Min(1).Max(4).Format("#"))
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-4 pl-0">
+                                 <label>@DicSvc.XLateHtml("Central Column Count")</label>
+                              </div>
+                              <div class="col-8 p-0">
+                                 @(Html.Kendo().NumericTextBox<int>().Name("ctlCentralColumnCount").Min(1).Max(10).Format("#"))
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-4 pl-0">
+                                 <label>@DicSvc.XLateHtml("Central Row Count")</label>
+                              </div>
+                              <div class="col-8 p-0">
+                                 @(Html.Kendo().NumericTextBox<int>().Name("ctlCentralRowCount").Min(1).Max(10).Format("#"))
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-4 pl-0">
+                                 <label>@DicSvc.XLateHtml("First Displayed Page in central")</label>
+                              </div>
+                              <div class="col-8 p-0">
+                                 @(Html.Kendo().NumericTextBox<int>().Name("ctlFirstDisplayedPage").Min(1).Max(100).Format("#"))
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-4 pl-0">
+                                 <label>@DicSvc.XLateHtml("Central Bed Filter (loc1=bed1,bed2;loc2...)")</label>
+                              </div>
+                              <div class="col-8 p-0">
+                                 <input id="txtCentralBedFilter" class="k-input k-textbox " />
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-4 pl-0">
+                                 <label>@DicSvc.XLateHtml("Details Inoperativity Timeout sec. (0=disabled)")</label>
+                              </div>
+                              <div class="col-8 p-0">
+                                 @(Html.Kendo().NumericTextBox<int>().Name("ctlInoperativityTimeout").Min(0).Max(1000).Format("#"))
+                              </div>
+                           </div>
+                          
+                        </div>
+                     </div>
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLateHtml("Events")">
+                  <content>
+                     <div class="row">
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("Last Events Interval (hour)")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           @(Html.Kendo().NumericTextBox<int>().Name("ctlLastEvents").Min(1).Max(100).Format("#"))
+                        </div>
+                     </div>
+                     <div class="row">
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("Events Display Mode")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           
+                           @(Html.Kendo().DropDownList().Name("cboEventsDisplayMode") //.HtmlAttributes(new { style = "height:70px;" })
+                                 .Items(t =>
+                                 {
+
+                                    t.Add().Value("0").Text("Opened");
+                                    t.Add().Value("1").Text("Closed");
+                                    t.Add().Value("2").Text("LastSeen");
+                                 }
+                              ))
+                        </div>
+                     </div>
+                     <div class="row">
+                        <div class="col-3 pl-0">
+                           <label>@DicSvc.XLateHtml("Event Grid Font")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="txtEventsFont" class="k-input k-textbox " />
+                        </div>
+                     </div>
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLateHtml("Device Type")">
+                  <content>
+                     
+
+                        <div class="row">
+
+                           <div class="col-3 pl-0">
+                              <label>@DicSvc.XLateHtml("Device Type Order")</label>
+                           </div>
+                           <div class="col-8 p-0">
+                              <div id="lstDeviceTypeOrder" class="itempanel" style="border: 1px solid grey;"></div>
+                              @DicSvc.XLate("Drag item to change order")
+                           </div>
+                        </div>
+                     
+                  </content>
+               </tabstrip-item>
+               <tabstrip-item text="@DicSvc.XLateHtml("Alarms and Values")">
+                  <content>
+                     <div class="row mb-1">
+                        <div class="col-4 pl-0">
+                           <label>@DicSvc.XLateHtml("S1 Font")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="txtS1Font" class="k-input k-textbox " value="@Model.S1Font"/>
+                        </div>
+                     </div>
+                     <div class="row mb-1">
+                        <div class="col-4 pl-0">
+                           <label>@DicSvc.XLateHtml("S2 Font")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="txtS2Font" class="k-input k-textbox " value="@Model.S2Font"/>
+                        </div>
+                     </div>
+                     <div class="row mb-1">
+                        <div class="col-4 pl-0">
+                           <label>@DicSvc.XLateHtml("S3 Font")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="txtS3Font" class="k-input k-textbox " value="@Model.S3Font"/>
+                        </div>
+                     </div>
+                     <div class="row mb-1">
+                        <div class="col-4 pl-0">
+                           <label>@DicSvc.XLateHtml("Font Model")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="txtFontModel" class="k-input k-textbox " value="@Model.FontModel"/>
+                        </div>
+                     </div>
+                     <div class="row mb-1">
+                        <div class="col-4 pl-0">
+                           <label>@DicSvc.XLateHtml("Model Format string. ( %DA = Dataset Model Name. %DE = Device Name. %MA = Manufacturer. %MO = Model Name.)")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="txtModelFormatString" class="k-input k-textbox " value="@Model.ModelFormatString"/>
+                        </div>
+                     </div>
+                     <div class="row mb-1">
+                        <div class="col-4 pl-0">
+                           <label>@DicSvc.XLateHtml("Font Alam")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="txtFontAlarm" class="k-input k-textbox " value="@Model.FontAlarm"/>
+                        </div>
+                     </div>
+                     <div class="row mb-1">
+                        <div class="col-4 pl-0">
+                           <label>@DicSvc.XLateHtml("Font Alarm (VALUES MODE)")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="txtFontAlarmValues" class="k-input k-textbox " value="@Model.FontAlarmValues"/>
+                        </div>
+                     </div>
+                     <div class="row mb-3">
+                        <div class="col-4 pl-0">
+                           <label>@DicSvc.XLateHtml("Font More Device/Alarms/Warnings")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           <input id="txtFontMoreDevices" class="k-input k-textbox " value="@Model.FontMoreDevices"/>
+                        </div>
+                     </div>
+                     
+
+                     <div class="row mb-1">
+                        <div class="col-4 pl-0">
+                           <label>@DicSvc.XLateHtml("Column Size")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           @(Html.Kendo().NumericTextBox<int>().Name("ctlColumnSize").Min(50).Max(5000).Format("#").Value(Model.ColumnSizeAlarm))
+                        </div>
+                     </div>
+                     <div class="row mb-1">
+                        <div class="col-4 pl-0">
+                           <label>@DicSvc.XLateHtml("Column Size (VALUES MODE)")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           @(Html.Kendo().NumericTextBox<int>().Name("ctlColumnSizeValueMode").Min(50).Max(5000).Format("#").Value(Model.ColumnSizeValue))
+                        </div>
+                     </div>
+                     
+                     <div class="row mb-1">
+                        <div class="col-4 pl-0">
+                           <label>@DicSvc.XLateHtml("Maximum Alarm Row Count")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           @(Html.Kendo().NumericTextBox<int>().Name("ctlMaximumAlarmRowCount").Min(0).Max(100).Format("#").Value(Model.MaximumAlarmLineLimit))
+                        </div>
+                     </div>
+                     <div class="row mb-1">
+                        <div class="col-4 pl-0">
+                           <label>@DicSvc.XLateHtml("Alarm History Counter (sec)")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           @(Html.Kendo().NumericTextBox<int>().Name("ctlAlarmHistoryCounter").Min(1).Max(5000).Format("#").Value(Model.DisplayLastWarningAlarmSec))
+                        </div>
+                     </div>
+                     <div class="row mb-1">
+                        <div class="col-4 pl-0">
+                           <label>@DicSvc.XLateHtml("Alarm snapshots duration (in days, 0=disabled)")</label>
+                        </div>
+                        <div class="col-8 p-0">
+                           @(Html.Kendo().NumericTextBox<int>().Name("ctlSnapshotDuration").Min(0).Max(1000).Format("#").Value(Model.AlarmImagesCacheDays))
+                        </div>
+                     </div>
+
+                     
+                  </content>
+               </tabstrip-item>
+               
+            </items>
+         </kendo-tabstrip>
+      </form>
+
+
+   </div>
+   <div class="card-footer h-10 p-0 m-0 mt-1 border-0">
+      @(Html.Kendo().ToolBar()
+         .Name("toolbarRMC")
+         .UmsDefaultErrors(DicSvc)
+         .Items(
+            items =>
+            {
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Generate XML")).Id("btnRmcXml")   .UmsHtmlButtonSave();
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnRmcCancel")      .UmsHtmlButtonCancel();
+            }
+         )
+         .UmsDefaultSettings(DicSvc, "")
+         )
+   </div>
+</div>
+
+<script>
+   
+   function setControlsValues() {
+
+      $('#ctlMyPatientBedCount').getKendoNumericTextBox().value(dataSourceRMC.MyPatientsBedCount);
+      $('#ctlCentralColumnCount').getKendoNumericTextBox().value(dataSourceRMC.CentralColumnCount);
+      $('#ctlCentralRowCount').getKendoNumericTextBox().value(dataSourceRMC.CentralRowCount);
+      $('#ctlFirstDisplayedPage').getKendoNumericTextBox().value(dataSourceRMC.FirstDisplayedPage);
+
+      
+      $('#ctlInoperativityTimeout').getKendoNumericTextBox().value(dataSourceRMC.InoperativityTimeout);
+
+      if (dataSourceRMC.CentralBedFilter && dataSourceRMC.CentralBedFilter.length>0) {
+
+         $('#txtCentralBedFilter').val(dataSourceRMC.CentralBedFilter);
+      }
+      //EVENTS
+      $('#ctlLastEvents').getKendoNumericTextBox().value(dataSourceRMC.LastEventHours);
+      $('#cboEventsDisplayMode').getKendoDropDownList().value(dataSourceRMC.EventsDisplayModeSelected);
+      $('#txtEventsFont').val(dataSourceRMC.EventsGridFont);
+
+   }
+   
+   $(document).ready(function() {
+      $('.card.ums-preview-area *').prop("disabled", true).off('click');
+      if (!dataSourceRMC.PrinterSettings) {
+         $('.ums-printerArea *').prop("disabled", true).off('click');
+      }
+      
+      var dataSourceSccDeviceType = new kendo.data.DataSource(
+      {
+         data:dataSourceRmcTempl,
+      })
+      $('#lstDeviceTypeOrder').kendoListView(
+         {
+            dataSource: dataSourceSccDeviceType,
+            template: "<div class='tags k-block move'> #:Item2# </div>"
+            //dataTextField: "Item2",
+            //dataValueField: "Item1"
+            //change: onParameterSelected
+         });
+      $('#lstDeviceTypeOrder').kendoSortable({
+         filter: ".k-listview-content > div.tags",
+         cursor: "move",
+         placeholder: function(element) {
+            return element.clone().css("opacity", 0.3);
+         },
+         hint: function(element) {
+            return element.clone().removeClass("k-state-selected");
+         },
+         change: function(e) {
+            //debugger;
+            var skip = dataSourceSccDeviceType.skip() || 0,
+               oldIndex = e.oldIndex + skip,
+               newIndex = e.newIndex + skip,
+               dataItem = dataSourceSccDeviceType.getByUid(e.item.data("uid"));
+
+            dataSourceSccDeviceType.remove(dataItem);
+            dataSourceSccDeviceType.insert(newIndex, dataItem);
+            var order = [];
+            //debugger;
+            dataSourceSccDeviceType.data().forEach(function(element,idx) { 
+               //debugger;
+               order.push(element.Item1);
+            });
+            
+            orderedDevice = order;
+
+         }
+      });
+      
+      setControlsValues();
+
+      $('#btnRmcCancel').off('click').on('click', function () {
+         //debugger;
+         var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+         objRepoDialog.close();
+      });
+      $('#btnRmcXml').off('click').on('click', function () {
+         //debugger;
+         //saveMenuChanges();
+         var xml = ReportJsonToXML();
+
+         if (!validateRmcXml(xml)) {
+            return;
+         }
+         
+         if (editor && !$('#aceEditor').hasClass('d-none')) {
+            editor.getSession().setValue(xml);
+            var textarea = $(textareaIdValueModelGuid).hide();
+            textarea.val(editor.getSession().getValue());
+            
+         } else {
+            var textarea = $(textareaIdValueModelGuid);
+            textarea.val(xml);
+         }
+         var objRepoDialog = $('#divReportMasterConfig').data('kendoWindow');
+         objRepoDialog.close();
+      });
+      
+
+   });
+   function onParameterSelected(e) {
+      //debugger;
+      
+      var listbox1 = $("#menuParameters").getKendoListBox();
+
+      if ($('#tempParKey').val() != "") {
+         var oldVal = $('#tempParValue').val();
+         var dsItem = dataSourceRmcParams.data().find(function(x) { return x.Name === $('#tempParKey').val(); });
+         if (dsItem) {
+            dsItem.Value = oldVal;
+         }
+         
+      }
+      var item = listbox1.select();
+      if (item.length > 0) {
+
+         //var element = e.sender.select();
+         var par = listbox1.dataItem(item[0]);
+         $('#tempParValue').val(par.Value);
+         $('#tempParKey').val(par.Name);
+      }
+   }
+   
+   function btnUiSelectAllUnitClick() {
+      var msUnit = $("#uiExportFormats").data("kendoMultiSelect");
+      var values = $.map(msUnit.dataSource.data(), function (dataItem) {
+         return dataItem.Value;
+      });
+      msUnit.value(values);
+   }
+
+   function btnUiClearAllUnitClick() {
+      var msUnit = $("#uiExportFormats").data("kendoMultiSelect");
+      msUnit.value('');
+      
+   }
+   function btnSelectAllUnitClick() {
+      var msUnit = $("#menuExportFormats").data("kendoMultiSelect");
+      var values = $.map(msUnit.dataSource.data(), function (dataItem) {
+         return dataItem.Value;
+      });
+      msUnit.value(values);
+      
+   }
+
+   function btnClearAllUnitClick() {
+      var msUnit = $("#menuExportFormats").data("kendoMultiSelect");
+      msUnit.value('');
+      
+   }
+
+   function btnAddMenuClick() {
+
+      if ($('#menuName').val() !== "") {
+         saveMenuChanges();
+      }
+
+      var grid = $('#reportMasterGrid').getKendoGrid();
+      grid.clearSelection();
+      var element = {Name:""};
+      viewDetail(element);
+   }
+   function btnDeleteMenuClick() {
+      //debugger;
+      var grid = $('#reportMasterGrid').getKendoGrid();
+
+      var rows = grid.select();
+
+      if (!rows || rows.length == 0 ) {
+         alert('select 1 menu to proceed');
+         return;
+      }
+      var menu = dataSourceRMC.Menu.find(function(x) { return x.Name === rows[0].innerText; });
+      if (menu ) {
+         jQuery(dataSourceRMC.Menu).each(function (index){
+            if(dataSourceRMC.Menu[index].Name == menu.Name){
+               dataSourceRMC.Menu.splice(index,1); // This will remove the object that first name equals to Test1
+               return false; // This will stop the execution of jQuery each loop.
+            }
+         });
+
+         var dataSource = new kendo.data.DataSource({
+            data:dataSourceRMC.Menu
+         });
+         grid.setDataSource(dataSource);
+
+         var element = {Name:""};
+         viewDetail(element);
+      }
+   }
+
+   function ReportJsonToXML() {
+      //debugger;
+      var xmlTemplate = '<SmartCentral>\r\n' +
+         '\t<SmartCentralConfig \r\n' +
+         '\t\tMyPatientBedCount          ="{0}" \r\n' +
+         '\t\tCentralColumnCount         ="{1}" \r\n' +
+         '\t\tCentralRowCount            ="{2}" \r\n' +
+         '\t\tDeviceTypeOrder            ="{3}" \r\n' +
+         '\t\tCentralBedFilter           ="{4}" \r\n' +
+         '\t\tLastEventHours             ="{5}" \r\n' +
+         '\t\tFirstDisplayedPage         ="{6}" \r\n' +
+         '\t\tS1Font                     ="{7}" \r\n' +
+         '\t\tS2Font                     ="{8}" \r\n' +
+         '\t\tS3Font                     ="{9}" \r\n' +
+         '\t\tEventsGridFont             ="{10}" \r\n' +
+         '\t\tEventsDisplayMode          ="{11}" \r\n' +
+         '\t\tFontModel                  ="{12}" \r\n' +
+         '\t\tModelFormatString          ="{13}" \r\n' +
+         '\t\tFontAlarm                  ="{14}" \r\n' +
+         '\t\tFontAlarmValues            ="{15}" \r\n' +
+         '\t\tFontMoreDevices            ="{16}" \r\n' +
+         '\t\tColumnSizeAlarm            ="{17}" \r\n' +
+         '\t\tColumnSizeValue            ="{18}" \r\n' +
+         '\t\tMaximumAlarmLineLimit      ="{19}" \r\n' +
+         '\t\tDisplayLastWarningAlarmSec ="{20}" \r\n' +
+         '\t\tInoperativityTimeout       ="{21}" \r\n' +
+         '\t\tAlarmImagesCacheDays       ="{22}" \r\n';
+      
+
+      var sMyPatientBedCount          = $('#ctlMyPatientBedCount').getKendoNumericTextBox().value();
+      var sCentralColumnCount         = $('#ctlCentralColumnCount').getKendoNumericTextBox().value();
+      var sCentralRowCount            = $('#ctlCentralRowCount').getKendoNumericTextBox().value();
+      var sDeviceTypeOrder            = orderedDevice.join(";"); //$('#lstDeviceTypeOrder').getKendoListBox().value();
+      var sCentralBedFilter           = $('#txtCentralBedFilter').val();
+      var sLastEventHours             = $('#ctlLastEvents').getKendoNumericTextBox().value();
+      var sFirstDisplayedPage         = $('#ctlFirstDisplayedPage').getKendoNumericTextBox().value();
+      var sS1Font                     = $('#txtS1Font').val();
+      var sS2Font                     = $('#txtS2Font').val();
+      var sS3Font                     = $('#txtS3Font').val();
+      var sEventsGridFont             = $('#txtEventsFont').val();
+      var sEventsDisplayMode          = $('#cboEventsDisplayMode').getKendoDropDownList().value();
+      var sFontModel                  = $('#txtFontModel').val();
+      var sModelFormatString          = $('#txtModelFormatString').val();
+      var sFontAlarm                  = $('#txtFontAlarm').val();
+      var sFontAlarmValues            = $('#txtFontAlarmValues').val();
+      var sFontMoreDevices            = $('#txtFontMoreDevices').val();
+      var sColumnSizeAlarm            = $('#ctlColumnSize').getKendoNumericTextBox().value();
+      var sColumnSizeValue            = $('#ctlColumnSizeValueMode').getKendoNumericTextBox().value();
+      var sMaximumAlarmLineLimit      = $('#ctlMaximumAlarmRowCount').getKendoNumericTextBox().value();
+      var sDisplayLastWarningAlarmSec = $('#ctlAlarmHistoryCounter').getKendoNumericTextBox().value();
+      var sInoperativityTimeout       = $('#ctlInoperativityTimeout').getKendoNumericTextBox().value();
+      var sAlarmImagesCacheDays       = $('#ctlSnapshotDuration').getKendoNumericTextBox().value();
+            
+      //var x0 = $('#printerName').val();
+      //var x1 = $('#printerCopies').getKendoNumericTextBox().value();
+      //var x2 = $('#printerDuplex').getKendoDropDownList().value();
+      //var x3 = document.getElementById("printerCollate").checked ;
+      //var x6 = $("#uiExportFormats").getKendoMultiSelect().value().join(";");
+    
+      //var x0 = $('#emailFromName').val().replaceAll('"','&quot;');
+      //var x2 = $('#emailBody').val().replaceAll('"','&quot;');
+      //var x3 = $('#emailSubject').val().replaceAll('"','&quot;');
+      //var x0 = $('#esOptions').val().replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('&','&amp;');
+
+      var xml = kendo.format( xmlTemplate,
+         sMyPatientBedCount          ,   
+         sCentralColumnCount         ,
+         sCentralRowCount            ,
+         sDeviceTypeOrder            ,
+         sCentralBedFilter           ,
+         sLastEventHours             ,
+         sFirstDisplayedPage         ,
+         sS1Font                     ,
+         sS2Font                     ,
+         sS3Font                     ,
+         sEventsGridFont             ,
+         sEventsDisplayMode          ,
+         sFontModel                  ,
+         sModelFormatString          ,
+         sFontAlarm                  ,
+         sFontAlarmValues            ,
+         sFontMoreDevices            ,
+         sColumnSizeAlarm            ,
+         sColumnSizeValue            ,
+         sMaximumAlarmLineLimit      ,
+         sDisplayLastWarningAlarmSec ,
+         sInoperativityTimeout       ,
+         sAlarmImagesCacheDays       
+         );
+      xml = xml + '\t/' + '>'+'\r\n </SmartCentral>\r\n';
+      //debugger;
+
+    
+      var retXml = xml.replace(/<\/?[0-9]{1,}>/g, '');
+      
+      return retXml;
+   }
+   function OBJtoXML(obj) {
+      var xml = '';
+      for (var prop in obj) {
+         xml += obj[prop] instanceof Array ? '' : "<" + prop + ">";
+         if (obj[prop] instanceof Array) {
+            for (var array in obj[prop]) {
+               xml += "<" + prop + ">";
+               xml += OBJtoXML(new Object(obj[prop][array]));
+               xml += "</" + prop + ">";
+            }
+         } else if (typeof obj[prop] == "object") {
+            xml += OBJtoXML(new Object(obj[prop]));
+         } else {
+            xml += obj[prop];
+         }
+         xml += obj[prop] instanceof Array ? '' : "</" + prop + ">";
+      }
+      var xml = xml.replace(/<\/?[0-9]{1,}>/g, '');
+      return xml
+   }
+
+   function validateRmcXml(text2validate) {
+      var xml = text2validate;
+      var oParser = new DOMParser();
+      var oDOM = oParser.parseFromString(xml, "text/xml");
+      if (oDOM.getElementsByTagName('parsererror').length > 0) {
+        
+         umsAlert("Report Master XML", (new XMLSerializer()).serializeToString(oDOM));
+         return false;
+      } else {
+
+         return true;
+      }
+   }
+   
+</script>
+
+

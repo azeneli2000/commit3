@@ -1,0 +1,135 @@
+﻿@{
+    string gridName = "telligence-system-grid";
+   ViewBag.Title = DicSvc.XLate("Telligence Systems");
+}
+
+<script>
+    var gridIdName = "@gridName";
+</script>
+
+
+<div class="h-100 text-center ">
+    <div class="card h-100 m-1 p-2 text-left">
+
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.TelligenceSystemViewModel>()
+                                    .Name(gridName)
+                                      .UmsDefaultToolbar("create_telligenceSystem", DicSvc.XLate("ADD NEW TELLIGENCE SYSTEM"), "openDetail();", DicSvc)
+                                        .UmsDefaultSettings(DicSvc)
+                                        .Navigatable(true)
+                                    .Columns(columns =>
+                                    {
+                                        columns.Bound(e => e.ID).Visible(false);
+                                        columns.Bound(e => e.ServerID).Visible(false);
+                                        columns.Bound(e => e.TelligenceServerDescription);
+                                        columns.Bound(e => e.TLSystemGUID);
+                                        columns.Bound(e => e.MDIEncryptionKey);
+                                        columns.Bound(e => e.MDIPort);
+                                        columns.Bound(e => e.HostID);
+                                    })
+                                        .UmsDefaultSettings(DicSvc)
+                                        .Events(ev => ev.DataBound("onDataBound"))
+                                        .DataSource(dataSource => dataSource
+                                            .Ajax()
+                                            .Model(model =>
+                                            {
+                                                model.Id(o => o.ID);
+                                                model.Field(o => o.ServerID).Editable(false);
+                                                model.Field(o => o.TelligenceServerDescription).Editable(false);
+                                                model.Field(o => o.TLSystemGUID).Editable(false);
+                                                model.Field(o => o.MDIEncryptionKey).Editable(false);
+                                                model.Field(o => o.MDIPort).Editable(false);
+                                            })
+                                            //.Events(events => events.Error("error_handler_users"))
+                                            .Read(read => read.Action("ReadTelligenceSystems", "Telligence"))
+                                            .Create(create => create.Action("CreateSystem", "Telligence"))
+                                        )
+
+        )
+    </div>
+    <div id="telligenceSystemEditWindow"></div>
+</div>
+<script id="delete-confirmation" type="text/x-kendo-template">
+    @{ await Html.RenderPartialAsync("_DeleteDialogConfirmWindow"); }
+</script>
+
+<script id="detail" type="text/kendo-tmpl">
+    <div class="tellisystems-detail" data-uidparent="#=ID#" style="width: 99%;display: inline-block;padding: 15px 0;"></div>
+</script>
+
+
+<script>
+
+
+     @{
+       string editItemTitle = DicSvc.XLate("Edit Telligence System");
+    }
+      var kndWnd ;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $('#telligenceSystemEditWindow').usmKendoWindow({
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                },
+                title: '@editItemTitle',
+                height: 350,
+                width: '70%',
+                preventScroll: true
+
+            });
+        }
+    });
+
+
+     function openDetail(dataItem) {
+        var itemId = '';
+        if (dataItem) {
+            itemId = dataItem.ID;
+        } else {
+            itemId = 0;
+        }
+        $.ajax({
+            type: "GET",
+            url: '@Url.Action("GetSystem", "Telligence")',
+            data: { id: itemId }
+          }).done(  function (data) {
+              var wnd = kndWnd.data("kendoWindow");
+                wnd.content('');
+                wnd.content(data);
+                wnd.center().open();
+            }).fail(function (xhr, textStatus, errorThrown) {
+            }
+            );
+    }
+
+    function onGridKeyEnter(item) {
+        openDetail(item);
+    };
+
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+    }
+
+
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+
+  
+
+</script>

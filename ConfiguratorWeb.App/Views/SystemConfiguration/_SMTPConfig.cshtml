@@ -1,0 +1,228 @@
+﻿@using System.Collections
+@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@model Digistat.FrameworkStd.SysOptionConfig.SMTPConfiguration
+
+@{
+   Layout = null;
+   string formIdCc = "form_" + Guid.NewGuid().ToString();
+}
+<script type="text/javascript">
+
+    function validateTest() {
+        var errMsgs = '';
+        if ($('#SMTPTestSenderMail').val() == '') {
+            errMsgs = errMsgs + '<br>' + '@DicSvc.XLate("Sender email address is mandatory")';
+        } else {
+            if (!emailIsValid($('#SMTPTestSenderMail').val())) {
+                errMsgs = errMsgs + '<br>' +  '@DicSvc.XLate("'Sender email address' is not valid email address")';
+            }
+        }
+        if ($('#SMTPTestRecMail').val() == '') {
+            errMsgs = errMsgs + '<br>' + '@DicSvc.XLate("Recipient email address is mandatory")';
+        } else {
+            if (!emailIsValid($('#SMTPTestRecMail').val())) {
+                errMsgs = errMsgs + '<br>' +  '@DicSvc.XLate("'Recipient email address' is not valid email address")';
+            }
+        }
+        return errMsgs;
+    }
+
+
+    function emailIsValid(email) {
+        return /^([\w-\.]+@@([\w-]+\.)+[\w-]{2,4})?$/.test(email)
+    }
+
+</script>
+
+<div class="h-100 ">
+   <div class="card m-0 p-0 text-left" id="divItemDetail" style="height: 93% !important;">
+
+       <form id="@formIdCc"
+             data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+             data-ajax="true" data-ajax-method="POST" data-ajax-loading="progressl" style="overflow: auto">
+
+
+           <div class="row mb-0 pb-0 mt-0 pt-0"   >
+               <div class="col-4">
+                   <label for="Hostname">@DicSvc.XLateHtml("Server Hostname/IP Address")</label>
+               </div>
+               <div class="col-8 pr-0">
+                   <input id="Hostname" class="k-input k-textbox " name="Hostname" value="@Model.Hostname" />
+               </div>
+           </div>
+           <div class="row" >
+               <div class="col-4">
+                   <label for="Port">@DicSvc.XLateHtml("Port")</label>
+               </div>
+               <div class="col-8 pr-0">
+                   @(Html.Kendo().NumericTextBox<int>().Name("Port").Value(Model.Port)
+                                                              .Decimals(0) //.Min(1).Max(9)
+                                                              .Format("#").HtmlAttributes(new { @class = "control-required w-50 text-right" }))
+               </div>
+           </div>
+           <div class="row" >
+               <div class="col-4 ">
+                   <label for="Port">@DicSvc.XLateHtml("Username")</label>
+               </div>
+               <div class="col-8 pr-0">
+                   <input id="Username" class="k-input k-textbox " name="Username" value="@Model.Username" />
+               </div>
+           </div>
+           <div class="row" >
+               <div class="col-4 ">
+                   <label for="Password">@DicSvc.XLateHtml("Password")</label>
+               </div>
+               <div class="col-8 pr-0">
+                   <input id="Password" class="k-input k-textbox " name="Password" value="@Model.Password" />
+               </div>
+           </div>
+           <div class="row" >
+               <div class="col-4">
+                   <label for="EnableSSL">@DicSvc.XLateHtml("SSL Enabled")</label>
+               </div>
+               <div class="col-8  pr-0">
+                   @Html.Kendo().CheckBoxFor(m => m.EnableSSL).HtmlAttributes(new { @style = "margin-top: 6px;display: block;" }).Label("")
+               </div>
+           </div>
+           <div class="row" >
+               <div class="col-4 ">
+                   <label for="EnableSSL">@DicSvc.XLateHtml("Timeout")</label>
+               </div>
+               <div class="col-8 pr-0">
+                   @(Html.Kendo().NumericTextBox<int>().Name("SendTimeout").Value(Model.SendTimeout)
+                                                                         .Decimals(0) //.Min(1).Max(9)
+                                                                         .Format("#").HtmlAttributes(new { @class = "w-50 text-right" }))
+               </div>
+           </div>
+           <div class="row">
+
+           </div>
+           <div class="row" style="margin: 0px !important;">
+               <div class="col-12">
+                   <div id="testSmptArea_" class="card row  p-0">
+                       <div class="row mb-4 ml-0 pl-0 ums-header">
+                           @DicSvc.XLate("Test SMTP Configuration").ToUpper()
+                       </div>
+                       <div class="row">
+                           <div class="col-4">
+                               <label for="SMTPTestSenderMail">@DicSvc.XLateHtml("Sender email address")</label>
+                           </div>
+                           <div class="col-8">
+                               <input id="SMTPTestSenderMail" class="k-input k-textbox " name="SMTPTestSenderMail" />
+                           </div>
+                       </div>
+                       <div class="row">
+                           <div class="col-4">
+                               <label for="SMTPTestRecMail">@DicSvc.XLateHtml("Recipient email address")</label>
+                           </div>
+                           <div class="col-8">
+                               <input id="SMTPTestRecMail" class="k-input k-textbox " name="SMTPTestRecMail" />
+                           </div>
+                       </div>
+                       <div class="row">
+                           <div class="col-12">
+                               <button type="button" class="btn btn-info" id="btnTestConfiguration">@DicSvc.XLate("Test Configuration")</button>
+                           </div>
+                       </div>
+                   </div>
+               </div>
+           </div>
+           <input type="hidden" name="senderAddress" id="senderAddress" />
+           <input type="hidden" name="destinationAddress" id="destinationAddress" />
+       </form>
+
+
+   </div>
+   <div class="card-footer h-10 p-0 m-0 mt-1 border-0">
+      @(Html.Kendo().ToolBar()
+         .Name("toolBarSMTPConfig")
+         .UmsDefaultErrors(DicSvc,"SMTPConfigErrors")
+         .Items(
+            items =>
+            {
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Generate XML")).Id("btnSmtpConfigXML").UmsHtmlButtonSave();
+               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnSmtpConfigCancel").UmsHtmlButtonCancel();
+            }
+         )
+      )
+   </div>
+</div>
+
+<script>
+
+
+   $(document).ready(function () {
+       $('#btnSmtpConfigCancel').off('click').on('click', function () {
+           var objRepoDialog = $('#divSysOptSmtpConfigDialog').data('kendoWindow');
+         objRepoDialog.close();
+      });
+
+       $('#btnTestConfiguration').off('click').on('click', function () {
+           var errMSgList = validateTest();
+           $('#SMTPConfigErrors').html('')
+            $('#SMTPConfigErrors').removeClass('text-success');
+           if (errMSgList == '') {
+               $('#senderAddress').val($('#SMTPTestSenderMail').val());
+               $('#destinationAddress').val($('#SMTPTestRecMail').val());
+               $.ajax({
+                   url: '@Url.Action("SMTPTestServerConfiguration", "SystemConfiguration")',
+                   type: 'POST',
+                   data: $('#@formIdCc').serialize(),
+                   async: true
+
+               }).done(function (response) {
+                   if (response && response.success) {
+                       $('#SMTPConfigErrors').html('@DicSvc.XLate("An email has been sent. Check recipient inbox.")')
+                       $('#SMTPConfigErrors').addClass('text-success');
+                   } else {
+                       umsErrorDialog("An error occured", response.errorMessage, 200, 200);
+                   }
+               }).fail(function (response) {
+                   umsErrorDialog("An error occured", response.errorMessage, 200, 200);
+               });;
+           } else {
+               umsErrorDialog("An error occured", errMSgList, 200, 200);
+           }
+           
+       });
+
+       $('#btnSmtpConfigXML').off('click').on('click', function () {
+
+           $.ajax({
+               url: '@Url.Action("SerializeSMTPConfiguration", "SystemConfiguration")',
+               type: 'POST',
+               data: $('#@formIdCc').serialize(),
+               async: true
+
+           }).done(function (response) {
+               var xml = '';
+               if (response) {
+                   xml = response.data;
+               }
+               if (response.success) {
+                   if (editor && !$('#aceEditor').hasClass('d-none')) {
+                       editor.getSession().setValue(xml);
+                       var textarea = $(textareaIdValueModelGuid).hide();
+                       textarea.val(editor.getSession().getValue());
+
+                   } else {
+                       var textarea = $(textareaIdValueModelGuid);
+                       textarea.val(xml);
+                   }
+                   var objRepoDialog = $('#divSysOptSmtpConfigDialog').data('kendoWindow');
+                   objRepoDialog.close();
+               }
+               else {
+                   umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+               }
+           }).fail(function (response) {
+               umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+           });;
+      });
+
+   });
+</script>
+
+

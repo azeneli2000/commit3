@@ -1,0 +1,261 @@
+﻿@model ConfiguratorWeb.App.Models.DriverViewModel
+@{
+    Layout = null;
+    string gridCapabilityName = "capabilities-grid";
+
+}
+<script type="text/javascript">
+
+   var recordCA = 0;            
+
+   function getRowCaNum() {
+      return ++recordCA;
+   }
+
+   function onDataCapabilitiesBound(e) {
+      var grid = e.sender;
+      if ($('#show-all-cols').is(':checked')) {
+         return;
+      }
+      grid.hideColumn("IdParameter");
+      grid.hideColumn("IDUnit");
+      grid.hideColumn("DeviceID");
+      grid.hideColumn("DeviceText");
+      grid.hideColumn("DeviceUnitText");
+      grid.hideColumn("Mnemonic");      
+   }
+
+   var exportFlagCap = false;
+   function onExportExcel(e) {         
+      if (!exportFlagCap) {
+         e.sender.showColumn("SporadicModel.SporadicName");
+         e.sender.hideColumn("SporadicModel");
+         e.preventDefault();
+         exportFlagCap = true;
+         setTimeout(function () {
+            e.sender.saveAsExcel();
+         });
+      } else {
+         
+         e.sender.hideColumn("SporadicModel.SporadicName");
+         e.sender.showColumn("SporadicModel");
+         exportFlagCap = false;
+      }
+   }   
+
+   function onEditCapbilitiesCell(e) {
+      if ($('#@gridCapabilityName').hasClass('readonly-mode')) {
+         e.preventDefault();
+         return;
+      }        
+   }
+
+   function checkEnableField(el) {
+      //debugger;
+      var state = $(el).is(':checked');
+      var elName = $(el).attr('elChkIDEnable');
+      if (elName == undefined) {
+         elName = $(el).attr('wfelChkIDEnable');
+      }
+      $('[name="Capabilities\[' + elName + '\].Enabled"]').val(state);
+      if (!state) {
+         $('[elChkIDSave=\"' + elName + '\"]').prop('checked', state);
+         $('[name="Capabilities\[' + elName + '\].MustBeSaved"]').val(state);
+      }
+   }
+   
+   function checkMustBeSaveField(el) {
+      var state = $(el).is(':checked');
+      var elName = $(el).attr('elChkIDSave');
+      $('[name="Capabilities\[' + elName + '\].MustBeSaved"]').val(state);
+   }
+
+   function checkAllEnable(ele) {
+      var state = $(ele).is(':checked');
+      $('#@gridCapabilityName').find('[elChkIDEnable]').prop('checked', state);
+      $('#@gridCapabilityName').find('[elHidIDEnable]').val(state);
+      if (!state) {
+         $('#@gridCapabilityName').find('[elHidIDSave]').val(false);
+         $('#@gridCapabilityName').find('[elChkIDSave]').prop('checked', false);
+         $('#@gridCapabilityName').find('[wfelHidIDEnable]').val(false);
+         $('#@gridCapabilityName').find('[wfelChkIDEnable]').prop('checked', false);
+      }
+   }
+
+   function checkAllSave(ele) {
+      //debugger;
+      var state = $(ele).is(':checked');
+      $('#@gridCapabilityName').find('[elChkIDSave]').prop('checked', state);
+      $('#@gridCapabilityName').find('[elHidIDSave]').val(state);
+   }
+
+   function checkRow(ele) {
+      changeToEditMode();
+   }
+
+   function onEditMustBeSaved(e) {
+       
+   }
+   function onChangeSporadic(e) {
+      $(e.sender.element.parent().parent().parent()[0]).find("input[name$='.Sporadic']").attr("value", this.dataItem(e.item).SporadicId);
+      changeToEditMode();
+   }
+
+   $('#show-all-cols').click(function (e) {
+      var grid = $("#capabilities-grid").data("kendoGrid");
+      if ($(this).is(':checked')) {
+         grid.showColumn("IdParameter");
+         grid.showColumn("IDUnit");
+         grid.showColumn("DeviceID");
+         grid.showColumn("DeviceText");
+         grid.showColumn("DeviceUnitText");
+         grid.showColumn("Mnemonic");
+
+      } else {
+         grid.hideColumn("IdParameter");
+         grid.hideColumn("IDUnit");
+         grid.hideColumn("DeviceID");
+         grid.hideColumn("DeviceText");
+         grid.hideColumn("DeviceUnitText");
+         grid.hideColumn("Mnemonic");
+      }
+   });
+
+   function getCapabilitiesGridRowIndex(data) {
+      return getGridRowIndex("#@gridCapabilityName", data);
+   }
+
+   function CapabilitiesEditable(dataItem) {
+      //debugger;
+      var res = ($('#@gridCapabilityName').hasClass('readonly-mode'));
+      return (!res);
+   }
+
+   function notEditable(e) {
+      return false;
+   }
+
+</script>
+
+<div class="card p-0 m-0 border-0" id="wrapperCapabilities">
+   <input asp-for="CapabilitiesSerialize" type="hidden" />
+   <input asp-for="CapabilitiesChanged"   type="hidden" />
+
+   @(Html.Kendo().Grid(Model.Capabilities)
+      .Name(gridCapabilityName)
+      .HtmlAttributes(new { style = "height:370px;", @class = "readonly-mode" })
+      .UmsDefaultToolbar("", "", "", DicSvc)
+      .Excel(excel => excel.AllPages(true)
+         .FileName("Capabilities_" + @Model.Id + ".xlsx")
+         .Filterable(false)
+         .ProxyURL(Url.Action("ExportFromGrid", "Connect"))
+      )
+      .Columns(columns =>
+      {
+          columns.Template("#= getRowCaNum() #").Width(45).Hidden();
+          columns.Bound(p => p.IdParameter)
+            .Hidden()
+            .ClientTemplate("<span #if(StandardParameterIsMissing){#class='alert alert-danger p-2'#}#> #=IdParameter#</span><input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].IdParameter' value='#=IdParameter#' />");
+          columns.Bound(p => p.StandardDeviceTypeID)
+            .Hidden()
+            .ClientTemplate("#=StandardDeviceTypeID#<input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].StandardDeviceTypeID' value='#=StandardDeviceTypeID#' />");
+
+          columns.Bound(p => p.IDUnit)
+            .Hidden()
+            .ClientTemplate("#=IDUnit#<input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].IDUnit' value='#=IDUnit#' />");
+          columns.Bound(p => p.StandardDeviceTypeID)
+            .Hidden()
+            .ClientTemplate("#=StandardDeviceTypeID#<input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].StandardDeviceTypeID' value='#=StandardDeviceTypeID#' />");
+          columns.Bound(p => p.IDUnit)
+            .Hidden()
+            .ClientTemplate("#=IDUnit#<input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].IDUnit' value='#=IDUnit#' />");
+          columns.Bound(p => p.DeviceID)
+            .Hidden()
+            .ClientTemplate("#=DeviceID#<input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].DeviceID' value='#=DeviceID#' />");
+          columns.Bound(p => p.DeviceText)
+            .Hidden()
+            .ClientTemplate("#= (DeviceText == null) ? ' ' : DeviceText #<input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].DeviceText' value='#=DeviceText#' />");
+          columns.Bound(p => p.DeviceUnitText)
+            .Hidden()
+            .ClientTemplate("#= (DeviceUnitText == null) ? ' ' : DeviceUnitText #<input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].DeviceUnitText' value='#=DeviceUnitText#' />");         
+         columns.Bound(p => p.StandardParameterPrint)
+            .ClientTemplate("#if(StandardParameterIsMissing){#<span class='alert alert-danger p-2'>#=IdParameter# #=Name#</span>#} else {# #=StandardParameterPrint# #}#" +
+               "<input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].StandardParameterPrint' value='#=StandardParameterPrint #' />")
+            .ClientHeaderTemplate(DicSvc.XLate("Name"))
+            .Editable("notEditable")
+            .Title("Name");
+          columns.Bound(p => p.Unit)
+            .ClientTemplate("#=Unit# <input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].Unit' value='#=Unit #' />");
+          columns.Bound(p => p.StandardParameterIDAlias)
+            .Hidden()
+            .ClientTemplate("#=StandardParameterIDAlias#<input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].StandardParameterIDAlias' value='#=StandardParameterIDAlias #' />");
+          columns.Bound(p => p.Name)
+            .Hidden()
+            .ClientTemplate("#=Name#<input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].Name' value='#=Name #' />");
+          columns.Bound(p => p.Mnemonic).Hidden();
+          columns.Bound(e => e.Sporadic)
+            .Hidden()
+            .ClientTemplate("<input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].Sporadic' value='#=Sporadic#' />");
+          columns.Bound(e => e.SporadicModel.SporadicName).Hidden().Title(DicSvc.XLateHtml("Sporadic Model"));
+          columns.Bound(e => e.SporadicModel)
+             .Sortable(false)
+             .Filterable(false).Editable("CapabilitiesEditable").EditorTemplateName("SporadicDropDownEditor")
+             .ClientTemplate("#=SporadicModel.SporadicName#").HtmlAttributes(new { @class = "col-editable" });
+          columns.Bound(e => e.Type)
+            .ClientTemplate("#=Type#<input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].Type' value='#=Type #' />");
+          columns.Bound(e => e.StandardParameterDataType).Hidden().ClientTemplate("<input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].StandardParameterDataType' value='#=StandardParameterDataType#' />");
+          columns.Bound(e => e.Enabled)
+             .ClientTemplate(
+                "<input type='checkbox' #= Enabled ? checked='checked':'' #  onclick='checkEnableField(this)' disabled #if(StandardParameterIsWaveForm){#WF#}#elChkIDEnable='#=getCapabilitiesGridRowIndex(data)#'  class='k-checkbox k-checkbox-md' />" +
+                " <input type='hidden' #if(StandardParameterIsWaveForm){#WF#}#elHidIDEnable='#=getCapabilitiesGridRowIndex(data)#'  name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].Enabled' value='#=Enabled#' />")
+             .ClientHeaderTemplate("<span class=\"k-link px-0\">Enabled  <input type='checkbox' class='k-checkbox k-checkbox-md' id='masterCheckBoxEnable' onclick='checkAllEnable(this)' style='margin-left:6px;'/></span>").Width(100).HtmlAttributes(new { @style = "text-align:center;", @class = "col-editable" })
+             .HeaderHtmlAttributes(new { @style = "text-align:center;" })             
+             .Editable("onEditMustBeSaved")
+             .Filterable(false)
+             .Sortable(false);
+          columns.Bound(e => e.MustBeSaved)
+             .ClientTemplate(" <input type='checkbox' #=MustBeSaved ? checked='checked':'' # class='k-checkbox k-checkbox-md #if(StandardParameterIsMissing || StandardParameterIsWaveForm){#d-none #} else {#' elChkIDSave='#=getCapabilitiesGridRowIndex(data)#' disabled  onclick='checkMustBeSaveField(this)' #}# /> "+
+                             "<input type='hidden' name='Capabilities[#=getCapabilitiesGridRowIndex(data)#].MustBeSaved' #if(!StandardParameterIsWaveForm){# elHidIDSave='#=getCapabilitiesGridRowIndex(data)#' #}# value='#=MustBeSaved#' />")
+             .ClientHeaderTemplate("<span class=\"k-link\">Store  <input type='checkbox' class='k-checkbox k-checkbox-md' id='masterCheckBoxMustBeSaved' onclick='checkAllSave(this)' style='margin-left:6px;' /></span>")
+             .Width(100)
+             .HtmlAttributes(new { @style = "text-align:center;", @class = "col-editable" })
+             .Editable("onEditMustBeSaved")
+             .Filterable(false)
+             .Sortable(false)
+             .Title("Store");
+          columns.Bound(e => e.StandardParameterIsMissing).Visible(false);
+          columns.Bound(e => e.StandardParameterIsWaveForm).Visible(false);
+      })
+      .Editable(editable => editable.Mode(GridEditMode.InCell))
+      .Events(ev => ev.DataBound("onDataCapabilitiesBound").BeforeEdit("onEditCapbilitiesCell").ExcelExport("onExportExcel"))
+      .Scrollable(s => s.Enabled(true))      
+      .Sortable()
+      .Pageable(p=>p.Numeric(false).PreviousNext(false).Messages(m=>m.Display("{2} "+DicSvc.XLate("items"))))
+      .DataSource(dataSource => dataSource
+         .Ajax()
+         .Model(model =>
+         {
+             model.Id(o => o.IdParameter);
+             model.Field(o => o.IdParameter).Editable(false);
+             model.Field(o => o.IDUnit).Editable(false);
+             model.Field(o => o.DeviceID).Editable(false);
+             model.Field(o => o.DeviceText).Editable(false);
+             model.Field(o => o.DeviceUnitText).Editable(false);
+             model.Field(o => o.Name).Editable(false);
+             model.Field(o => o.Unit).Editable(false);
+             model.Field(o => o.Mnemonic).Editable(false);
+             model.Field(o => o.Sporadic);
+             model.Field(o => o.Type).Editable(false);
+             model.Field(o => o.Enabled);
+         }).PageSize(10000)
+         .ServerOperation(false)
+         .Events(events => events.Error("error_handler_drivers"))
+      )
+      .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+   )
+
+   <div class="d-flex mt-2">
+      @Html.Kendo().CheckBox().Name("show-all-cols").Label(DicSvc.XLate("Show all columns ( for trained technical staff )")).HtmlAttributes(new { @class = "always-enabled" })
+   </div>
+
+</div>

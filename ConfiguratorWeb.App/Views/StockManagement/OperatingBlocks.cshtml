@@ -1,0 +1,65 @@
+﻿@using ConfiguratorWeb.App.Controllers
+@using Configurator.Std.Models.StockManagement
+@*<div class="card h-100 mt-1 mx-1 px-2 border-0" id="grid">
+	gridContainer
+</div>
+<div class="card h-100 mt-1 mx-1 px-2 border-0">
+	Other
+</div>*@
+@(Html.Kendo().Grid<OperatingBlockMasterDto>()
+		.Name("grid")
+		.Columns(columns =>
+		{
+			columns.Bound(e => e.IDLocation).Width(110);
+			columns.Bound(e => e.Name).Width(110);
+			columns.Bound(e => e.Index).Width(110);			
+			columns.Bound(e => e.Code);
+			columns.Bound(e => e.UniteCode);
+			columns.Bound(e => e.Code);
+			columns.Bound(e => e.HuGuid);
+		})
+		.Sortable()
+		.Pageable()
+		.Scrollable()
+		.ClientDetailTemplateId("template")
+		.HtmlAttributes(new { style = "height:430px;" })
+		.DataSource(dataSource => dataSource
+			.Ajax()
+			.PageSize(6)
+			.Read(read => read.Action("GetOperatingBlockMaster", "StockManagement"))
+		)
+		.Events(events => events.DataBound("dataBound"))
+)
+<script id="template" type="text/kendo-tmpl">
+	@(Html.Kendo().Grid<OperatingBlockDetailDto>()
+				.Name("grid_#=IDLocation#")
+				.Columns(columns =>
+				{
+					columns.Bound(o => o.Id).Width(110);
+					columns.Bound(o => o.Name).Width(110);
+					columns.Bound(o => o.Description);
+					columns.Bound(o => o.ShortName).Width(200);
+					columns.Bound(o => o.IDLocation).Width(60);
+					columns.Bound(o => o.LocationName).Width(200);
+					columns.Bound(o => o.Index).Width(50);
+					columns.Bound(o => o.ParentID).Width(200);
+					columns.Bound(o => o.ValidFrom).Width(200);
+					columns.Bound(o => o.ValidTo).Width(200);
+					columns.Bound(o => o.ReasonForClosing).Width(200);
+					columns.Bound(o => o.SpecialRequests).Width(200);
+				})
+				.DataSource(dataSource => dataSource
+					.Ajax()
+					.PageSize(10)
+					.Read(read => read.Action("GetOperatingBlockDetail", "StockManagement", new { IDLocation = "#=IDLocation#" }))
+				)
+				.Pageable()
+				.Sortable()
+				.ToClientTemplate()
+		)
+</script>
+<script>
+	function dataBound() {
+		this.expandRow(this.tbody.find("tr.k-master-row").first());
+	}
+</script>

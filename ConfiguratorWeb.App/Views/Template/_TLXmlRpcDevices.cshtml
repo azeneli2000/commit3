@@ -1,0 +1,146 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@model ConfiguratorWeb.App.Models.TelligenceDeviceViewModel
+@inject IDictionaryService DicSvc
+@{
+    Layout = null;
+}
+<script>
+
+    function ontelliDevicesXMLRpcError(e, status) {
+        //debugger;
+        $('#xmlRpcDeviceErrors').text('@DicSvc.XLate("An error occurred while connecting to Telligence Config Handler")');
+        $("#telliDevicesXMLRpc-grid").data("kendoGrid").dataSource.data([]);
+    }
+</script>
+
+@(Html.Kendo().Window()
+    .Name("tlXmlRpcSettings")
+    .Title("Telligence XML RPC Settings")
+    .Width(700)
+    .Height(400)
+    .Modal(true)
+    .Visible(false)
+)
+
+
+<div class="card" style="height:400px; padding: 15px 10px 0 10px;">
+
+
+    <div>
+        <div class="row">
+            <div class="col-md-11 u-col-h-fixed">
+                <h4>@DicSvc.XLate("Available Telligence Devices")</h4>
+            </div>
+            <div class="col-md-1 u-col-h-fixed">
+                <button type="button" class="k-icon k-i-gears" id="btnXmlRpcSettings" title="@DicSvc.XLate("Edit Telligence XML Rpc Settings")"></button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12 u-col-h-fixed" style="height:400px;">
+                @(Html.Kendo().Grid<TelligenceXMLRPCClient.Entities.TLDeviceDetail>
+()
+.Name("telliDevicesXMLRpc-grid")
+.Sortable().Filterable().HtmlAttributes(new { style = "height:97%;margin:10px;" })
+.Sortable()
+.Scrollable()
+.Selectable()
+.Columns(columns =>
+{
+            columns.Bound(e => e.ID).Visible(false);
+            columns.Bound(e => e.Description);
+            columns.Bound(e => e.IpAddress);
+            columns.Bound(e => e.MacAddress);
+            columns.Bound(e => e.SerialNbr).Title(DicSvc.XLate("Serial"));
+            columns.Bound(e => e.LocationDescriptor).Title(DicSvc.XLate("Location"));
+            columns.Bound(e => e.ID).Title(DicSvc.XLate("Dev. ID"));
+            columns.Bound(e => e.DeviceType).Title(DicSvc.XLate("Type"));
+                //columns.Command(command =>
+                //{
+                //    command.Edit().Text(" ").UpdateText(" ").CancelText(" ");
+                //    //command.Custom("editcustom").Click("onEditItem").Text(" ");
+                //    command.Custom("deletecustom").Click("onDeleteItem").Text(" ");
+                //}).Width(120);
+            })
+.Pageable(pager => pager
+.Input(true)
+.Numeric(true)
+.Info(true)
+.PreviousNext(true)
+.Refresh(true)
+.PageSizes(true)
+)
+
+.DataSource(dataSource => dataSource
+.Ajax()
+.Model(model =>
+{
+            model.Id(o => o.ID);
+
+})
+.Events(e => e.Error("ontelliDevicesXMLRpcError"))
+.Read(read => read.Action("GetTelligenceDevices", "Telligence"))
+)
+                )
+            </div>
+
+        </div>
+    </div>
+
+    <div class="button-container">
+        <div class="col-md-3 u-col-h-fixed">
+            <div id="xmlRpcDeviceErrors" class="errorSpan"></div>
+        </div>
+        <div class="col-md-9 u-col-h-fixed">
+            <div class="modify-mode">
+                <button id="btnTLDeviceOK" class="btnSave" type="button">@DicSvc.XLate("OK")</button>
+                <button id="btnTLDeviceCancel" class="btnCancel" type="button">@DicSvc.XLate("CLOSE")</button>
+            </div>
+
+        </div>
+
+    </div>
+
+
+</div>
+<script>
+
+
+    $('#btnTLDeviceOK').click(function () {
+        var grid = $("#telliDevicesXMLRpc-grid").data("kendoGrid");
+        var selectedItem = grid.dataItem(grid.select());
+        if (selectedItem) {
+            $('#TLLocationID').val(selectedItem.LocationId);
+            $('#TLLocationDescriptor').val(selectedItem.LocationDescriptor);
+            $('#TLDeviceID').val(selectedItem.ID);
+            $('#tl_IPAddress').val(selectedItem.IpAddress);
+            $('#tl_MACAddress').val(selectedItem.MacAddress);
+            $('#TLDeviceName').val(selectedItem.Description);
+            $('[umsctrlID="TLDeviceType"]').data('kendoDropDownList').value(selectedItem.DeviceType);
+            $('#tlRemoteDevices').data('kendoWindow').close();
+        }
+        else {
+            kendo.alert('@DicSvc.XLate("Please select an item from grid first")')
+        }
+    })
+
+
+    $('#btnTLDeviceCancel').click(function () {
+        $('#tlRemoteDevices').data('kendoWindow').close();
+    })
+
+
+    $('#btnXmlRpcSettings').click(function () {
+        $.ajax({
+                url: '@Url.Action("GetTellXMLRpcSettings", "Telligence")',
+                type: 'GET',
+                async: false
+        }).done(function (dataHtml) {
+                $('#xmlRpcDeviceErrors').text('');
+                var itemDialog = $('#tlXmlRpcSettings').data('kendoWindow');
+                itemDialog.content(dataHtml);
+                itemDialog.open();
+                itemDialog.center();
+            });
+    })
+
+</script>

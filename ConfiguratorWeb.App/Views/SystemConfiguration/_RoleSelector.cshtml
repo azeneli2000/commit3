@@ -1,0 +1,94 @@
+﻿@model IEnumerable<ConfiguratorWeb.App.Models.RoleViewModel>
+@{
+    Layout = null;
+}
+<style>
+    #defaultroles-grid .k-grouping-row td:nth-child(2) {
+        text-align: center;
+    }
+</style>
+<script>
+
+
+    function onRoleGridDataBound(e) {
+        var items = this.dataSource.view();
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].Selected==true) {
+                var row = this.tbody.find("tr[data-uid='" + items[i].uid + "']");
+                this.select(row);
+                //row.find('input:checkbox').attr('checked', true);
+            }
+        }
+    }
+
+    $(document).ready(function () {
+
+        $('#btnRoleSelectionOK').click(function () {
+            submitSelection();
+            $('#divSysOptSmtpConfigDialog').data('kendoWindow').close();
+        });
+
+        $('#btnRoleSelectionCancel').click(function () {
+            $('#divSysOptSmtpConfigDialog').data('kendoWindow').close();
+        });
+    })
+
+   
+
+    function submitSelection() {
+        var functionName = '@ViewBag.CallBackFunction';
+        if (typeof window[functionName]    === 'function') {
+            var strValue = '';
+            var grid = $('#defaultroles-grid').data('kendoGrid');
+            var selectedItems = [];
+            var items = grid.dataSource.view();
+            for (var i = 0; i < items.length; i++) {
+                var itemId = items[i].Id;
+                var chk = $('#Selected_' + itemId);
+                if (chk.is(':checked')) {
+                    selectedItems.push(items[i].Id);
+                }
+            }
+            strValue = selectedItems.join(';');
+            window[functionName](strValue);
+        }
+    }
+
+</script>
+<div class="h-100">
+    <div class=" h-90 pt-1 pb-2" id="roleSelectionContainer">
+
+
+        @(Html.Kendo().Grid(Model)
+         .Name("defaultroles-grid").HtmlAttributes(new { style = "height:100%;", @class = "no-hover" })
+         .Columns(columns =>
+         {
+             columns.Bound(e => e.Id).Visible(true).Width(100);
+             columns.Bound(e => e.RoleName).Visible(true);
+             columns.Bound(e => e.Selected).Filterable(false).Width(50).Title(" ")
+                  .ClientTemplate("<input id='Selected_#=Id#'  class='check-col-sel k-checkbox'   type='checkbox' #= Selected ? checked='checked' :''  # /><label class='k-checkbox-label' for='Selected_#=Id#'></label>");
+
+         })
+         .Events(e => e.DataBound("onRoleGridDataBound"))
+         .Scrollable()
+         .Selectable(selectable => selectable.Mode(GridSelectionMode.Multiple))
+         .DataSource(dataSource => dataSource
+            .Ajax()
+            .ServerOperation(false)
+         )
+
+         .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>")))
+    </div>
+    <div class=" h-10 p-0 m-0">
+        @(Html.Kendo().ToolBar()
+        .Name("toolbarRoleSelection")
+        .Items(
+               items =>
+               {
+                   items.Add().Type(CommandType.Button).Text(DicSvc.XLate("OK")).Id("btnRoleSelectionOK").UmsHtmlButtonGeneric("view-mode");
+                   items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Cancel")).Id("btnRoleSelectionCancel").UmsHtmlButtonGeneric("view-mode");
+               }
+            )
+        )
+    </div>
+</div>

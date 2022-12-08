@@ -1,0 +1,91 @@
+﻿@model ConfiguratorWeb.App.Models.DeviceDriverViewModel
+@{
+    Layout = null;
+   string customparametersGrid = "CustomParameters";//"customparameters-grid_" + @Model.Id;
+}
+
+<script type="text/javascript">
+   var customparametersGridModelId = '#@customparametersGrid';
+   function getCustomParamsGridRowIndex(data) {
+      //debugger;
+      return getGridRowIndex(customparametersGridModelId, data);
+   }
+
+   function onChange(e) {
+      if ($(customparametersGridModelId).hasClass('readonly-mode')) {
+           e.preventDefault();
+           $(customparametersGridModelId).data("kendoGrid").cancelChanges();
+           return;
+       }
+   }
+
+   function onEdit(e) {
+           //debugger;
+           if ($(customparametersGridModelId).hasClass('readonly-mode') ) {
+               e.preventDefault();
+               return;
+           }
+
+       }
+    function onBeforeEdit(e) {
+           //debugger;
+           if ($(customparametersGridModelId).hasClass('readonly-mode') && e.model.isNew()) {
+               e.preventDefault();
+               $(customparametersGridModelId).data("kendoGrid").cancelChanges();
+               alert('switch to edit mode to add parameter');
+               return;
+           }
+
+       }
+    function onDelete(e) {
+           //debugger;
+           if ($(customparametersGridModelId).hasClass('readonly-mode') && e.model.isNew()) {
+               e.preventDefault();
+               $(customparametersGridModelId).data("kendoGrid").cancelChanges();
+               alert('switch to edit mode to remove parameter');
+               return;
+           }
+
+       }
+</script>
+
+<div style="height: 220px;" class="p-0 m-0 bg-white">
+
+   <input asp-for="CustomParametersJson" style="display: none" />
+   
+   @(Html.Kendo().Grid<CustomParametersViewModel>(Model.CustomParameters)
+      .Name(customparametersGrid)
+      .UmsDefaultSettings(DicSvc)
+      .ToolBar(tools => tools.Create().Text(DicSvc.XLate("ADD NEW PARAMETER")))
+
+      .Columns(columns =>
+      {
+         columns.Bound(p => p.ID).Hidden();
+         columns.Bound(p => p.Name)
+            .HtmlAttributes(new { @class = "col-editable" });
+         columns.Bound(p => p.Value)
+            .HtmlAttributes(new { @class = "col-editable" });
+         columns.Bound(p => p.Description)
+            .HtmlAttributes(new { @class = "col-editable" });
+         columns.Command(command => command.Destroy().Text(" ").IconClass("k-icon k-i-delete k-grid-delete")).Title(DicSvc.XLate(" "))
+            .HtmlAttributes(new { @class = "" }).Width(50);
+      })
+      .Events(ev => ev.BeforeEdit("onBeforeEdit").Change("onChange").Edit("onEdit").Remove("onDelete"))
+      .Editable(editable => editable.Mode(GridEditMode.InCell).CreateAt(GridInsertRowPosition.Bottom))
+
+      .HtmlAttributes(new { style = "height:98%;margin:0px;" })
+      .DataSource(dataSource => dataSource
+         .Ajax()
+         .Model(model =>
+         {
+            model.Id(o => o.ID);
+            model.Field(p => p.ID).Editable(false);
+            model.Field(o => o.Name);
+            model.Field(o => o.Value);
+            model.Field(o => o.Description);
+         })
+         .ServerOperation(false)
+      )
+      .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>")))
+
+</div>

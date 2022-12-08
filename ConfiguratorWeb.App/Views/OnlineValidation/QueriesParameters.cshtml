@@ -1,0 +1,119 @@
+﻿@using Microsoft.AspNetCore.Html
+@{
+    string gridName = "gridQueryParameters";
+    string popUpWindowName = "queryDetail";
+   ViewBag.Title = DicSvc.XLate("Online Custom Queries");
+}
+
+@functions {
+    private IHtmlContent rawXlateJs(string text)
+    {
+
+        return Html.Raw(DicSvc.XLateJs(text));
+    }
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+    var kndWnd;
+</script>
+
+
+<div class="h-100 text-center">
+    <div class="card h-100 m-1 p-2 text-left">
+        <div id="@popUpWindowName"></div>
+        @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.OnLine.QueryParameterViewModel>()
+                    
+            .UmsDefaultToolbar("addQuery", DicSvc.XLate("ADD NEW Query"), "displayItemDetail(-2);", DicSvc)
+                   
+            .Name(gridName)
+            .UmsDefaultSettings(DicSvc)
+            .Columns(c =>
+            {
+                c.Bound(m => m.QueryID).Hidden(true); 
+                c.Bound(m => m.ParameterLabel);
+                c.Bound(m => m.UnitLabel).Width(150);
+                c.Bound(m => m.SQLQuery).HtmlAttributes(new {style="white-space:nowrap;tex-decoration:ellipse"});
+                c.Bound(m => m.Description).HtmlAttributes(new {style="white-space:nowrap;tex-decoration:ellipse"});
+                c.Bound(m => m.LastSaveDatetime).Format("{0:d} {0:t}");
+                c.Bound(m => m.LastSaveUserName).Hidden();
+
+            })
+            .UmsDefaultPager(DicSvc)
+            .Events(ev => ev.DataBound("onDataBound"))
+            .DataSource(dataSource => dataSource
+                      .Ajax()
+                      .Read(read => read.Action("GetAllQueries","OnlineValidation"))
+
+            ))
+
+    </div>
+    <div id="divCDSSRuleEditWindow"></div>
+</div>
+<script id="delete-confirmation" type="text/x-kendo-template">
+    @{ await Html.RenderPartialAsync("_DeleteDialogConfirmWindow"); }
+</script>
+
+<script id="detail" type="text/kendo-tmpl">
+    <div class="vitalsStandardDataset-detail" data-uidparent="#=sd_ID#" style="width: 99%;display: inline-block;padding: 15px 0;"></div>
+</script>
+<script>
+    @{
+        string editItemTitle = "Edit Query";
+        string newItemTitle = "New Query";
+    }
+    
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                title: '@rawXlateJs(editItemTitle)',
+                height: 650,
+                minWidth:'90%',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+        }
+    });
+
+    function displayItemDetail(itemID) {
+        var windowWidget = $(popUpWindowName).data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+        var itemId = '0';
+        if (itemID) {
+            itemId = itemID;
+        } else {
+            itemId = 0;
+        }
+        $.ajax({
+            url: '@Url.Action("GetQuery")',
+            type: 'GET',
+            data: { id: itemId }
+        }).done(function (dataHtml) {
+            kendo.ui.progress(windowWidget.element, true);
+            var dialog = $(popUpWindowName ).data('kendoWindow');
+            if (itemID ==='' || itemID == 0) {
+                dialog.title('@rawXlateJs(newItemTitle)');
+            } else {
+                dialog.title('@rawXlateJs(editItemTitle)');
+            }
+            dialog.content(dataHtml).center().open();
+
+        });
+    }
+
+
+    function onGridKeyEnter(item) {
+        displayItemDetail(item.QueryID);
+    };
+
+    function onDataBound(e) {
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem($(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+    }
+
+</script>

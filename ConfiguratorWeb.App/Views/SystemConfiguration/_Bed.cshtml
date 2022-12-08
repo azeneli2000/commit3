@@ -1,0 +1,358 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@inject IDictionaryService DicSvc
+
+@{
+    StringBuilder objSbDelete = new StringBuilder();
+    objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Item \"{0}\" for location \"{1}\" "),
+        @Model.BedName, @Model.Location.LocationName);
+    objSbDelete.Append("?");
+}
+
+@model ConfiguratorWeb.App.Models.BedViewModel
+
+@{
+    Layout = null;
+    string KeyID = Model.BedId.ToString();
+    string KeyEmptyValueID = "0";
+    string formId = "form_" + KeyID;
+}
+
+
+
+<div class="card px-0 py-2" style="height:230px;" id="divItemDetail">
+    <form asp-controller="SystemConfiguration" asp-action="SaveBedDetail" id="formDetail"
+          data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+          data-ajax="true" data-ajax-method="POST">
+
+        <div asp-validation-summary="ModelOnly"></div>
+        <input asp-for="BedId" type="hidden" />
+        <input asp-for="IdLocation" type="hidden" />
+        <input asp-for="Location.ID" type="hidden" />
+        <input asp-for="PatientId" type="hidden" />
+        <input asp-for="BedIndex" type="hidden" />
+
+
+        <div class="row mt-3">
+            <div class="col-1">
+                <label asp-for="BedName" class="label-name field-required">@DicSvc.XLate("Name")</label>
+            </div>
+            <div class="col-5">
+                <input asp-for="BedName" class="form-control control-required" />
+            </div>
+            <div class="col-1">
+                <label asp-for="Location.LocationName" class="label-name field-required">@DicSvc.XLate("Location")</label>
+            </div>
+            <div class="col-5">
+                <div class="input-group">
+                    <input asp-for="Location.LocationName" class=" label-name form-control control-required" readonly="readonly" />
+                    <span class="input-group-append">
+                        <button id="btnLocation" onclick="openLocationsGrid();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Set Location">
+                            <span class="mdi mdi-pencil"></span>
+                        </button>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-1">
+                <label asp-for="BedCode" class="label-name">@DicSvc.XLate("Code")</label>
+            </div>
+            <div class="col-5">
+                <input asp-for="BedCode" class="form-control " />
+            </div>
+            <div class="col-1">
+                <label asp-for="RoomName" class="label-name ">@DicSvc.XLate("Room Name")</label>
+            </div>
+            <div class="col-5">
+                <input asp-for="RoomName" class="form-control" maxlength="25" />
+            </div>
+        </div>
+        <div class="row">
+           <div class="col-1">
+              <label asp-for="UniteCode" class="label-name">@DicSvc.XLate("Unite Code")</label>
+           </div>
+           <div class="col-5">
+              <div class="input-group ">
+                 <input asp-for="UniteCode" class="form-control " />
+                 <div class="input-group-append ">
+                    <button id="btnInfoUniteCode" class="btn lh-1-0 border ig-24px" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("What is this?")">
+                       <span class="mdi  mdi-information-outline mdi-24px"></span>
+                    </button>
+                 </div>
+              </div>
+           </div>
+           <div class="col-1">
+              <label  class="label-name ">@DicSvc.XLate("Bed Id")</label>
+           </div>
+           <div class="col-5">
+              <input class="k-input k-textbox w-100" readonly="readonly" value="@Model.BedId" />
+           </div>
+        </div>
+        
+    </form>
+</div>
+<div class="card-footer h-10 p-0 m-0 border-top bg-white">
+
+    @{
+        string postId = ""; //use in case of multi toolbar
+    }
+    @(Html.Kendo().ToolBar()
+              .Name("toolbarDetail")
+              .UmsDefaultErrors(DicSvc, "errors")
+              .Items(items =>
+              {
+                  items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+                  items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode").Hidden(true);
+              })
+              .UmsDefaultSettings(DicSvc, postId)
+
+    )
+</div>
+<kendo-window name="popupLocations"
+              draggable="false"
+              scrollable="false"
+              visible="false"
+              width="600"
+              modal="true"
+              title="LOCATIONS"
+              height="500"
+              resizable="true">
+    <popup-animation enabled="false" />
+</kendo-window>
+
+
+<script type="text/javascript">
+
+    var consolelog = true;
+    var actualmode=0;
+    var divName = '#divItemDetail';
+    var dialog = $(popUpWindowName).data("kendoWindow");
+    var grid = $('#' + gridIdName).data("kendoGrid");
+    function changeToEditMode() {
+        actualmode = 2;
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("modify-mode");
+        //:not([type=button])
+        $(divName +' :input').attr('disabled', false);
+        //$('#btnLocation').attr('disabled', false);
+        if ($("#BedId").val() == '0') {
+           $('#btnDelete').hide();
+        }
+        $('#btnInfoUniteCode').off('click').on('click', function () {
+            window.umsAlert('@DicSvc.XLate("Unite Code")', '@DicSvc.XLate("Bed code in Ascom Unite - Used for Digistat-Unite integration")');
+        });
+    }
+
+    function changeToViewMode() {
+        actualmode = 1;
+        $(".view-mode").show();
+        $(".modify-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("view-mode");
+        //:not([type=button])
+        $(divName +' :input').attr('disabled', true);
+        //$('#btnLocation').attr('disabled', true);
+        $('#btnInfoUniteCode').off('click');
+
+    }
+    function setWindowMode() {
+        //customize according model key
+        if ('@Model.BedId' !== '0') {
+            actualmode = 1;
+        } else {
+            $('#BedName').attr('readonly', false);
+            actualmode = 2;
+        }
+    }
+
+    function setMode() {
+        if (actualmode === 2)
+            changeToEditMode();
+        else
+            changeToViewMode();
+    }
+
+    function openLocationsGrid() {
+
+        $.ajax({
+            url: '@Url.Action("GetLocations", "SystemConfiguration")',
+            type: 'GET',
+            data: { id: '@Model.BedId' }
+        }).done(function (data) {
+            var dialogAbout = $("#popupLocations");
+            dialogAbout.data("kendoWindow").content(data);
+            dialogAbout.data("kendoWindow").center().open();
+        });
+    }
+    function onDataBoundLoc(e) {
+        var that = this;
+        var grid = $("#loc-grid").data("kendoGrid");
+        if ($('#IdLocation').val() != '') {
+            grid.items().each(function () {
+                var data = grid.dataItem(this);
+                if (data.ID == $('#IdLocation').val()) {
+                    grid.select(this);
+                }
+            });
+        }
+
+        $(that.tbody).off("click", "tr").on("click", "tr", function (e) {
+                
+            //save grid and current search form state and current url
+            var dataSource = grid.dataSource;
+
+            var keyVal = grid.dataItem($(e.currentTarget).closest("tr"))['LocationName'];
+            var keyId = grid.dataItem($(e.currentTarget).closest("tr"))['ID'];
+            $("#formDetail"+ " #Location_LocationName").val(keyVal);
+            $("#formDetail" + " #IdLocation").val(keyId);
+            $("#formDetail" + " #Location_ID").val(keyId);
+            $("#formDetail"+ " #Location_LocationName").trigger("input");
+            $('#popupLocations').data("kendoWindow").close();
+
+        });
+    }
+
+    $(document).ready(function() {
+        umsHideAllEditSaveButton();
+        setWindowMode();
+        //set up condition to know if it's a new item
+        setMode();
+        $('#btnEdit' + '@postId').off('click').on('click', function () {
+            if(consolelog)console.log("btnEdit called");
+            changeToEditMode();
+        });
+        $('#btnCancel' + '@postId').off('click').on('click', function () {
+            if (consolelog)console.log("btnCancel called");
+            if ('@KeyID'=='@KeyEmptyValueID') {
+                dialog.close();
+                return;
+            }
+            displayDetailDialog('@KeyID');
+            changeToViewMode();
+        });
+        $('#btnSave'+'@postId').off('click').on('click', function() {
+            if (consolelog)console.log("btnSave called");
+            actionSave();
+        });
+        $('#btnDelete').off('click').on('click', function () {
+            if (consolelog)console.log("btnDelete called");
+            umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteSysOpt, cancelDeleteSysOpt);
+        });
+        $('#btnCopy').off('click').on('click', function () {
+            if (consolelog) console.log("btnCopy called");
+            $("#BedId").val("0");
+            $('#BedName').attr('readonly', false);
+            changeToEditMode();
+        });
+
+        $('#btnClose' + '@postId').off('click').on('click', function () {
+            if (consolelog)console.log("btnClose called");
+            dialog.close();
+        });
+        $('#Location_LocationName').focusin(function() {
+            $(this).removeClass('k-invalid');
+            $('#btnLocation').removeClass('border-danger');
+            });
+        $('#btnLocation').focusin(function() {
+            $(this).removeClass('border-danger');
+            $('#Location_LocationName').removeClass('k-invalid');
+        });
+        $("input[data-val-length-max]").each(function (index, element) {
+            element.setAttribute("maxlength", element.getAttribute("data-val-length-max"));
+        });
+    });
+
+
+
+    function actionSave()
+    {
+        if (OnValidation()) {
+            $("#formDetail").submit();
+        }
+    }
+
+    function OnValidation() {
+        
+        $('#Location_LocationName').removeClass('k-invalid');
+        $('#btnLocation').removeClass('border-danger');
+        var customFieldValidation = function() {
+            var retFV = false;
+            try {
+                retFV = $('#Location_LocationName').val().length === 0;
+            } catch (e) {
+                //
+            } 
+            return retFV;
+        }
+        var validator = $("#formDetail").kendoValidator().data("kendoValidator");
+        if (!validator.validate() || customFieldValidation()) {
+            var errors = validator.errors();
+            
+            if (customFieldValidation()) {
+                errors.push('Location couldn\'t be empty');
+                $('#Location_LocationName').addClass('k-invalid');
+                $('#btnLocation').addClass('border-danger');
+            }
+            $("#errors").html(buildValidationMessage(errors));
+            return false;
+        }
+        else {
+            $("#errors").html("");
+        }
+        return true;
+    }
+    function OnSuccess(response) {
+        if (response.success) {
+            grid.dataSource.read();
+            dialog.close();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400);
+        }
+    }
+    function OnFailure(response) {
+        //debugger;
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+    function toolBarShowButtonByClass(clas) {
+
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsShowButtonByClass(clas);
+    }
+    function umsHideAllEditSaveButton()
+    {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsHideAllEditSaveButton();
+    }
+
+
+    function deleteSysOpt() {
+        $.ajax({
+            url: '@Url.Action("DeleteBed", "SystemConfiguration")',
+            type: 'POST',
+            data: { bedId: '@Model.BedId' }
+        }).done(function (data) {
+            if (data.success != undefined && data.success) {
+                dialog.close();
+                grid.dataSource.read();
+            } else {
+                $('#errors').html('not saved. reason:' + data.errorMessage);
+            }
+
+        }).fail(function (response) {
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+
+    }
+
+    function cancelDeleteSysOpt() {
+
+        /* do nothing */
+    }
+
+
+</script>

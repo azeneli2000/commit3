@@ -1,0 +1,303 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@using Digistat.FrameworkStd.Enums;
+@model Digistat.FrameworkStd.Model.Therapy.Profiles
+
+@{
+   var gridName = "ProfileReorderingGrid";
+}
+
+<script>
+   var RP_actualmode = 2; //actual window mode 
+   var currentSelection;
+
+   function OnProfileReorderingGridSelectionChange(e) {
+      var selectedRows = this.select();
+
+      //if (RP_actualmode === 2) {
+      //   if (this.selectedKeyNames()[0] != currentSelection.IdProfile) {
+      //      var index = this.dataSource.indexOf(currentSelection);
+      //      this.select("tr:eq(" + index + ")");
+      //   }
+      //   return ;
+      //}
+      $('#MoveProfileDown').attr('disabled', false);
+      $('#MoveProfileUp').attr('disabled', false);
+      currentSelection = null;
+      if (selectedRows.length > 0) {
+         currentSelection = this.dataItem(selectedRows[0]);
+         var index = this.dataSource.indexOf(currentSelection);
+
+         //if (index >= this.dataSource._data.length - 1 && this.dataSource.page() === this.dataSource.totalPages()) {
+         if (index >= this.dataSource._data.length - 1) {
+            $('#MoveProfileDown').attr('disabled', true);
+         }
+
+         //if (index == 0 && this.dataSource.page() === 1) {
+         if (index == 0) {
+            $('#MoveProfileUp').attr('disabled', true);
+         }
+
+         //$('#btnEdit' + toolbarDialogId).attr('disabled', false);
+      }
+   };
+</script>
+<div class="card h-100 pt-1 pb-2">
+   <div id="CategoryDetailContainerR" class="card-body h-90 p-0 m-1 border-0" >
+
+      <div style="width: 100%">
+         <div style="width: 100%; height: 100%">
+            <div style="display:flex;flex-direction:row;">
+
+               @(Html.Kendo().Grid<Digistat.FrameworkStd.Model.Therapy.Profiles>
+                                                             ()
+                                                             .Name(gridName)
+                                                             .Columns(columns =>
+                                                             {
+                                                                columns.Bound(e => e.IdProfile).Visible(false);
+                                                                columns.Bound(e => e.Name).Title(DicSvc.XLate("Name"));
+                                                                //columns.Bound(e => e.Description).Title(DicSvc.XLate("Description"));
+                                                                columns.Bound(e => e.Code).Title(DicSvc.XLate("Code"));
+                                                                columns.Bound(e => e.Index).Visible(false);
+                                                                columns.Bound(e => e.LocationName).Title(DicSvc.XLate("Location")).Width(500);
+                                                             })
+                                                            //.UmsDefaultPager(DicSvc)
+                                                            .Selectable(s => s.Mode(GridSelectionMode.Single).Type(GridSelectionType.Row))
+                                                            .Navigatable(true)
+                                                            .Scrollable()
+                                                            .DataSource(dataSource => dataSource
+                                                               .Ajax()
+                                                               .Model(model => model.Id(p => p.IdProfile))
+                                                               //.PageSize(10)
+                                                               .Read(read => read.Action("ReadProfiles", "Therapy"))
+                                                            )
+                                                      .Events(ev => ev.Change("OnProfileReorderingGridSelectionChange"))
+                                                      .HtmlAttributes(new { style = "height:500px; order: 0; margin:12px;width:95%;" })
+                                                               .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+
+      )
+               <div style="display: flex; flex-direction: row; top: 12px; position: relative;">
+                  <div class="arrowProfiles">
+                     <div style="display:flex; flex-direction:column;">
+                        <button id="MoveProfileUp"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" style="margin-bottom: 1px;" type="button"><span class="k-icon k-i-arrow-60-up"></span></button>
+                        <button id="MoveProfileDown"  class="k-button k-button-solid k-button-md k-button-rectangle k-rounded-md k-button-solid-base customSubGridsButtom" type="button"><span class="k-icon k-i-arrow-60-down"></span></button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         </div>
+         </div>
+         <div class="card-footer  p-0 m-0  bg-white">
+            @(Html.Kendo().ToolBar()
+      .Name("toolbarProfileReordering")
+      .UmsDefaultErrors(DicSvc)
+      .UmsDefaultSettings(DicSvc, "RProf"))
+         </div>
+      </div>
+<script>
+
+   var toolbarDialogId = "RProf";
+ 
+   function orderProfileIndex() {
+      var visibleGrid = $('#@gridName').data("kendoGrid");
+      for (var i = 0; i < visibleGrid.dataSource._data.length; i++) {
+         visibleGrid.dataSource._data[i].Index = i;
+      }
+
+   };
+
+   $("#MoveProfileDown").off('click').on("click", function (idx, elem) {
+      $("#MoveProfileUp").attr('disabled', false);
+      var visibleGrid = $('#@gridName').data("kendoGrid");
+      if (visibleGrid.dataSource._data.length > 1) {
+         var selected = visibleGrid.select();
+         if (selected.length > 0) {
+            $.each(selected, function (idx, elem) {
+               var dataItem = visibleGrid.dataItem($(this));
+               var index = visibleGrid.dataSource.indexOf(dataItem);
+               var maxIndex = visibleGrid.dataSource._data.length - 1;
+               visibleGrid.dataSource.remove(dataItem);
+               var newIndex;
+              
+               if (index < maxIndex) {
+
+                  newIndex = index + 1;
+                  dataItem.set("Index", newIndex);
+                  visibleGrid.dataSource.insert(newIndex, dataItem);
+
+                  visibleGrid.select("tr:eq(" + (newIndex) + ")");
+                 
+                  orderProfileIndex();
+               }
+               if (newIndex >= visibleGrid.dataSource._data.length - 1) {
+                  $("#MoveProfileDown").attr('disabled', true);
+               }
+            });
+         }
+      }
+   });
+   $("#MoveProfileUp").off('click').on("click", function (idx, elem) {
+      $("#MoveProfileDown").attr('disabled', false);
+
+      var visibleGrid = $("#@gridName").data("kendoGrid");
+      var selected = visibleGrid.select();
+      if (visibleGrid.dataSource._data.length > 1) {
+         if (selected.length > 0) {
+
+            $.each(selected, function (idx, elem) {
+               
+               var dataItem = visibleGrid.dataItem($(this));
+               var index = visibleGrid.dataSource.indexOf(dataItem);
+               visibleGrid.dataSource.remove(dataItem);
+               if (index > 0) {
+                  var newIndex = index - 1;
+                  dataItem.set("Index", newIndex);
+                  visibleGrid.dataSource.insert(newIndex, dataItem);
+                  visibleGrid.select("tr:eq(" + (newIndex) + ")");
+                  
+                  orderProfileIndex();
+               }
+              
+               if (newIndex == 0) {
+                  $("#MoveProfileUp").attr('disabled', true);
+               }
+            });
+         }
+      }
+
+   });
+
+
+   function CallReorder()
+   {
+      var visibleGrid = $('#@gridName').data("kendoGrid");
+      var reordered_data = [];
+
+
+      for (var i = 0; i < visibleGrid.dataSource._data.length; i++) {
+         reordered_data.push({ ItemId: visibleGrid.dataSource._data[i].IdProfile, Order: i });
+      }
+
+      $.ajax({
+         url: '@Url.Action("ReorderTherapyProfilesList", "Therapy")',
+         type: 'POST',
+         data: { reorderedItems : reordered_data },
+      })
+      .done(function (data) {
+         //RProfChangeToViewMode();
+         var grid = $('#ProfilesGrid').data('kendoGrid');
+         grid.dataSource.read();
+         var dialog = $('#ProfileReorderingWindow').data("kendoWindow");
+         dialog.close();
+      });
+   }
+
+   function RProfsetMode() {
+      if (RP_actualmode === 2) {
+         RProfChangeToEditMode();
+      }
+      else {
+         RProfChangeToViewMode();
+      }
+   };
+
+   function RProfToolBarShowButtonByClass(buttonClass) {
+      var tb = $("#toolbarProfileReordering").data("kendoToolBar");
+      tb.umsShowButtonByClass(buttonClass);
+   }
+   function RProfToolBarAllEditSaveButton() {
+      var tb = $("#toolbarProfileReordering").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+
+   function RProfChangeToEditMode() {
+      
+      RP_actualmode = 2;
+      RProfToolBarAllEditSaveButton();
+      RProfToolBarShowButtonByClass("modify-mode");
+
+      $('#MoveProfileUp').attr('disabled', false);
+      $('#MoveProfileDown').attr('disabled', false);
+      EnableMovingButtons();
+   };
+
+   function RProfChangeToViewMode() {
+      
+      RP_actualmode = 1;
+      RProfToolBarAllEditSaveButton();
+      RProfToolBarShowButtonByClass("view-mode");
+      $('#MoveProfileUp').attr('disabled', true);
+      $('#MoveProfileDown').attr('disabled', true);
+      //$('#btnEdit' + toolbarDialogId).attr('disabled', true);
+   };
+
+
+   function EnableMovingButtons() {
+      var btnUp = '#MoveProfileUp';
+      var btnDown = '#MoveProfileDown';
+      var grid = $("#@gridName").data("kendoGrid");
+
+      if (grid.dataSource._data.length > 1) {
+         $(btnUp).css("display", "block");
+         $(btnDown).css("display", "block");
+         $(".arrowProfiles").attr('disabled', false);
+         $(".arrowProfiles").css("display", "flex");
+         $(".arrowProfiles").css("direction", "column");
+      }
+
+      //   var selected = grid.select();
+      //if (selected.length > 0) {
+      //   var dataItem = grid.dataItem($(selected[0]));
+      //   var index = grid.dataSource.indexOf(dataItem);
+
+      //   $(btnUp).attr('disabled', false);
+      //   $(btnDown).attr('disabled', false);
+
+      //   if (index >= grid.dataSource._data.length - 1) {
+      //      $(btnDown).attr('disabled', true);
+      //   }
+
+      //   if (index == 0) {
+      //      $(btnUp).attr('disabled', true);
+      //   }
+      //}
+
+   }
+
+
+   $(document).ready(function () {
+
+      var dialog = $('#ProfileReorderingWindow').data("kendoWindow");
+      dialog.bind("activate", RProfsetMode);
+      dialog.bind("resize", RProfsetMode);
+
+      RProfsetMode();
+
+      $('#btnEdit' + toolbarDialogId).off('click').on('click', function () {
+
+         RProfChangeToEditMode();
+
+      });
+
+      $('#btnCancel' + toolbarDialogId).off('click').on('click', function () {
+         RProfChangeToViewMode();
+         var grid = $("#@gridName").data("kendoGrid");
+         grid.dataSource.read();
+      });
+
+      $('#btnSave' + toolbarDialogId).off('click').on('click', function () {
+         CallReorder();
+      });
+
+      $('#btnClose' + toolbarDialogId).off('click').on('click', function () {
+         $("html").css("overflow-y", "hidden");
+
+         var grid = $("#ProfilesGrid").data("kendoGrid");
+         grid.dataSource.read();
+         dialog.close();
+      });
+   });
+
+</script>
+

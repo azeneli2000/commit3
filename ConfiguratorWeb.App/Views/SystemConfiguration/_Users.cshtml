@@ -1,0 +1,28 @@
+﻿@model IEnumerable<ConfiguratorWeb.App.Models.UserViewModel>
+@{
+    Layout = null;
+}
+<div style="text-align:center;">
+
+    @(Html.Kendo().Grid(Model)
+    .Name("so-users-grid" + (string)ViewBag.FormDetailId).HtmlAttributes(new { style = "height:360px;margin-top:10px;" })
+    .Columns(columns =>
+    {
+        columns.Bound(e => e.Id).Visible(false);
+        columns.Bound(e => e.Abbrev).Title(DicSvc.XLate("ABBR.")).Width("20%");
+        columns.Bound(e => e.Name).Title(DicSvc.XLate("Name")).HtmlAttributes(new { @style = "text-align:left;" });
+    })
+    
+                            .Sortable().Filterable()
+                            .Sortable()
+                            .Scrollable()
+                            .Selectable(e=>e.Enabled(true))
+                            .Events(ev => ev.DataBound("onDataBoundUsers" + (string)ViewBag.FormDetailId).Change("onUserSelected" + (string)ViewBag.FormDetailId))
+                            .DataSource(dataSource => dataSource
+                                    .Ajax()
+                               .ServerOperation(false)
+                             )
+                             .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+    )
+</div>

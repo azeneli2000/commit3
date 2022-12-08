@@ -1,0 +1,228 @@
+﻿@model ConfiguratorWeb.App.Models.DeviceDriverViewModel
+@{
+   Layout = null;
+}
+
+<style>
+   .subsection .k-tabstrip-items .k-item.k-state-active > .k-link {
+        border-top: 3px solid #28a745;
+        color: #28a745 !important;
+   }
+    /*2CC185*/
+    .subsection > .k-active-filter,
+    .subsection > .k-state-active,
+    .subsection > .k-state-active:hover,
+    .subsection > .k-tabstrip .k-state-active {
+        border-width: 0px 1px 1px 1px !important;
+   }
+    #tbsCommunicatioPar > .k-tabstrip-wrapper {
+        height: 100%;
+   }
+    .subsection > .k-tabstrip-items .k-item .k-link {
+        padding: 7px 11px !important;
+   }
+</style>
+
+<script type="text/javascript">
+
+    function filterConnectionTypes() {
+        var selectedValue = $("#IdDriverRepository_@Model.Id.ToString()").data("kendoDropDownList").dataItem();
+        var supportedConnType = "";
+        if (selectedValue) {
+            supportedConnType = selectedValue.SupportedCommTypes;
+
+        }
+
+        return {
+            supportedConnectionTypes: supportedConnType
+        };
+    }
+
+   function onDataBoundConnectionTypes(e) {
+      var conTypeList = $("#ConnectionType_@Model.Id").data("kendoDropDownList");
+      var selectedVal = "";
+      //debugger;
+      if (conTypeList ) {
+         
+      
+         if (conTypeList.dataItem() != undefined) {
+            selectedVal= conTypeList.dataItem().Value;
+         } else {
+            selectedVal= conTypeList.value();
+         }
+         if (selectedVal == "") {
+            //if (typeof(conTypeList.dataSource.options.data.length) != "undefined" && conTypeList.dataSource.options.data.length>0) {
+            //   selectedVal= conTypeList.dataSource.options.data[0];
+            //}
+         } else { 
+            showConnectionTypeTabstrip(selectedVal);
+         }
+      }
+      //showConnectionTypeTabstrip(e.sender.dataItem().Value);
+   };
+
+   function onSelectConnectionType(e) {
+      if (e.item) {
+         var dataItem = this.dataItem(e.item);
+         showConnectionTypeTabstrip(dataItem.Value);
+      }
+   }
+
+   function showConnectionTypeTabstrip(index) {
+      //Get div container id from the aria-controls attribute of "li" tab.
+      var ts = $("#tabstripParameters_@Model.Id").data("kendoTabStrip");
+
+      var socketContainerDivId = $(ts.items()[0]).attr('aria-controls');
+      var socketContainerDiv = $("#" + socketContainerDivId);
+      var serialContainerDivId = $(ts.items()[1]).attr('aria-controls');
+      var serialContainerDiv = $("#" + serialContainerDivId);
+      var _divToDisable;
+      var _divToEnable;
+      //debugger;
+      var viewMode = 2;
+      if (typeof(actualmode) != 'undefined') { //IE compatibility
+          viewMode = actualmode;
+      }
+          
+        if (index =='@UIHtmlHelper.GetSocketIndexValue()') {
+            //debugger;
+            ts.enable(ts.tabGroup.children("li:eq(0)"), true); 
+            ts.enable(ts.tabGroup.children("li:eq(1)"), false); // disable tab 1
+            //ts.tabGroup.children("li:eq(1)").hide();
+            //ts.tabGroup.children("li:eq(0)").show();
+            _divToDisable = serialContainerDiv;
+            _divToEnable = socketContainerDiv;
+            ts.select(0);
+        }
+        else {
+            //debugger;
+            ts.enable(ts.tabGroup.children("li:eq(1)"), true); 
+            ts.enable(ts.tabGroup.children("li:eq(0)"), false); 
+
+            _divToDisable = socketContainerDiv;
+            _divToEnable = serialContainerDiv;
+            ts.select(1);
+            
+        }
+        if (viewMode===2) {
+            //Disable all input objects to deactivate validators
+            
+            _divToDisable.find('input').each(function () {
+                //var cb = $(this).data("kendoDropDownList");
+                //if (cb) {
+                //    cb.enable(false);
+                //} else {
+                //    cb = $(this).data("kendoNumericTextBox");
+                //    if (cb) {
+                //        cb.enable(false);
+                //    }else{
+                //        $(this).attr('disabled', 'disabled');
+                //    }
+                //}
+            });
+            //Enable all input objects
+            _divToEnable.find('input').each(function () {
+                var cb = $(this).data("kendoDropDownList");
+                if (cb) {
+                    cb.enable(true);
+                } else {
+                    cb = $(this).data("kendoNumericTextBox");
+                    if (cb) {
+                        cb.enable(true);
+                    } else {
+                        $(this).removeAttr("disabled");
+                    }
+                }
+            });
+            if (_divToEnable == socketContainerDiv && $("#SocketType_@Model.Id").data("kendoDropDownList").text() === "DriverSocketType_TCPServer") {
+                $("#Socket_HostName").attr("disabled", "disabled");
+            } else {
+                $("#Socket_HostName").removeAttr("disabled");
+            }
+        }
+    }
+
+    function onSocketTypeChange(e) {
+        
+        if (e.sender.text() ==="DriverSocketType_TCPServer") {
+            $("#Socket_HostName").val('');
+            $("#Socket_HostName").attr("disabled", "disabled");
+        } else {
+            $("#Socket_HostName").removeAttr("disabled");
+        }
+   }
+
+   function onReloadDefaultSettings() {
+      //TODO Ask confirmation message
+      var dtItem = $("#IdDriverRepository_@Model.Id.ToString()").data("kendoDropDownList").dataItem();
+      reloadDriverChildrenValues('@Model.Id.ToString()', "true", '@Url.Action("GetDriverDefaultValues", "Generic")' + '?idRepository=' + dtItem.Value);
+
+      setAbilitations(dtItem.Value);
+   }
+
+   $(function () {
+      $("#btnDefSettings_@Model.Id").on("click", function () {
+          onReloadDefaultSettings();
+       });
+   });
+
+</script>
+
+<div style="height:360px;padding-top: 10px;">
+   <div class="row" style="padding-top: 5px;">
+      <div class="col-md-1 u-col-h-fixed">
+         <label asp-for="ConnectionType" class="label-name">@DicSvc.XLate("Connection Type")</label>
+      </div>
+      <div class="col-md-3 u-col-h-fixed">
+         @(Html.Kendo().DropDownListFor(m => m.ConnectionType)
+                  .HtmlAttributes(new { @style = "width:100%;", @id = "ConnectionType_" + Model.Id })
+                  .DataTextField("Text")
+                  .DataValueField("Value")
+                  .Events(ev => ev.Select("onSelectConnectionType").DataBound("onDataBoundConnectionTypes"))
+                  //.DataSource(source =>
+                  //{
+                  //   source.Read(read =>
+                  //      {
+                  //         read.Action("GetConnectionTypeList", "Generic").Data("filterConnectionTypes");
+                  //      })
+                  //   .ServerFiltering(true);
+                  //})
+                  .Enable(false)
+                  .AutoBind(false)
+                //.CascadeFrom("IdDriverRepository_" + Model.Id.ToString())
+         )
+         <span asp-validation-for="ConnectionType"></span>
+
+      </div>
+      <div class="col-md-8 u-col-h-fixed" style="text-align:right;">
+            <button id="btnDefSettings_@Model.Id" class="btn btnKendo btnDefSettings modify-mode" type="button">@DicSvc.XLate("Reload Default Settings")</button>
+      </div>
+   </div>
+ 
+   <div class="d-block bg-white" style="padding-top: 5px;height:300px" id="tbsCommunicatioPar">
+      <kendo-tabstrip name="tabstripParameters_@Model.Id" class="subsection bg-white"  style="height: 100%;">
+         <scrollable enabled="true" />
+         <popup-animation>
+            <open effects="fade:in" />
+         </popup-animation>
+         <items>
+            <tabstrip-item text="@DicSvc.XLate("Socket")" selected="true" id="tabstrip-@Model.Id-socket"  class="" style="margin-right:0px!important;">
+               <content>
+                  @{await Html.RenderPartialAsync("_TabDeviceDriverSocket", Model);}
+               </content>
+            </tabstrip-item>
+            <tabstrip-item text="@DicSvc.XLate("Serial Port")" id="tabstrip-@Model.Id-serialport" >
+                @*mdi-power-socket-us*@
+               <content>
+                  @{await Html.RenderPartialAsync("_TabDeviceDriverSerial", Model);}
+               </content>
+            </tabstrip-item>
+            <tabstrip-item text="@DicSvc.XLate("Custom")" id="tabstrip-@Model.Id-custom"   style="margin-right:0px!important;">
+               <content>
+                  @{await Html.RenderPartialAsync("_TabDeviceDriverCustom", Model);}
+               </content>
+            </tabstrip-item>
+         </items>
+      </kendo-tabstrip>
+   </div>
+</div>

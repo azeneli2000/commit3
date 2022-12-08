@@ -1,0 +1,479 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@model ConfiguratorWeb.App.Models.RoleViewModel
+@inject IDictionaryService DicSvc
+@inject IPermissionsService PermSvc
+
+@{
+    StringBuilder objSbDelete = new StringBuilder();
+    objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Role \"{0}\" "),
+        Model != null ? Model.RoleName : string.Empty);
+    objSbDelete.Append("?");
+}
+@{
+    Layout = null;
+    string keyID = Model.Id.ToString();
+    string keyEmptyValueID = "";
+    string formId = "form_" + keyID;
+}
+
+<script>
+    var _formId = '@formId';
+</script>
+
+<div class="h-100 " id="divRoleTabStrip">
+    <div class="card h-90 m-0 p-0 border-bottom-0 text-left" id="divItemDetail">
+        @{
+            // string postId = ""; //use in case of multi toolbar
+            // string selectedTab = "s";
+            var currUser = (Digistat.FrameworkStd.Model.User)ViewData["CurrentUser"];
+        }
+        <form asp-controller="SystemAdministration" asp-action="SaveRoleDetail" id="@formId"
+              data-ajax-failure="OnFailure" data-ajax-success="OnSuccess" class="mt-0"
+              data-ajax="true" data-ajax-method="POST">
+
+            @Html.ValidationSummary()
+            @Html.HiddenFor(m => m.Id)
+
+
+            <kendo-tabstrip name="tabstrip_@Model.Id" style="margin-top: -13px;">
+                <scrollable enabled="true" />
+                <popup-animation>
+                    <open effects="fade:in" />
+                </popup-animation>
+                <items>
+                    <tabstrip-item text="@DicSvc.XLate("General")" selected="true" id="tabstrip-@Model.Id-pagedetail" onclick="selectedTab = 'general'">
+                        <content>
+                            <div class="row mb-0">
+                                <div class="col-lg-1">
+                                    @Html.LabelFor(m => m.RoleName, new { @class = "field-required"})
+                                </div>
+                                <div class="col-lg-3">
+                                    @Html.Kendo().TextBoxFor(m => m.RoleName).HtmlAttributes(new { @class = "k-input k-textbox" })
+                                </div>
+                            </div>
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Permissions")" selected="false" id="tabstrip-@Model.Id-permissions" onclick="selectedTab = 'permissions'">
+                        <content>
+                            @{
+                                await Html.RenderPartialAsync("_TabRolePermissions", Model);
+                            }
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="@DicSvc.XLate("Users")" id="tabstrip-@Model.Id-users" onclick="selectedTab = 'users'" ;>
+                        <content>
+                            @{
+                                await Html.RenderPartialAsync("_TabRoleUsers", new ViewDataDictionary(new Microsoft.AspNetCore.Mvc.ModelBinding.EmptyModelMetadataProvider(), new Microsoft.AspNetCore.Mvc.ModelBinding.ModelStateDictionary()) { { "RoleID", Model.Id } });
+                            }
+
+                        </content>
+                    </tabstrip-item>
+                    @if(PermSvc.CheckPermission(Configurator.Std.Defs.Permissions.permissionStockManagementView,currUser))
+                    {
+                    <tabstrip-item text="Cabinets" id="tabstrip-@Model.Id-cabinets" onclick="selectedTab = 'cabinets'">
+                        <content>
+                            @{
+                                await Html.RenderPartialAsync("_TabRoleCabinets", Model);
+                            }
+                        </content>
+                    </tabstrip-item>
+
+                    <tabstrip-item text="Operating Blocks" id="tabstrip-@Model.Id-operatingBlocks" onclick="selectedTab = 'operatingBlocks'">
+                        <content>
+                            @{
+                                await Html.RenderPartialAsync("_TabRoleOperatingBlocks", Model);
+                            }
+                        </content>
+                    </tabstrip-item>
+                    <tabstrip-item text="Operating Rooms" id="tabstrip-@Model.Id-operatingRooms" onclick="selectedTab = 'operatingRooms'">
+                        <content>
+                            @{
+                                await Html.RenderPartialAsync("_TabRoleOperatingRooms", Model);
+                            }
+                        </content>
+                    </tabstrip-item>
+                    }         
+                </items>
+            </kendo-tabstrip>
+        </form>
+        *
+    </div>
+    <div class="card-footer h-10 p-0 m-0 border-top bg-white">
+        @{
+            string postId = ""; //use in case of multi toolbar
+        }
+        @(Html.Kendo().ToolBar()
+            .Name("toolbarDetail")
+            .UmsDefaultErrors(DicSvc, "errors")
+            .Items(items =>
+            {
+                items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode");
+                items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode");
+            })
+            .UmsDefaultSettings(DicSvc, postId)
+
+            )
+    </div>
+</div>
+<script type="text/javascript">
+
+    var consolelog = false;
+    var actualmode = 0;
+    var divName = '#divItemDetail';
+    var dialog = $(popUpWindowName).data("kendoWindow");
+    var grid = $('#' + gridIdName).data("kendoGrid");
+    var selectedTab = 'test'
+
+    function onSelect(e) {
+        var x = e.item;
+        var tab = $(x).index();
+    }
+
+    function changeToEditMode() {
+        actualmode = 2;
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("modify-mode");
+        $('#grid_role_permissions').removeClass('readonly-mode');
+        $('#gridRoleInPostion').removeClass('readonly-mode');
+        $('[name=btnAddPermissionToRole]').removeAttr('disabled');
+        $(divName + ' :input').attr('disabled', false);
+        $( '.istrolleybasketkit').attr('disabled', true);
+
+
+    @if (PermSvc.GetAdminRoleID() == Model.Id || PermSvc.GetUserRoleID() == Model.Id)
+    {
+        <text>
+                $('[name=RoleName]').addClass('readonly-mode').attr('readonly', true);
+        </text>
+    }
+
+            $(divName + ':input').not(".always-enabled").each(function () {
+                var cb = $(this).data("kendoDropDownList");
+                if (cb) {
+                    cb.enable(true);
+                }
+            });
+
+        if ($("#Id").val() == '') {
+            $('#btnDelete').hide();
+        }
+    }
+
+    function changeToViewMode() {
+        actualmode = 1;
+        $(".view-mode").show();
+        $(".modify-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("view-mode");
+        $('#grid_role_permissions').addClass('readonly-mode');
+        $('#gridRoleInPostion').addClass('readonly-mode');
+        $('[name=btnAddPermissionToRole]').attr('disabled', true);
+        $(divName + ' :input').attr('disabled', true);
+        $(divName + ' :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(false);
+                if (consolelog) console.log(this.id);
+            } else {
+                cb = $(this).data("kendoNumericTextBox");
+                if (cb) {
+                    cb.enable(false);
+                }
+            }
+        });
+    }
+
+    function setWindowMode() {
+        //customize according model key
+        if ('@keyID' !== '@keyEmptyValueID') {
+            actualmode = 1;
+        } else {
+            //$('#BedName').attr('readonly', false);
+            actualmode = 2;
+        }
+    }
+
+    function setMode() {
+        if (actualmode === 2)
+            changeToEditMode();
+        else
+            changeToViewMode();
+    }
+
+
+    $(document).ready(function () {
+        umsHideAllEditSaveButton();
+        setWindowMode();
+        //set up condition to know if it's a new item
+        setMode();
+        $('#btnEdit' + '@postId').off('click').on('click', function () {
+            if (consolelog) console.log("btnEdit called");
+            changeToEditMode();
+        });
+        $('#btnCancel' + '@postId').off('click').on('click', function () {
+            if (consolelog) console.log("btnCancel called");
+            // IF is new add, close the dialog
+            if ('@keyID' == '@keyEmptyValueID') {
+                dialog.close();
+                return;
+            }
+            //TODO: reload data
+            displayItemDetail('@keyID');
+            changeToViewMode();
+        });
+        $('#btnSave' + '@postId').off('click').on('click', function () {
+            if (consolelog)
+                console.log("btnSave called");
+            actionSave();
+        });
+        $('#btnDelete').off('click').on('click', function () {
+            if (consolelog) console.log("btnDelete called");
+            umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteItem, cancelDeleteItem);
+        });
+
+        $('#btnCopy').off('click').on('click', function () {
+            if (consolelog) console.log("btnCopy called");
+            $("#Id").val("");
+            $('#grid_role_users').data("kendoGrid").dataSource.data([]);
+            $("#tabstrip_@Model.Id").data('kendoTabStrip').select(0);
+            changeToEditMode();
+
+            $('#RoleName').removeClass('readonly-mode').attr('readonly', false);
+            $('#RoleName').val('');
+        });
+
+        $('#btnClose' + '@postId').off('click').on('click', function () {
+            if (consolelog) console.log("btnClose called");
+            dialog.close();
+        });
+        $("input[data-val-length-max]").each(function (index, element) {
+            element.setAttribute("maxlength", element.getAttribute("data-val-length-max"))
+        });
+
+    });
+
+    function deleteItem() {
+        $.ajax({
+            url: '@Url.Action("DeleteRole", "SystemAdministration")',
+            type: 'POST',
+            data: { id: '@keyID' }
+
+        }).done(function (data) {
+            if (data.success != undefined && data.success) {
+                dialog.close();
+                grid.dataSource.read();
+            } else {
+                $('#errors').html('not saved. reason:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+    }
+
+    function cancelDeleteItem() {
+        /* do nothing */
+    }
+
+    function actionSave() {        
+   
+        switch (selectedTab) {
+    
+            case 'cabinets':{
+            var cabinetModel =
+                {
+                insert: insertArray,
+                delete: deleteArray,
+                roleId: $('#Id').val()
+                }
+                $.ajax({
+                    url: '@Url.Action("SaveCabinetRoles", "StockManagement")',
+                    type: 'POST',
+                    data: {
+                        model: cabinetModel
+                    }
+                }).done(function (data) {
+                    if (data.success != undefined && data.success) {
+                        dialog.close();
+                        $('#gridRoleInPostion').data("kendoGrid").dataSource.read();
+                    } else {
+                        $('#errors').html('not saved. reason:' + data.errorMessage);
+                    }
+                }).fail(function (response) {
+                    console.log(response)
+                    umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+                });
+                return;
+            }
+            case 'operatingBlocks':
+            {
+                var cabinetModel =
+                {
+                    insert: insertArray,
+                    delete: deleteArray,
+                    roleId: $('#Id').val()
+                }
+                $.ajax({
+                    url: '@Url.Action("SaveOperatingBlockRoles", "StockManagement")',
+                    type: 'POST',
+                    data: {
+                        model: cabinetModel
+                    }
+                }).done(function (data) {
+                    if (data.success != undefined && data.success) {
+                        dialog.close();
+                        $('#gridRoleOperatingBlock').data("kendoGrid").dataSource.read();
+                    } else {
+                        $('#errors').html('not saved. reason:' + data.errorMessage);
+                    }
+                }).fail(function (response) {
+                    console.log(response)
+                    umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+                });
+                return;
+            }
+            case 'operatingRooms':
+            {
+                var cabinetModel =
+                {
+                    insert: insertArray,
+                    delete: deleteArray,
+                    roleId: $('#Id').val()
+                }
+                $.ajax({
+                    url: '@Url.Action("SaveOperatingRoomRoles", "StockManagement")',
+                    type: 'POST',
+                    data: {
+                        model: cabinetModel
+                    }
+                }).done(function (data) {
+                    if (data.success != undefined && data.success) {
+                        dialog.close();
+                        $('#gridRoleOperatingRoom').data("kendoGrid").dataSource.read();
+                    } else {
+                        $('#errors').html('not saved. reason:' + data.errorMessage);
+                    }
+                }).fail(function (response) {
+                    console.log(response)
+                    umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+                });
+                return;
+                }
+        }       
+
+        if (OnValidation()) {
+
+            var permissions = $('#grid_role_permissions').data("kendoGrid").dataSource.data();
+            var newPermissionDs = permissions.map(p => { return { RoleID: p.RoleID, PermissionName: p.PermissionName, Allow: p.Allow } })
+
+            var role = {
+                id: $('#Id').val(),
+                RoleName: $('#RoleName').val(),
+                Permissions: newPermissionDs
+            }
+
+            $.ajax({
+                url: '@Url.Action("SaveRoleDetail", "SystemAdministration")',
+                type: 'POST',
+                data: {
+                    model: role
+                }
+            }).done(function (data) {
+                if (data.success != undefined && data.success) {
+                    dialog.close();
+                    grid.dataSource.read();
+                } else {
+                    $('#errors').html('not saved. reason:' + data.errorMessage);
+                }
+            }).fail(function (response) {
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            });
+        }
+    }
+
+    function OnValidation() {
+
+        var retValue = true;
+        var customErrors = [];
+
+        var customFieldValidation = function () {
+            var retFV = false;
+            //Only if we have field not validable by Model
+            try {
+                var missingNamePermission = $('#grid_role_permissions').data("kendoGrid").dataSource.data().find(function (p) { return p.PermissionName === ""; })
+                if (missingNamePermission) {
+                    retFV = false;
+                    customErrors.push("@DicSvc.XLate("Permission name is required")");
+                } else {
+                    retFV = true;
+                }
+            } catch (e) {
+                retFV = false;
+            }
+            return retFV;
+        }
+
+        var validator = $("#@formId").kendoValidator().data("kendoValidator");
+        if (!validator.validate() || !customFieldValidation()) {
+            retValue = false;
+            try {
+                var errors = customErrors.concat(validator.errors());;
+                $("#errors").html(buildValidationMessage(errors));
+            } catch (e) {
+                $("#errors").html(e);
+            }
+        } else {
+            $("#errors").html("");
+            retValue = true;
+        }
+        return retValue;
+    }
+
+    function OnSuccess(response) {
+        if (response.success) {
+            grid.dataSource.read();
+            dialog.close();
+        } else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+
+    function OnFailure(response) {
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+
+    function toolBarShowButtonByClass(clas) {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsShowButtonByClass(clas);
+    }
+
+    function umsHideAllEditSaveButton() {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsHideAllEditSaveButton();
+
+    }
+
+    function ValidateTabs() {
+        $("#tabstrip_@Model.Id").find("span.k-link").removeClass("tab-invalid");
+        var invalidTabs = [];
+        $("input.k-invalid").each(function () {
+            var idInvalid = $(this).attr('id');
+            var tabContentId = $("#" + idInvalid).closest("div[role='tabpanel']").attr("id");
+
+            var tabId = $("#tabstrip_@Model.Id").find("li[aria-controls='" + tabContentId + "']").attr("id");
+            $("#" + tabId + " span.k-link").addClass("tab-invalid");
+
+            if ($.inArray(tabId, invalidTabs) < 0) {
+                //add to array
+                invalidTabs.push(tabId);
+                console.log(tabId);
+            }
+        });
+        if (invalidTabs.length > 0)
+            $("#" + invalidTabs[0]).trigger("click");
+    }
+</script>

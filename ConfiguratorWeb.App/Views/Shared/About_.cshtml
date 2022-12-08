@@ -1,0 +1,63 @@
+﻿@using System.IO
+@removeTagHelper "*, Microsoft.AspNet.Mvc.Razor"
+@removeTagHelper "*, Microsoft.AspNetCore.Mvc.Razor"
+
+<style>
+    .about-win .k-window-title {
+        color: #fff;
+        font-weight: 500;
+        display: inline-block;
+        font-size: 20px;
+    }
+
+    .about-win .k-window-titlebar {
+        background-color: #990000 !important;
+    }
+
+        .about-win .k-window-actions span.k-i-close {
+            color: #fff !important;
+        }
+    .k-prompt-container, .k-window-content{
+        height:auto!important;
+    }
+</style>
+
+@(Html.Kendo().Window()
+                    .Name("aboutwindow")
+                    .Title("")
+                    .Visible(false)
+                    .Actions(actions => actions
+                        .Close()
+                    )
+                    .Modal(true)
+                    .Content(@<text>
+                        <div style="width:23%;float:left;">
+                            <img src="/images/manufacture.PNG">
+                        </div>
+                        <div style="width:65%;float:left;padding-top: 8px;">
+                            <p>
+                                Manufactured by ASCOM UMS srl <br />
+                                Via Amilcare Ponchielli, 29 <br />
+                                50018 Scandicci (FI), Italy
+                            </p>
+                        </div>
+                        <div>
+                            <input type="button" class="btn btn-secondary" value="Close" onclick="closeAboutWin()" style="margin-top: 22px;color:#212529; float: right;" />
+                        </div>
+
+                    </text>)
+                                                                .Draggable()
+                                                                .Width(400)
+                                                                .Height(190)
+)
+
+<script>
+    $(function () {
+        $("#aboutwindow_wnd_title").append("Configurator Web <br/> <span style=\"font-size:12px;color:#ffe5e5;\">" + '@(typeof(Program).Assembly.GetName().Version)' + " ( " + '@String.Format("{0:yyyy-MM-dd}",File.GetLastWriteTime(typeof(Program).Assembly.GetType().Assembly.Location))' + " )" + "</span>");
+        $('#aboutwindow').parent().addClass("about-win");
+    });
+
+    function closeAboutWin() {
+        $("#aboutwindow").data("kendoWindow").close();
+    }
+</script>

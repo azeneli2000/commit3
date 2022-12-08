@@ -1,0 +1,96 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@inject IDictionaryService DicSvc
+@model ConfiguratorWeb.App.Models.StandardDatasetViewModel
+@{
+   Layout = null;
+}
+
+<style>
+   input.text-box.single-line {
+       width: 98%;
+       margin: 0 1%;
+   }
+</style>
+
+<script type="text/javascript">
+
+   function displayScoreDescriptionDialog_@(Model.sd_ID.ToString("N"))(scoreDescriptionID) {
+      $.ajax({
+         url: '@Url.Action("GetScoreDescription", "Vitals")',
+         type: 'GET',
+            data: { scoreDescriptionId: scoreDescriptionID },
+         async: false
+      }).done(function (dataHtml) {
+         var dialog = $('#sdScoreDescriptionEditWindow').data('kendoWindow');
+            dialog.content(dataHtml || "");
+            window.scrollTo(0, 0);
+            dialog.open();
+            dialog.center().element.closest(".k-window").css({
+                top: 55,
+                height:"auto"
+            });
+            $('#sdScoreDescriptionEditWindow').find('#DatasetID').val('@Model.sd_ID');
+      });
+   }
+
+    function onDescriptionScoreSelected(e) {
+        if (actualmode==2 && $(e.sender.element).attr('id') == 'vitalsScoreDescriptions_grid_@(Model.sd_ID)') {
+         var item = e.sender.dataItem(e.sender.select());
+            displayScoreDescriptionDialog_@(Model.sd_ID.ToString("N"))(item.ID);
+      }
+   }
+
+    function dataSource_requestEndScoreDescription_@(Model.sd_ID.ToString("N"))(e) {
+        if (e.type === 'destroy') {
+            $('#vitalsScoreDescriptions_grid_@(Model.sd_ID)').data('kendoGrid').dataSource.read();
+        }
+    }
+
+    $(document).ready(function () {
+        var grid = $('#vitalsScoreDescriptions_grid_@(Model.sd_ID)').data('kendoGrid');
+        grid.dataSource.bind("requestEnd", dataSource_requestEndScoreDescription_@(Model.sd_ID.ToString("N")));
+    });
+
+</script>
+<div class="row mb-0 ">
+    <div class="col pt-1 px-0">
+      @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.StdScoreDescriptionViewModel>()
+      .Name("vitalsScoreDescriptions_grid_" + Model.sd_ID)
+      .UmsDefaultToolbar("create_scoredescription", DicSvc.XLate("ADD NEW SCORE DESCRIPTION"), "displayScoreDescriptionDialog_" + Model.sd_ID.ToString("N") + "();", DicSvc)
+      .UmsDefaultSettings(DicSvc)
+      .Columns(columns =>
+      {
+         columns.Bound(e => e.ID).Visible(false);
+         columns.Bound(e => e.MinValue).Width(150);
+         columns.Bound(e => e.MaxValue).Width(150);
+         columns.Bound(e => e.Description);
+         columns.Bound(e => e.ColorCode).Width(200);
+      })
+      .UmsDefaultPager(DicSvc)
+      .Events(events => {
+         if (!Model.sd_Published)
+         {
+            events.Change("onDescriptionScoreSelected");
+         }
+      })
+      .HtmlAttributes(new { style = "height:380px;width:100%" })
+      .Sortable()
+      .Scrollable()
+      .DataSource(dataSource => dataSource
+      .Ajax()
+      .Model(model =>
+      {
+         model.Field(e => e.DatasetID).DefaultValue(Model.sd_ID).Editable(false);
+         model.Id(o => o.ID);
+         model.Field(e => e.ColorCode).Editable(true);
+         model.Field(e => e.Description).Editable(true);
+         model.Field(e => e.MaxValue).Editable(true);
+         model.Field(e => e.MinValue).Editable(true);
+      })
+      .Sort(sort => sort.Add("MinValue").Ascending())
+      .Read(read => read.Action("GetScoreDescriptionsForDataset", "Vitals", new { sdID = Model.sd_ID }))
+      ))
+   </div>
+</div>
+
+

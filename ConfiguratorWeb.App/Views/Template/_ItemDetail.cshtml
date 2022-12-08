@@ -1,0 +1,382 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@model ConfiguratorWeb.App.Models.TelligenceDeviceViewModel
+@inject IDictionaryService DicSvc
+
+@{
+   StringBuilder objSbDelete = new StringBuilder();
+   objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Item \"{0}\" for application \"{1}\" "),
+       Model.NetworkID, Model.TLDeviceName);
+   objSbDelete.Append("?");
+}
+@{
+   Layout = null;
+}
+
+<div class="h-100 ">
+    <div class="card h-90 m-0 p-0 text-left" id="divItemDetail">
+        <form asp-controller="Template" id="formItemDetail" asp-action="SaveDeviceDetail"
+              data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+              data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+            <div id="Results"></div>
+
+            <div>
+                @Html.ValidationSummary()
+
+                @Html.HiddenFor(m => m.ID)
+                @Html.HiddenFor(m => m.TLLocationID)
+
+                <div class="row modify-mode d-none" >
+                    <div class="col-sm-4 u-col-h-fixed">
+                        <label>
+                            @DicSvc.XLate("Retrieve from Item Configuration")
+                        </label>
+                    </div>
+                    <div class="col-sm-1 u-col-h-fixed ml-5">
+                        <button type="button" class="btn btnKendo btn-xs modify-mode" style="display: none; " id="btnGetXmlRpcDevice" title="@DicSvc.XLate("Retrieve from Telligence Configuration")"><i class="mdi mdi-24px mdi-search-web text-dark"></i></button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-1 u-col-h-fixed">
+                        @Html.LabelFor(m => m.tl_ty_ID, new { @class = "field-required" })
+                    </div>
+                    <div class="col-sm-4 u-col-h-fixed">
+                        @(Html.Kendo().DropDownListFor(m => m.tl_ty_ID)
+                            .HtmlAttributes(new { @style = "width:96%;", id = "TLSystem_" + Guid.NewGuid().ToString() })
+                            .DataTextField("TLSystemGUID")
+                            .DataValueField("ID")
+                            .DataSource(source =>
+                            {
+                                source.Read(read =>
+                                {
+                                    read.Action("GetAllSystems", "Template");
+                                });
+                            })
+                        )
+
+                    </div>
+                    <div class="col-sm-1 u-col-h-fixed ml-3">
+                        @Html.LabelFor(m => m.TLLocationDescriptor, new { @class = "label-name-nooo" })
+                    </div>
+                    <div class="col-sm-5 u-col-h-fixed">
+                        @Html.Kendo().TextBoxFor(m => m.TLLocationDescriptor).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "50" })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-1 u-col-h-fixed">
+                        @Html.LabelFor(m => m.TLDeviceID, new { @class = "u-input-required" })
+                    </div>
+                    <div class="col-sm-4 u-col-h-fixed">
+                        @Html.Kendo().TextBoxFor(m => m.TLDeviceID).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "50" })
+                    </div>
+                    <div class="col-sm-1 u-col-h-fixed ml-3">
+                        @Html.LabelFor(m => m.TLDeviceName, new { @class = "label-name-nooo" })
+                    </div>
+                    <div class="col-sm-5 u-col-h-fixed">
+                        @Html.Kendo().TextBoxFor(m => m.TLDeviceName).HtmlAttributes(new { @class = "k-input k-textbox u-control-required-b", @maxlength = "100" })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-1 u-col-h-fixed">
+                        @Html.LabelFor(m => m.tl_MACAddress, new { @class = "label-name-nooo" })
+                    </div>
+                    <div class="col-sm-4 u-col-h-fixed">
+                        @Html.Kendo().TextBoxFor(m => m.tl_MACAddress).HtmlAttributes(new { @class = "k-input k-textbox u-control-required", @maxlength = "50" })
+                    </div>
+                    <div class="col-sm-1 u-col-h-fixed ml-3">
+                        @Html.LabelFor(m => m.tl_IPAddress, new { @class = "label-name-nooo" })
+                    </div>
+                    <div class="col-sm-5 u-col-h-fixed">
+                        @Html.Kendo().TextBoxFor(m => m.tl_IPAddress).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "100" })
+                    </div>
+
+                </div>
+                <div class="row">
+                    <div class="col-sm-1 u-col-h-fixed">
+                        @Html.LabelFor(m => m.tl_DeviceType, new { @class = "spec-WD" })
+                    </div>
+                    <div class="col-sm-4 u-col-h-fixed">
+                        @(Html.Kendo().DropDownListFor(m => m.tl_DeviceType)
+                                        .HtmlAttributes(new { @style = "width:96%;", umsctrlID = "TLDeviceType", id = "TLDeviceType_" + Guid.NewGuid().ToString() })
+                                        .DataTextField("Text")
+                                        .DataValueField("Value")
+                                        //.Events(e => e.Select("onDeviceTypeSelected"))
+                                        .DataSource(source =>
+                                        {
+                                            source.Read(read =>
+                                            {
+                                                read.Action("GetAllDeviceTypes", "Telligence");
+                                            });
+                                        })
+
+                        )
+                    </div>
+                    <div class="col-sm-1 u-col-h-fixed ml-3">
+                        @Html.LabelFor(m => m.tl_psv_ID, new { @class = "label-name-nooo" })
+                    </div>
+                    <div class="col-sm-4 u-col-h-fixed">
+                        @(Html.Kendo().DropDownListFor(m => m.tl_psv_ID)
+                                       .HtmlAttributes(new { @style = "width:96%;", umsctrlID = "TLPortServer", id = "TLPortServer_" + Guid.NewGuid().ToString() })
+                                       .DataTextField("Address")
+                                       .DataValueField("ID")
+                                       .DataSource(source =>
+                                       {
+                                           source.Read(read =>
+                                           {
+                                               read.Action("GetPortServersShort", "ConnectPlus");
+                                           });
+                                       })
+                        )
+                    </div>
+                </div>
+
+
+                <div class="row">
+                    <div class="col-sm-1 u-col-h-fixed">
+                        @Html.LabelFor(m => m.HasNetwork, new { @class = "label-name-nooo" })
+                    </div>
+                    <div class="col-sm-4 u-col-h-fixed">
+                        @if (Model.HasNetwork)
+                        {
+                            <span>
+                                <img src="~/images/workstation-100.png" style="height:18px;width:18px;" alt="@DicSvc.XLate("Network Details")" />
+                            </span>
+                        }
+                        else
+                        {
+                            @Html.Kendo().CheckBoxFor(m => m.CreateNetwork)<span>&nbsp;@DicSvc.XLate("Create Network entry")</span>
+                        }
+                    </div>
+                    <div class="col-sm-1 u-col-h-fixed ml-3">
+                        @Html.LabelFor(m => m.HasPortServer, new { @class = "label-name-nooo" })
+                    </div>
+                    <div class="col-sm-4 u-col-h-fixed">
+                        @if (Model.HasPortServer)
+                        {
+                            <span>
+                                <img src="~/images/workstation-100.png" style="height:18px;width:18px;" alt="@DicSvc.XLate("Port Server Details")" />
+                            </span>
+                        }
+                        else
+                        {
+                            @Html.Kendo().CheckBoxFor(m => m.CreateNetwork)<span>&nbsp;@DicSvc.XLate("Create Port Server entry")</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="d-inline ml-3">example for input-group</div>
+                <div class="row">
+                    <div class="col-sm-3 u-col-h-fixed">
+                        <div class="">Layout Approved</div>
+                        <div class="input-group  ">
+                            <input type="text" class="form-control " placeholder="Layout Approved" aria-label="Recipient's username">
+                            <div class="input-group-append">
+                                <button class="btn border" type="button" onclick="javascript:alert('ola');"><i class="mdi mdi-account"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-3 ml-3">
+                        <div class="">Layout NOT Approved</div>
+                            <div class="input-group ">
+                                <input type="text" class="form-control" placeholder="btn-outline" aria-label="Recipient's username">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="javascript:alert('ola');"><i class="mdi mdi-account"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    <div class="col-sm-3 ml-3">
+                        <div class="">Layout NOT Approved</div>
+                        <div class="input-group ">
+                            <input type="text" class="form-control" placeholder="input-group-text" aria-label="Recipient's username">
+                            <div class="input-group-append">
+                                <button class="btn input-group-text" type="button" onclick="javascript:alert('ola');"><i class="mdi mdi-account"></i></button>
+                            </div>
+                        </div>
+                    </div>
+            </div>
+
+
+            </div>
+        </form>
+
+    </div>
+    <div class="position-absolute fixed-bottom h-10 my-2 mx-2 bg-white">
+
+       @{
+            string postId = ""; //use in case of multi toolbar
+        }
+        @(Html.Kendo().ToolBar()
+              .Name("toolbarDetail")
+              .UmsDefaultErrors(DicSvc, "errors")
+              .Items(items =>
+              {
+                  items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Always")).UmsHtmlButtonGeneric("btnDarkGreen ").Url("javascript:$('#errors').html('simulated error');");
+                  items.Add().Type(CommandType.Button).Text(DicSvc.XLate("OnlyView")).Id("btnOnlyView").UmsHtmlButtonGeneric("k-buttonLarge k-secondary bg-warning view-mode ").Hidden(true);
+                  items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+              })
+              .UmsDefaultSettings(DicSvc, postId)
+        )
+    </div>
+</div>
+<script type="text/javascript">
+    var consolelog = true;
+    var actualmode=0;
+    var divName = '#divItemDetail';
+    var dialog = $(popUpWindowName).data("kendoWindow");
+    var grid = $('#' + gridIdName).data("kendoGrid");
+    function changeToEditMode() {
+        actualmode = 2;
+        $(".modify-mode").show();
+        $(".view-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("modify-mode");
+
+        $(divName +' :input:not([type=button])').attr('disabled', false);
+        $(divName +' :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(true);
+            }
+        });
+        if ('@Model.ID' =='0') {
+           $('#btnDelete').hide();
+        }
+    }
+
+    function changeToViewMode() {
+        actualmode = 1;
+        $(".view-mode").show();
+        $(".modify-mode").hide();
+        umsHideAllEditSaveButton();
+        toolBarShowButtonByClass("view-mode");
+
+        $(divName +' :input:not([type=button])').attr('disabled', true);
+        $(divName +' :input').each(function () {
+            var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+                cb.enable(false);
+            }
+        });
+    }
+    function setWindowMode() {
+        //customize according model key
+        if ('@Model.ID' !== '') {
+            actualmode = 1;
+
+        } else {
+            actualmode = 2;
+        }
+    }
+
+    function setMode() {
+        if (actualmode === 2)
+            changeToEditMode();
+        else
+            changeToViewMode();
+    }
+
+
+    $(document).ready(function() {
+        umsHideAllEditSaveButton();
+        setWindowMode();
+        //set up condition to know if it's a new item
+        setMode();
+        $('#btnEdit' + '@postId').off('click').on('click', function () {
+            if(consolelog)console.log("btnEdit called");
+            changeToEditMode();
+        });
+        $('#btnCancel' + '@postId').off('click').on('click', function () {
+            if (consolelog)console.log("btnCancel called");
+            //TODO: reload data
+            changeToViewMode();
+        });
+        $('#btnSave'+'@postId').off('click').on('click', function() {
+            if (consolelog)console.log("btnSave called");
+            actionSave();
+        });
+        $('#btnDelete').off('click').on('click', function () {
+            if (consolelog)console.log("btnDelete called");
+            umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteSysOpt, cancelDeleteSysOpt);
+        });
+        $('#btnClose' + '@postId').off('click').on('click', function () {
+            if (consolelog)console.log("btnClose called");
+            dialog.close();
+        });
+    });
+
+
+
+    function actionSave()
+    {
+        if (OnValidation()) {
+            //uncomment for production
+            $("#formItemDetail").submit();
+            //dialog.close();
+        }
+    }
+
+    function OnValidation() {
+        var validator = $("#formItemDetail").kendoValidator().data("kendoValidator");
+        if (!validator.validate() ) {
+            var errors = validator.errors();
+            //test
+            //errors.push('1 couldn\'t be empty');
+            //errors.push('234couldn\'t be empty');
+            //errors.push('23couldn\'t be empty');
+            //errors.push('2couldn\'t be empty');
+            
+            $("#errors").html(buildValidationMessage(errors));
+            return false;
+        }
+        else {
+            $("#errors").html("");
+        }
+        return true;
+    }
+    function OnSuccess(response) {
+        if (response.success) {
+            grid.dataSource.read();
+            dialog.close();
+        }
+        else {
+            window.umsAlert("Error occured", response.errorMessage, 400, 300);
+        }
+    }
+    function OnFailure(response) {
+        //debugger;
+        window.umsAlert("Error occured", response.errorMessage, 400, 300);
+    }
+    function toolBarShowButtonByClass(clas) {
+
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsShowButtonByClass(clas);
+    }
+    function umsHideAllEditSaveButton()
+    {
+        var tb = $("#toolbarDetail").data("kendoToolBar");
+        tb.umsHideAllEditSaveButton();
+    }
+
+    
+    function deleteSysOpt() {
+        $.ajax({
+            url: '@Url.Action("DeleteServer", "Telligence")',
+            type: 'POST',
+            data: { guid: '@Model.ID CCCCC' },
+            async: false
+
+        }).done(function (data) {
+            dialog.close();
+            grid.dataSource.read();
+        }).fail(function (response) {
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+        ;
+    }
+
+    function cancelDeleteSysOpt() {
+
+        /* do nothing */
+    }
+</script>

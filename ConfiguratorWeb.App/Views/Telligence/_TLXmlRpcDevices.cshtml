@@ -1,0 +1,132 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@model ConfiguratorWeb.App.Models.TelligenceDeviceViewModel
+@inject IDictionaryService DicSvc
+@{
+    Layout = null;
+}
+<script>
+
+    function ontelliDevicesXMLRpcError(e, status) {
+        //debugger;
+        $('#xmlRpcDeviceErrors').text('@DicSvc.XLate("An error occurred while connecting to Telligence Config Handler")');
+        $("#telliDevicesXMLRpc-grid").data("kendoGrid").dataSource.data([]);
+    }
+</script>
+
+
+
+@*style="height:400px; padding: 15px 10px 0 10px;"*@
+    @*<div class="card">*@
+    <div style="height: 93%;padding-bottom: 10px">
+                @(Html.Kendo().Grid<TelligenceXMLRPCClient.Entities.TLDeviceDetail>()
+                                      .Name("telliDevicesXMLRpc-grid")
+                                      .UmsDefaultSettings(DicSvc)
+                                      .Columns(columns =>
+                                      {
+                                          columns.Bound(e => e.ID).Visible(false);
+                                          columns.Bound(e => e.Description);
+                                          columns.Bound(e => e.IpAddress);
+                                          columns.Bound(e => e.MacAddress);
+                                          columns.Bound(e => e.SerialNbr).Title(DicSvc.XLate("Serial"));
+                                          columns.Bound(e => e.LocationDescriptor).Title(DicSvc.XLate("Location"));
+                                          columns.Bound(e => e.ID).Title(DicSvc.XLate("Dev. ID"));
+                                          columns.Bound(e => e.DeviceType).Title(DicSvc.XLate("Type"));
+                                          //columns.Command(command =>
+                                          //{
+                                          //    command.Edit().Text(" ").UpdateText(" ").CancelText(" ");
+                                          //    //command.Custom("editcustom").Click("onEditItem").Text(" ");
+                                          //    command.Custom("deletecustom").Click("onDeleteItem").Text(" ");
+                                          //}).Width(120);
+                                      })
+
+
+                                      .DataSource(dataSource => dataSource
+                                          .Ajax()
+                                          .Model(model =>
+                                          {
+                                              model.Id(o => o.ID);
+
+                                          })
+                                          .Events(e => e.Error("ontelliDevicesXMLRpcError"))
+                                          .Read(read => read.Action("GetTelligenceDevices", "Telligence"))
+                                      )
+                )
+    </div>
+
+    @*<div class="button-container">
+            <div class="col-md-3 u-col-h-fixed">
+                <div id="xmlRpcDeviceErrors" class="errorSpan"></div>
+            </div>
+            <div class="col-md-9 u-col-h-fixed">
+                <div class="modify-mode">
+                    <button id="btnXmlRpcSettings" class="btn btn-secondary">
+                        <i class="mdi mdi-settings-outline"></i>
+                        @DicSvc.XLate("Edit Telligence XML Rpc Settings")
+                    </button>
+                    <button id="btnTLDeviceOK" class="btnSave" type="button">@DicSvc.XLate("OK")</button>
+                    <button id="btnTLDeviceCancel" class="btnCancel" type="button">@DicSvc.XLate("CLOSE")</button>
+                </div>
+
+            </div>
+
+        </div>*@
+    
+
+</div>
+@(
+    Html.Kendo().ToolBar()
+        .Name("toolbarDetail")
+        .UmsDefaultErrors(DicSvc, "xmlRpcDeviceErrors").HtmlAttributes(new {@class = "errorSpan"})
+
+        .Items(items =>
+        {
+
+            //items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Edit Telligence XML Rpc Settings")).Id("btnXmlRpcSettings");
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("OK")).Id("btnTLDeviceOK").HtmlAttributes(new { @class = "btnSave" });
+            items.Add().Type(CommandType.Button).Text(DicSvc.XLate("CANCEL")).Id("btnTLDeviceCancel").HtmlAttributes(new { @class = "btnCancel" });
+        })
+
+      )
+<script>
+
+
+    $('#btnTLDeviceOK').click(function() {
+        var grid = $("#telliDevicesXMLRpc-grid").data("kendoGrid");
+        var selectedItem = grid.dataItem(grid.select());
+        if (selectedItem) {
+            $('#TLLocationID').val(selectedItem.LocationId);
+            $('#TLLocationDescriptor').val(selectedItem.LocationDescriptor);
+            $('#TLDeviceID').val(selectedItem.ID);
+            $('#tl_IPAddress').val(selectedItem.IpAddress);
+            $('#tl_MACAddress').val(selectedItem.MacAddress);
+            $('#TLDeviceName').val(selectedItem.Description);
+            $('[umsctrlID="TLDeviceType"]').data('kendoDropDownList').value(selectedItem.DeviceType);
+            $('#tlRemoteDevices').data('kendoWindow').close();
+        } else {
+            $('#xmlRpcDeviceErrors').text('@DicSvc.XLate("Please select an item from grid first")');
+            @*kendo.alert('@DicSvc.XLate("Please select an item from grid first")');*@
+        }
+    });
+
+
+    $('#btnTLDeviceCancel').click(function() {
+        $('#tlRemoteDevices').data('kendoWindow').close();
+    });
+
+
+    $('#btnXmlRpcSettings').click(function() {
+        $.ajax({
+            url: '@Url.Action("GetTellXMLRpcSettings", "Telligence")',
+            type: 'GET',
+            async: false
+        }).done(function(dataHtml) {
+            $('#xmlRpcDeviceErrors').text('');
+            var itemDialog = $('#tlXmlRpcSettings').data('kendoWindow');
+            itemDialog.content(dataHtml);
+            itemDialog.open();
+            itemDialog.center();
+        });
+    });
+
+</script>

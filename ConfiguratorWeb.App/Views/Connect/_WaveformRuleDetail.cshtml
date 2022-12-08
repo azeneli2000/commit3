@@ -1,0 +1,583 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@using Digistat.FrameworkStd.Interfaces;
+@using System.Text;
+@model ConfiguratorWeb.App.Models.OnLine.WaveformSnapshotToUniteRuleViewModel
+@inject IDictionaryService DicSvc
+@functions {
+   private IHtmlContent rawXlateJs(string text)
+   {
+      return Html.Raw(DicSvc.XLateJs(text));
+   }
+}
+@{
+   StringBuilder objSbDelete = new StringBuilder();
+   objSbDelete.AppendFormat(DicSvc.XLate("Do you really want to delete Rule \"{0}\"  "),
+       Model.Id);
+   objSbDelete.Append("?");
+}
+@{
+    Layout = null;
+    string keyID = Model.Id.ToString();
+    string keyEmptyValueID = "0";
+    string formId = "form_" + keyID;
+}
+
+<script type="text/javascript">
+
+   function onDriverDropDownListChangeHandler(ev) {
+
+       var driverIdSelected = ev.sender.value();
+       // imposto il datasource per la dropdown parameter in base alla selezione del driver
+       setParameterDatasource(driverIdSelected);
+
+       var enableDropdownParam = driverIdSelected !== '';
+       $('#IdParam').data('kendoDropDownList').enable(enableDropdownParam);
+       
+       var disableEventSelection = $("#IdDriver").data('kendoDropDownList').value() == '';
+       toggleEventField(disableEventSelection);
+       
+       clearEventField();   
+   }
+
+</script>
+
+<div class="h-100">
+   <div class="card h-85 m-0 p-0 border-bottom-0 text-left" id="divItemDetail">
+
+      <form asp-controller="Connect" id="@formId" asp-action="SaveWaveformRuleDetail"
+            data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+            data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+
+         <div asp-validation-summary="ModelOnly"></div>
+         <input asp-for="Id" type="hidden" />         
+         <input asp-for="IdLinkEvent" type="hidden" />
+         <input asp-for="IdLocation" type="hidden" />
+                  
+         <div class="row" style="margin-top:15px">
+
+            <!-- Priority selection -->
+            <div class="col-1">
+               <label asp-for="Priority" class="">@DicSvc.XLate("Priority")</label>
+            </div>
+            <div class="col-5">
+               <input asp-for="Priority" class="form-control control-required" readonly="readonly" />
+            </div>            
+         </div>
+
+         <div class="row">
+
+            <!-- Driver selection -->
+            <div class="col-1">
+               <label asp-for="IdDriver" class=" field-required ">@DicSvc.XLate("Driver")</label>
+            </div>
+            <div class="col-5">
+               <div class="input-group">
+                  @(
+                     Html.Kendo()
+                     .DropDownListFor(m => m.IdDriver )
+                     .DataTextField("Text").DataValueField("Value")
+                     .DataSource(source => source.Read(read => read.Action("GetDeviceDriverNameList", "Generic")))
+                     .OptionLabel("Select Driver")
+                     .HtmlAttributes(new { placeholder = "", required = "required", validationmessage = "Driver is required" })
+                     .Events(e => {
+                           e.Change("onDriverDropDownListChangeHandler");
+                     })
+                  )
+               </div>
+            </div>
+
+            <!-- Parameter selection -->
+            <div class="col-1">
+               <label asp-for="Parameter.Print" class=" field-required">@DicSvc.XLate("Parameter")</label>
+            </div>
+            <div class="col-5">
+               <div class="input-group">
+
+                  <!--// todo aggiungere la dropdown da popolare al change del driver -->
+                  @(
+                     Html.Kendo()
+                     .DropDownListFor(m => m.IdParam )
+                     .DataTextField("text").DataValueField("value")
+                     .OptionLabel("Select Parameter")
+                     .HtmlAttributes(new { placeholder = "", required = "required", validationmessage = "Parameter is required" })
+                  )
+               </div>
+            </div>
+
+         </div>
+         
+         <div class="row">
+
+            <!-- Location selection -->
+            <div class="col-1">
+               <label asp-for="Location.LocationName" class=" ">@DicSvc.XLate("Location")</label>
+            </div>
+            <div class="col-5">
+               <div class="input-group">
+                  <input asp-for="Location.LocationName" class="form-control " readonly="readonly"  />
+                  <span class="input-group-append">
+                     <button id="btnLocation" onclick="openLocationsGrid();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Set Location">
+                        <span class="mdi mdi-pencil"></span>
+                     </button>
+                     <button id="btnClearLocation" onclick="clearLocationField();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Clear location")">
+                        <span class="mdi mdi-close"></span>
+                     </button>
+                  </span>
+               </div>
+            </div>
+
+            <!-- Event selection -->
+            <div class="col-1">
+               <label asp-for="EventName" class=" ">@DicSvc.XLate("Event")</label>
+            </div>
+            <div class="col-5">
+               <div class="input-group">
+                  <input asp-for="EventName" class="form-control " readonly="readonly" />
+                  <span class="input-group-append">
+                     <button id="btnEvent" onclick="openEventsGrid();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="Set Event">
+                        <span class="mdi mdi-pencil"></span>
+                     </button>
+                     <button id="btnClearEvent" onclick="clearEventField();" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Clear event")">
+                        <span class="mdi mdi-close"></span>
+                     </button>
+                  </span>
+               </div>
+            </div>
+
+         </div>
+
+         <div class="row">
+
+            <!-- Description  -->
+            <div class="col-1">
+               <label asp-for="Description" class=" ">@DicSvc.XLate("Description")</label>
+            </div>
+            <div class="col-11">
+               @*<input asp-for="Description" class="form-control" />*@               
+               @Html.Kendo().TextBoxFor(m => m.Description).HtmlAttributes(new { @class = "k-input w-100", @maxlength = "255" })               
+            </div>
+
+         </div>
+
+      </form>
+
+   </div>
+
+   <div class="card-footer h-10 p-0 m-0 border-top bg-white">
+      @{
+         //use in case of multi toolbar
+         string postId = ""; 
+      }
+      @(Html.Kendo().ToolBar()
+      .Name("toolbarDetail")
+      .UmsDefaultErrors(DicSvc, "errors")
+      .Items(items => {
+         items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("view-mode").Hidden(true);         
+      })
+      .UmsDefaultSettings(DicSvc, postId))
+   </div>
+
+</div>
+
+<div id="wrSelectStdParDialog"></div>
+
+<kendo-window name="popupLocations"
+              draggable="false"
+              scrollable="false"
+              visible="false"
+              width="600"
+              modal="true"
+              title="LOCATIONS"
+              height="500"
+              resizable="true">
+   <popup-animation enabled="false" />
+</kendo-window>
+
+<kendo-window name="popupEvents"
+              draggable="false"
+              scrollable="false"
+              visible="false"
+              width="600"
+              modal="true"
+              title="EVENTS"
+              height="500"
+              resizable="true">
+   <popup-animation enabled="false" />
+</kendo-window>
+
+<script type="text/javascript">
+
+   var consolelog = false;
+   var actualmode = 0; // 1 - ViewMode | 2 - EditMode
+   var divName = '#divItemDetail';
+   var dialog = $(popUpWindowName).data("kendoWindow");
+   var grid = $('#' + gridIdName).data("kendoGrid");
+   var msgErrorTitle = '@DicSvc.XLateJs("Error occured")';
+
+   // only to enable the editalbe fields
+   function changeToEditMode() {
+
+       actualmode = 2;
+       $(".modify-mode").show();
+       $(".view-mode").hide();
+       umsHideAllEditSaveButton();
+       toolBarShowButtonByClass("modify-mode");
+       $(divName + ' :input').attr('disabled', false);
+
+       // enabling all dropdownlists
+       $(divName + ' :input').each(function() {
+           var cb = $(this).data("kendoDropDownList");
+           if (cb) {
+               cb.enable(true);
+           }
+       });
+
+       if(!$("#IdLocation").val()){
+           $("#Location_LocationName").val("@DicSvc.XLate("All location")");
+       }
+       if(!$("#IdLinkEvent").val()){
+          $("#EventName").val("@DicSvc.XLate("All events")");
+       }
+       if (!$('#IdDriver').val()) {
+         toggleEventField(true)
+       }
+       if (!$('#IdParam').val()) {
+           $('#IdParam').data('kendoDropDownList').enable(false);
+       }
+   }
+
+   // only to disable the editable fields
+   function changeToViewMode() {
+
+       actualmode = 1;
+       $(".view-mode").show();
+       $(".modify-mode").hide();
+       umsHideAllEditSaveButton();
+       toolBarShowButtonByClass("view-mode");
+       $(divName + ' :input').attr('disabled', true);
+
+       // disabling all dropdownlists
+       $(divName + ' :input').each(function() {
+           var cb = $(this).data("kendoDropDownList");
+           if (cb) {
+               cb.enable(false);
+           }
+       });
+
+       if(!$("#IdLocation").val()){
+           $("#Location_LocationName").val("@DicSvc.XLate("All location")");
+       }
+       if(!$("#IdLinkEvent").val()){
+           $("#EventName").val("@DicSvc.XLate("All events")");
+       }
+   }
+
+   function setWindowMode() {
+       if ('@keyID' !== '@keyEmptyValueID') {
+           actualmode = 1;
+       } else {
+           actualmode = 2;
+       }
+   }
+
+   function setMode() {
+       if (actualmode === 2) {
+           changeToEditMode();
+       } else {
+           changeToViewMode();
+       }
+   }
+
+   function actionSave() {
+       if (OnValidation()) {
+           $("#@formId").submit();
+       }
+   }
+
+   function OnValidation() {
+       var retValue = true;
+       var customErrors = [];
+
+       // to uncomment only if we have field not validable by Model
+       var customFieldValidation = function() {
+           var isValidationPassed = false;
+           try {
+
+               var idSelectedParam = $("#IdParam").data('kendoDropDownList').value();
+               var isVariableContentWaveform = parameterWaveformDs.find(function(el) {
+                   return el.Id == idSelectedParam;
+               }).IsVariableContentWaveform;
+
+               if (isVariableContentWaveform && !$('#Description').val()) {
+                   // validazione nok => aggiungo le classi di errore sui campi non validi
+                   $('#Description').parent().addClass('k-invalid');
+                   $('#Description').parent().removeClass('k-valid');
+                   $('#Description').parent().removeClass('k-textbox');
+                   customErrors.push("@rawXlateJs("If parameter type is dynamic hence description is required")");
+                   isValidationPassed = false;
+               } else {
+                   // validazione ok => rimuovo le classi di errore dalla gui
+                   $('#Description').parent().removeClass('k-invalid');
+                   $('#Description').parent().addClass('k-valid');
+                   $('#Description').parent().addClass('k-textbox');
+                   isValidationPassed = true;
+               }
+           } catch (e) {
+               console.error('An error has occurred during driver and parameter field validation')
+           }
+           return isValidationPassed;
+       }
+
+       var validator = $("#@formId").kendoValidator().data("kendoValidator");
+       if (!validator.validate() || !customFieldValidation()) {
+           retValue = false;
+           try {
+               var errors = customErrors.concat(validator.errors());
+               $("#errors").html(buildValidationMessage(errors));
+           } catch (e) {
+               $("#errors").html(e);
+           }
+       } else {
+           $("#errors").html("");
+           retValue = true;
+       }
+
+       return retValue;
+   }
+
+   function OnSuccess(response) {
+       if (response.success) {
+           grid.dataSource.read();
+           dialog.close();
+       } else {
+           window.umsAlert(msgErrorTitle, response.errorMessage, 400, 300);
+       }
+   }
+
+   function OnFailure(response) {
+       window.umsAlert(msgErrorTitle, response.errorMessage, 400, 300);
+   }
+
+   function toolBarShowButtonByClass(clas) {
+       var tb = $("#toolbarDetail").data("kendoToolBar");
+       tb.umsShowButtonByClass(clas);
+   }
+
+   function umsHideAllEditSaveButton() {
+       var tb = $("#toolbarDetail").data("kendoToolBar");
+       tb.umsHideAllEditSaveButton();
+   }
+
+   function deleteItem() {
+       var selectedRuleId = $("#Id").val();
+       $.ajax({
+           url: '@Url.Action("DeleteWaveformRule", "Connect")',
+           type: 'POST',
+           data: {
+              id: selectedRuleId
+           },
+           async: false
+       }).done(function (data) {
+           if (data.success != undefined && data.success) {
+               dialog.close();
+               grid.dataSource.read();
+           } else {
+              var errors = ["@rawXlateJs("An error has occurred during delete item")"]
+               $("#errors").html(buildValidationMessage(errors));
+           }
+       }).fail(function (response) {
+           umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+       });
+   }
+
+   function cancelDeleteItem() {
+
+   }
+
+   function openEventsGrid() {
+       var selectedDriverId = $("#IdDriver").data('kendoDropDownList').value();
+       $.ajax({
+           url: '@Url.Action("GetDriverRepositoryEventCatalogs", "Connect")',
+           type: 'GET',
+           data: {
+              driverId: selectedDriverId
+           }
+       }).done(function(data) {
+           var popupEvents = $("#popupEvents");
+           popupEvents.data("kendoWindow").content(data);
+           popupEvents.data("kendoWindow").center().open();
+       });
+   }
+
+   function onDataBoundEvent(ev) {
+
+       var that = this;
+       var eventGrid = $("#events-grid").data("kendoGrid");
+
+       // selection of current event
+       if ($('#IdLinkEvent').val() != '') {
+           eventGrid.items().each(function() {
+               var data = eventGrid.dataItem(this);
+               if (data.Id == $('#IdLinkEvent').val()) {
+                   eventGrid.select(this);
+               }
+           });
+       }
+
+       $(that.tbody).off("click", "tr").on("click", "tr", function(e) {
+           //save grid and current search form state and current url
+           var dataSource = eventGrid.dataSource;
+           var keyId = eventGrid.dataItem($(e.currentTarget).closest("tr"))['Id'];
+           var keyVal = eventGrid.dataItem($(e.currentTarget).closest("tr"))['DescriptionLong'];
+
+           $("#@formId" + " #IdLinkEvent").val(keyId);
+           $("#@formId" + " #EventName").val(keyVal);
+           $("#@formId" + " #EventName").trigger("input");
+           $('#popupEvents').data("kendoWindow").close();
+       });
+   }
+
+   function openLocationsGrid() {
+       $.ajax({
+           url: '@Url.Action("GetLocations", "SystemConfiguration")',
+           type: 'GET',
+           data: { id: '@Model.IdLocation' }
+       }).done(function(data) {
+           var dialogAbout = $("#popupLocations");
+           dialogAbout.data("kendoWindow").content(data);
+           dialogAbout.data("kendoWindow").center().open();
+       });
+   }
+
+   function onDataBoundLoc(e) {
+
+       var $that = this;
+       var grid = $("#loc-grid").data("kendoGrid");
+
+       // selection of current location
+       if ($('#IdLocation').val() != '') {
+           grid.items().each(function() {
+               var data = grid.dataItem(this);
+               if (data.ID == $('#IdLocation').val()) {
+                   grid.select(this);
+               }
+           });
+       }
+
+       $($that.tbody).off("click", "tr").on("click", "tr", function(e) {
+           //save grid and current search form state and current url
+           var dataSource = grid.dataSource;
+           var keyVal = grid.dataItem($(e.currentTarget).closest("tr"))['LocationName'];
+           var keyId = grid.dataItem($(e.currentTarget).closest("tr"))['ID'];
+           $("#@formId" + " #Location_LocationName").val(keyVal);
+           $("#@formId" + " #IdLocation").val(keyId);
+           $("#@formId" + " #Location_LocationName").trigger("input");
+           $('#popupLocations').data("kendoWindow").close();
+       });
+   }
+
+   function clearLocationField() {
+      $("#Location_LocationName").val("@DicSvc.XLate("All locations")");
+      $("#IdLocation").val("");
+   }
+
+   function clearEventField() {
+      $("#EventName").val("@DicSvc.XLate("All events")");
+       $("#IdLinkEvent").val("");
+   }
+
+   function toggleEventField(isDisabled) {
+       $('#EventName').attr('disabled', isDisabled);
+       $('#btnEvent').attr('disabled', isDisabled);
+       $('#btnClearEvent').attr('disabled', isDisabled);
+   }
+
+   var parameterWaveformDs = [];
+   function setParameterDatasource(driverId) {
+       // fill parameter dropdown datasource
+       var driverId = $('#IdDriver').data('kendoDropDownList').value();
+       $.ajax({
+           url: '@Url.Action("GetStandardParametersForWaveform", "Connect")',
+           data: {
+               driverId: driverId
+           },
+           type: 'GET',
+           async: false
+       }).done(function(data) {
+
+           parameterWaveformDs = data;
+           var parameterDropDownListDs = data.map(function(el) {
+               var value = el.Id;
+               var text = el.Print;
+               if (el.IsVariableContentWaveform) {
+                   text = text + " (*)"
+               }
+               return {
+                   value: value,
+                   text: text
+               }
+           });
+
+           $('#IdParam').data('kendoDropDownList').setDataSource(parameterDropDownListDs);
+       });
+   }
+
+   $(document).ready(function() {
+
+       umsHideAllEditSaveButton();
+       setWindowMode();
+       setMode(); //set up condition to know if it's a new item
+
+       if (actualmode == 2) {
+           $('#Priority').prop('type', 'hidden');
+           $('#Priority').after("<label>@DicSvc.XLate("The priority will be automatically assigned to the lowest level during creation.")</label>");
+       }
+
+       $('#btnEdit' + '@postId').off('click').on('click', function() {
+           if (consolelog) console.log("btnEdit called");
+           changeToEditMode();
+       });
+       $('#btnCancel' + '@postId').off('click').on('click', function() {
+           if (consolelog) console.log("btnCancel called");
+           // if is new add, close the dialog
+           if ('@keyID' == '@keyEmptyValueID') {
+               dialog.close();
+               return;
+           }
+           // reload data in detail kendoWindow
+           displayDetailDialog({ Id: '@keyID' });
+           changeToViewMode();
+       });
+       $('#btnSave' + '@postId').off('click').on('click', function() {
+           if (consolelog)
+               console.log("btnSave called");
+           actionSave();
+       });
+       $('#btnDelete').off('click').on('click', function() {
+           if (consolelog)
+               console.log("btnDelete called");
+           umsConfirm('@DicSvc.XLate("Confirm delete")', '@objSbDelete.ToString()', deleteItem, cancelDeleteItem);
+       });
+       $('#btnCopy').off('click').on('click', function() {
+           if (consolelog) console.log("btnCopy called");
+           $("#Id").val("0");
+           changeToEditMode();
+       });
+       $('#btnClose' + '@postId').off('click').on('click', function() {
+           if (consolelog) console.log("btnClose called");
+           dialog.close();
+       });
+       $("input[data-val-length-max]").each(function(index, element) {
+           element.setAttribute("maxlength", element.getAttribute("data-val-length-max"))
+       });
+
+       var driverId = $('#IdDriver').data('kendoDropDownList').value();
+       setParameterDatasource(driverId);
+
+       var parameterId = @Model.IdParam;
+       $('#IdParam').data('kendoDropDownList').value(parameterId);
+       $('#IdParam').data('kendoDropDownList').trigger("change");
+
+   });
+
+</script>

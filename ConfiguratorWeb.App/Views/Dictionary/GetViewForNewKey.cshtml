@@ -1,0 +1,107 @@
+@model Digistat.FrameworkStd.Model.Dictionary
+
+<div class="card">
+
+   <div class="container-fluid">
+      <form>
+         
+         <div class="row">
+            <div class="col-sm-2 u-col-h-fixed"> <label for="DictionaryKey">Key</label> </div>
+            <div class="col-sm-10 u-col-h-fixed"> 
+               <input 
+                  type="text" 
+                  class="form-control" 
+                  id="DictionaryKey" 
+                  placeholder="@Model.DictionaryKey" 
+                  required >
+            </div>
+         </div>
+         
+         <div class="row">
+            <div class="col-sm-2 u-col-h-fixed"> <label for="Module">Module</label> </div>
+            <div class="col-sm-10 u-col-h-fixed"> <input type="text" class="form-control" id="Module" placeholder="@Model.Module"> </div>
+         </div>
+            
+         <div class="row">
+            <div class="col-sm-2 u-col-h-fixed"> <label for="Description">Description</label> </div>
+            <div class="col-sm-10 u-col-h-fixed"> <input type="text" class="form-control" id="Description" placeholder="@Model.Description"> </div>
+         </div>
+            
+         <div class="row">
+            <div class="col-sm-1 u-col-h-fixed"> <label for="IsSystem">Is System</label> </div>
+            <div class="col-sm-2 u-col-h-fixed"> <input type="checkbox" class="form-control" float="left" id="IsSystem" checked="@Model.IsSystem"> </div>
+            <div class="col-sm-9 u-col-h-fixed"></div>
+         </div>
+            
+         <div class="row">
+            <div class="col-sm-2 u-col-h-fixed"> <label for="Language">Language</label> </div>
+            <div class="col-sm-10 u-col-h-fixed">
+               <select id="Language" >
+                  @{
+                     string lang4ui;
+                     foreach (string lang in Model.Language.Split(",")) {
+                        if (!lang.Trim().Equals(string.Empty)) {
+                           lang4ui = System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(lang.ToLower());
+                           <option value="@lang">@lang4ui</option>
+                        }
+                     }
+                  }
+               </select>
+            </div>
+         </div>
+
+         <div class="row">
+            <div class="col-sm-2 u-col-h-fixed"> <label for="Value">Translation</label> </div>
+            <div class="col-sm-10 u-col-h-fixed"> <input type="text" class="form-control" id="Value" placeholder="@Model.Value"> </div>
+         </div>
+         <button type="button" class="btn btn-success" id="btnSave">Save</button>
+         <button type="button" class="btn btn-danger" id="btnAbort">Cancel</button>
+      </form>
+   </div>
+</div>
+
+<script>
+   $(document).ready(function () {
+
+      $('#btnSave').click(function () {
+         submitGridChanges();
+      });
+
+      $('#btnAbort').click(function () {
+         closeThisView();
+      });
+   })
+
+   function closeThisView() {
+      $('#AddKeyGroupWindow').data('kendoWindow').close();
+   }
+
+
+   function submitGridChanges() {
+      $.ajax({
+         type: 'POST',
+         url: '@Url.Action("AddKeyGroup", "Dictionary",  new { DictionaryKey = "DictionaryKey", Module = "Module", 
+               Description = "Description", Value = "Value", Language = "Language", IsSystem = "IsSystem" } )',
+            data:  { 
+               DictionaryKey: $("#DictionaryKey").val(), 
+               Module: $("#Module").val(), 
+               Description: $("#Description").val(), 
+               Value: $("#Value").val(), 
+               Language: $("#Language").val(),
+               IsSystem: $("#IsSystem").is(":checked"),
+            },
+         })
+         .done(function () {
+            debugger;
+            closeThisView();
+            var grid = $("#dictionary-grid").data("kendoGrid");
+            grid.dataSource.read();
+         })
+         .fail( function () {
+            debugger;
+            //TODO log and inform user
+            alert("Failed to save new translation!");
+         });
+   }
+
+</script>

@@ -1,0 +1,787 @@
+﻿@*@using ConfiguratorWeb.App.Controllers
+@{
+    string gridName = "Jobs";
+    string popUpWindowName = "JobDetail";
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+
+</script>
+@(Html.Kendo().Window().Name("Resources")
+    .Title("Resources")
+    .Visible(false)
+    .Modal(true)
+    .Draggable(true)
+    .Width(500)
+    .Height(680)
+)
+@(Html.Kendo().Window().Name("StockDropDowns")
+    .Title("Move resource")
+    .Visible(false)
+    .Modal(true)
+    .Draggable(true)
+    .Width(1000)
+    .Height(180)
+)
+<div class="card h-100 mt-1 mx-1 px-2 border-0" id="gridContainer">
+    <div id="@popUpWindowName"></div>
+    @(Html.Kendo().TreeList<Configurator.Std.Models.StockManagement.TreeListTemplate>()
+        .Name("treelist")
+        .Selectable(true)
+        .Scrollable(true)
+        .Events(events =>
+        {
+            events.Change("onSelect");
+        })
+        .Columns(columns =>
+        {
+            columns.Add().Field(f => f.Name).Width(250).Title("Block");
+        })
+        .DataSource(dataSource => dataSource
+        .Read(read => read.Action("ReadResourceCabinetsWithResources", "StockManagement"))
+        .Model(m =>
+        {
+            m.Id(f => f.Id);
+            m.ParentId(f => f.ParentId);
+            m.Expanded(false);
+            m.Field(f => f.Name);
+        })
+        ).Height(450)
+        )
+</div>
+<div class="card h-100 mt-1 mx-1 px-2 border-0">
+    @{
+        await Html.RenderPartialAsync("StockRoom");
+        await Html.RenderPartialAsync("CabinetGroup");
+        await Html.RenderPartialAsync("Cabinet");
+        await Html.RenderPartialAsync("Location");
+        await Html.RenderPartialAsync("Position");
+        await Html.RenderPartialAsync("Resource");
+        await Html.RenderPartialAsync("Toolbar");
+    }
+</div>
+
+
+<script type="text/javascript">
+    var stockRooms, cabinetGroups, cabinets, locations, positions, resourceToBeMovedId, resourceToBeMovedSpGuid;
+    function filterStockRooms() {
+        debugger;
+        console.log($("#stockRooms").val());
+        return {
+            stockRoomId: stockRooms
+        };
+    }
+    function filterCabinetGroups() {
+        debugger;
+        console.log($("#stockRooms").val());
+        return {
+            cabinetGroupId: cabinetGroups
+        };
+    }
+    function filterCabinets() {
+        debugger;
+        console.log($("#stockRooms").val());
+        return {
+            cabinetId: cabinets
+        };
+    }
+    function filterLocations() {
+        debugger;
+        console.log($("#stockRooms").val());
+        return {
+            locationId: locations
+        };
+    }
+    var type = '';
+    var dataItem;
+    function onSelect(e) {
+        debugger
+
+        showToolbarButtons();
+
+        var selected = this.select();
+        dataItem = this.dataItem(selected)
+        dataItem.Mode = 'Update';
+        type = dataItem.Type;
+        $('#hierarchy').text(type);
+        $('#newButton').html(changeButtonName(type));
+        dataItem.Mode = "Update"
+        if (dataItem.Type == 'Root') {
+            dataItem.Mode = 'Insert';
+            console.log(dataItem);
+            $("#StockRoomUpdateButton").show();
+            $("#StockRoomCancelButton").show();
+            $("#StockRoomForm")[0].reset();
+            $('#addResourceButton').hide();
+            $('#moveResourceButton').hide();
+        }
+        if (dataItem.Type == 'StockRoom') {
+
+            //var s = $("#treelist").data("kendoTreeList").dataSource._data[0];
+            //console.log(s);
+            hideAllForms();
+            $("#StockRoomForm").show();
+            populateStockRoomForm();
+            disableFormControls('StockRoomForm');
+            $('#addResourceButton').hide();
+            $('#moveResourceButton').hide();
+        }
+        if (dataItem.Type == 'CabinetGroup') {
+            hideAllForms();
+            $("#CabinetGroupForm").show();
+            populateCabinetGroupForm();
+            disableFormControls('CabinetGroupForm');
+            $('#addResourceButton').hide();
+            $('#moveResourceButton').hide();
+        }
+        console.log(dataItem);
+
+        if (dataItem.Type == 'Cabinet') {
+            hideAllForms();
+            $("#CabinetForm").show();
+            populateCabinetForm();
+            disableFormControls('CabinetForm');
+            $('#addResourceButton').hide();
+            $('#moveResourceButton').hide();
+
+
+        }
+        if (dataItem.Type == 'Location') {
+            hideAllForms();
+            $("#LocationForm").show();
+            populateLocationForm();
+            disableFormControls('LocationForm');
+            $('#addResourceButton').hide();
+            $('#moveResourceButton').hide();
+
+        }
+        if (dataItem.Type == 'Position') {
+            debugger;
+
+            if (!dataItem.hasChildren) {
+                $.ajax({
+                    url: '@Url.Action("ReadResources", "StockManagement")',
+                    type: 'GET',
+                    data: {
+                        position: dataItem.PositionId
+                    }
+                }).done(function (data) {
+                    debugger
+                    if (data.length > 0) {
+                        console.log(data);
+                        for (var i = 0; i < data.length; i++) {
+                            $("#treelist").data("kendoTreeList").dataSource.pushCreate(data[i]);
+                            //console.log($("#treelist").data("kendoTreeList").dataSource.schema);
+                        }
+                    } else {
+                        $('#errors').html('not saved. reason:' + data.errorMessage);
+                    }
+                }).fail(function (response) {
+                    console.log(response)
+                    umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+                });
+                var row = $("#treelist").data("kendoTreeList").content.find("tr[data-uid=" + dataItem.uid + "]");
+                $("#treelist").data("kendoTreeList").expand(row);
+            }
+            hideAllForms();
+            $("#PositionForm").show();
+            populatePositionForm();
+            disableFormControls('PositionForm');
+            $('#newButton').hide();
+            $('#addResourceButton').show();
+            $('#moveResourceButton').hide();
+        }
+
+        if (dataItem.Type == 'Resource') {
+            debugger
+            resourceToBeMovedId = dataItem.ResourceId
+            resourceToBeMovedSpGuid = dataItem.SpGuid
+
+            hideAllForms();
+            $("#ResourceForm").show();
+            populateResourceForm();
+            disableFormControls('ResourceForm');
+            $('#newButton').hide();
+            $('#addResourceButton').hide();
+            $('#moveResourceButton').show();
+        }
+    }
+    function changeButtonName(type) {
+        switch (type) {
+            case 'Root':
+                return 'New StockRoom';
+            case 'StockRoom':
+                return 'New Cabinet Group';
+            case 'CabinetGroup':
+                return 'New Cabinet';
+            case 'Cabinet':
+                return 'New Location';
+            case 'Location':
+                return 'New Position';
+        }
+    }
+    function hideAllForms() {
+        $("#CabinetGroupForm").hide();
+        $("#CabinetForm").hide();
+        $("#LocationForm").hide();
+        $("#StockRoomForm").hide();
+        $("#PositionForm").hide();
+        $("#ResourceForm").hide();
+
+    }
+    function onListSelect(e) {
+        debugger;
+
+        var index = e.sender.select().index();
+        var item = e.sender.dataSource.view()[index];
+        console.log(item.SrId)
+        var cpId = dataItem.PositionId
+        $.ajax({
+            url: '@Url.Action("AddResource", "StockManagement")',
+            type: 'POST',
+            data: {
+                srId: item.SrId,
+                cpId: cpId
+
+            }
+        }).done(function (data) {
+            debugger
+            if (data.success != undefined && data.success) {
+                console.log('resource  Added'); console.log(data);
+
+            } else {
+                $('#errors').html('not added. reason:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            console.log(response)
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+    }
+    function onSelectDestinationPosition() {
+        //check anomalies
+        debugger
+        if (positions == "" || positions == undefined) {
+            umsErrorDialog("Position", "You must select a position !", 200, 200);
+            return
+        }
+        var anomalies = false;
+        $.ajax({
+            url: '@Url.Action("getResourceAnomalies", "StockManagement")',
+            type: 'GET',
+            data: {
+                srId: resourceToBeMovedId,
+                spGuid: resourceToBeMovedSpGuid,
+                newPositionGuid: positions
+
+            }
+        }).done(function (data) {
+            debugger
+
+            if (data == "") {
+                anomalies = true;
+            }
+            else {
+                anomalies = true;
+                umsErrorDialog("Anomalies", data, 200, 200);
+            }
+
+        }).fail(function (response) {
+            console.log(response)
+            anomalies = true;
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+
+        //update resource position
+        if (!anomalies) {
+            $.ajax({
+                url: '@Url.Action("MoveResource", "StockManagement")',
+                type: 'POST',
+                data: {
+                    spGuid: resourceToBeMovedSpGuid,
+                    newPositionId: positions
+                }
+            }).done(function (data) {
+                debugger
+                if (data.success != undefined && data.success) {
+                    console.log('resource  Moved'); console.log(data);
+
+                } else {
+                    $('#errors').html('not moved. reason:' + data.errorMessage);
+                }
+            }).fail(function (response) {
+                console.log(response)
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            });
+        }
+    }
+    function onSelectStockRoom(x) {
+        debugger
+        console.log(x.dataItem)
+        stockRooms = x.dataItem.StockRoomId
+
+    }
+    function onSelectCabinetGroup(x) {
+        debugger
+        console.log(x.dataItem)
+        cabinetGroups = x.dataItem.CabinetGroupId
+
+    }
+    function onSelectCabinet(x) {
+        debugger
+        console.log(x.dataItem)
+        cabinets = x.dataItem.CabinetId
+
+    }
+    function onSelectLocation(x) {
+        debugger
+        console.log(x.dataItem)
+        locations = x.dataItem.LocationId
+    }
+    function onSelectPosition(x) {
+        debugger
+        console.log(x.dataItem)
+        positions = x.dataItem.PositionId
+        //    if (dataItem.PositionId != "")
+        //        $("#okButton").removeAttr("style")
+    }
+</script>
+*@
+
+
+@(Html.Kendo().Window().Name("Resources")
+    .Title("Resources")
+    .Visible(false)
+    .Modal(true)
+    .Draggable(true)
+    .Width(500)
+    .Height(680)
+)
+@(Html.Kendo().Window().Name("StockDropDowns")
+    .Title("Move resource")
+    .Visible(false)
+    .Modal(true)
+    .Draggable(true)
+    .Width(1000)
+    .Height(180)
+)
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <span><input type="text" id="search" class="k-textbox"></span>
+            <span>
+                @(Html.Kendo().Button()
+                    .Name("textButton")
+                    .HtmlAttributes(new { type = "button" })
+                    .Content("Search")
+                    .Events(ev => ev.Click("filterGrid"))
+                    )
+            </span>
+        </div>
+    </div>
+</div>
+
+@(Html.Kendo().Grid<Configurator.Std.Models.StockManagement.ResourceCabinet>()
+        .Name("gridPositions")
+        .Columns(columns =>
+        {
+            columns.Bound(e => e.StockRoomShortName).Width(110).Title("StockRoom");
+            columns.Bound(e => e.CabinetGroupShortName).Width(110).Title("CabinetGroup");
+            columns.Bound(e => e.CabinetShortName).Width(110).Title("Cabinet");
+            columns.Bound(e => e.LocationShortName).Width(110).Title("Location");
+            columns.Bound(e => e.PositionShortName).Width(110).Title("Position");
+
+        })
+        .Sortable()
+        .Scrollable()
+        .Selectable(selectable => selectable
+            .Mode(GridSelectionMode.Single)
+            .Type(GridSelectionType.Cell))
+        .ClientDetailTemplateId("template")
+        .HtmlAttributes(new { style = "height:430px;" })
+        .DataSource(dataSource => dataSource
+            .Ajax()
+            .Read(read => read.Action("ReadAllPositions", "StockManagement"))
+        )
+        .Events(events => events.DataBound("dataBound"))
+        .Events(events =>
+        {
+            events.Change("onSelectPositions");
+        })
+)
+
+<script id="template" type="text/kendo-tmpl">
+    @(Html.Kendo().Grid<Configurator.Std.Models.StockManagement.ResourceCabinet>()
+                        .Name("grid_#=PositionId#")
+                        .Columns(columns =>
+                        {
+                            columns.Bound(o => o.ResourceName).Width(400).Title("Resources");
+
+                        })
+                        .DataSource(dataSource => dataSource
+                            .Ajax()
+                                            .Read(read => read.Action("ReadResourcesForPosition", "StockManagement", new { cpGuid = "#=PositionId#" }))
+                        )
+                        .Sortable()
+                             .Selectable(selectable => selectable
+                        .Mode(GridSelectionMode.Single)
+                        .Type(GridSelectionType.Row))
+                                      .Events(events =>
+                    {
+                        events.Change("onSelectResource");
+                    })
+                        .ToClientTemplate()
+
+                )
+
+</script>
+
+
+<div class="card h-100 mt-1 mx-1 px-2 border-0">
+    @{
+        await Html.RenderPartialAsync("StockRoom");
+        await Html.RenderPartialAsync("CabinetGroup");
+        await Html.RenderPartialAsync("Cabinet");
+        await Html.RenderPartialAsync("Location");
+        await Html.RenderPartialAsync("Position");
+        await Html.RenderPartialAsync("Resource");
+        await Html.RenderPartialAsync("Toolbar");
+    }
+</div>
+<script>
+    var search = false;
+    function filterGrid() {
+        console.log("search");
+        var mainGrid = $("#gridPositions").data("kendoGrid");
+
+        var searchKey = $("#search").val()
+        $.ajax({
+            url: '@Url.Action("setSearchKey", "StockManagement")',
+            type: 'POST',
+            data: {
+                key: searchKey
+            }
+        }).done(function (data) {
+            mainGrid.dataSource.read({ resourceName: searchKey });
+            search = true;
+            //expand();
+
+        }).fail(function (response) {
+            console.log(response)
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+    }
+
+    var dataItem;
+    var type = '';
+    var stockRooms, cabinetGroups, cabinets, locations, positions, resourceToBeMovedId, resourceToBeMovedSpGuid;
+
+    function dataBound() {
+        //this.expandRow(this.tbody.find("tr.k-master-row").first());
+        var grid = $("#gridPositions").data("kendoGrid");
+        var data = grid.dataSource.data();
+        console.log(data);
+        var len = data.length;
+
+        for (var i = 0; i < len; i++) {
+            var row = data[i];
+            if (row.RowNr > 0 && search == true) {
+                grid.expandRow("tr[data-uid='" + row.uid + "']"); // expands the row with the specific uid
+                $("tr[data-uid='" + row.uid + "']").css("background-color", "yellow")
+            }
+        }
+    }
+    function expand(e) {
+        var grid = $("#gridPositions").data("kendoGrid");
+        $(".k-master-row").each(function (index) {
+            grid.expandRow(this);
+        });
+    }
+    function onSelectPositions(e) {
+        showToolbarButtons();
+        var grid = $("#gridPositions").data("kendoGrid");
+        var selected = this.select();
+        console.log(selected.index())
+
+        var row = this.select().closest("tr");
+
+        var item = grid.dataItem(row);
+        dataItem = item;
+        switch (selected.index()) {
+            case 1:
+                item.Type = 'StockRoom';
+                hideAllForms();
+                $("#StockRoomForm").show();
+                populateStockRoomForm();
+                disableFormControls('StockRoomForm');
+                $('#addResourceButton').hide();
+                $('#moveResourceButton').hide();
+                break;
+            case 2:
+                item.Type = 'CabinetGroup'
+                hideAllForms();
+                $("#CabinetGroupForm").show();
+                populateCabinetGroupForm();
+                disableFormControls('CabinetGroupForm');
+                $('#addResourceButton').hide();
+                $('#moveResourceButton').hide();
+                break;
+            case 3:
+                item.Type = 'Cabinet'
+                hideAllForms();
+                $("#CabinetForm").show();
+                populateCabinetForm();
+                disableFormControls('CabinetForm');
+                $('#addResourceButton').hide();
+                $('#moveResourceButton').hide();
+                break;
+            case 4:
+                item.Type = 'Location'
+                hideAllForms();
+                $("#LocationForm").show();
+                populateLocationForm();
+                disableFormControls('LocationForm');
+                $('#addResourceButton').hide();
+                $('#moveResourceButton').hide();
+                break;
+            case 5:
+                item.Type = 'Position'
+                hideAllForms();
+                $("#PositionForm").show();
+                populatePositionForm();
+                disableFormControls('PositionForm');
+                $('#newButton').hide();
+                $('#addResourceButton').show();
+                $('#moveResourceButton').hide();
+                break;
+        }
+        type = dataItem.Type;
+        $('#hierarchy').text(type);
+        $('#newButton').html(changeButtonName(type));
+        console.log(item);
+    }
+
+
+    function onSelectResource(e) {
+        var selected = this.select();
+        var gridName = selected.parent().parent().parent().attr('id');
+        var grid = $("#" + gridName).data("kendoGrid");
+        var item = grid.dataItem(selected)
+        item.Type = 'Resource';
+        dataItem = item;
+        console.log(item);
+        resourceToBeMovedId = dataItem.ResourceId
+        resourceToBeMovedSpGuid = dataItem.SpGuid
+
+        hideAllForms();
+        $("#ResourceForm").show();
+        populateResourceForm();
+        disableFormControls('ResourceForm');
+        $('#newButton').hide();
+        $('#addResourceButton').hide();
+        $('#moveResourceButton').show();
+    }
+
+
+    function hideAllForms() {
+        $("#CabinetGroupForm").hide();
+        $("#CabinetForm").hide();
+        $("#LocationForm").hide();
+        $("#StockRoomForm").hide();
+        $("#PositionForm").hide();
+        $("#ResourceForm").hide();
+    }
+
+    function changeButtonName(type) {
+        switch (type) {
+            case 'Root':
+                return 'New StockRoom';
+            case 'StockRoom':
+                return 'New Cabinet Group';
+            case 'CabinetGroup':
+                return 'New Cabinet';
+            case 'Cabinet':
+                return 'New Location';
+            case 'Location':
+                return 'New Position';
+        }
+    }
+
+
+    function filterStockRooms() {
+        debugger;
+        console.log($("#stockRooms").val());
+        return {
+            stockRoomId: stockRooms
+        };
+    }
+    function filterCabinetGroups() {
+        debugger;
+        console.log($("#stockRooms").val());
+        return {
+            cabinetGroupId: cabinetGroups
+        };
+    }
+    function filterCabinets() {
+        debugger;
+        console.log($("#stockRooms").val());
+        return {
+            cabinetId: cabinets
+        };
+    }
+    function filterLocations() {
+        debugger;
+        console.log($("#stockRooms").val());
+        return {
+            locationId: locations
+        };
+    }
+
+
+
+
+    function onListSelect(e) {
+        debugger;
+
+        var index = e.sender.select().index();
+        var item = e.sender.dataSource.view()[index];
+        console.log(item.SrId)
+        var cpId = dataItem.PositionId
+        var ssId =  dataItem.StockRoomId
+        var ssName =  dataItem.StockRoomShortName
+        var anomalies = true;
+        $.ajax({
+            url: '@Url.Action("checkExistingResourceInStockroom", "StockManagement")',
+            type: 'GET',
+            data: {                
+                stockRoomId: ssId,
+                resourceId : item.SrId
+            }
+        }).done(function (data) {
+            debugger;
+                            console.log("data.."  + data)
+
+            if (data.success != undefined && !data.success) {
+               // anomalies = false;
+                $.ajax({
+                    url: '@Url.Action("AddResource", "StockManagement")',
+                    type: 'POST',
+                    data: {
+                        srId: item.SrId,
+                        cpId: cpId
+
+                    }
+                }).done(function (data) {
+                    debugger
+                    if (data.success != undefined && data.success) {
+                        console.log('resource  Added'); console.log(data);
+                        $('#Resources').data("kendoWindow").close();
+                        var mainGrid = $("#gridPositions").data("kendoGrid");
+                        mainGrid.dataSource.read({ resourceName: "" })
+
+                    } else {
+                        $('#errors').html('not added. reason:' + data.errorMessage);
+                    }
+                }).fail(function (response) {
+                    console.log(response)
+                    umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+                });
+            }
+            else {
+                $('#Resources').data("kendoWindow").close();
+                umsErrorDialog("Anomalies", `The resource ${item.SrName} exists in ${ssName}`, 200, 200);
+            }
+
+        }).fail(function (response) {
+            console.log(response)
+            anomalies = true;
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+       
+    }
+    function onSelectDestinationPosition() {
+        //check anomalies
+        debugger
+        if (positions == "" || positions == undefined) {
+            umsErrorDialog("Position", "You must select a position !", 200, 200);
+            return
+        }
+        var anomalies = false;
+        $.ajax({
+            url: '@Url.Action("getResourceAnomalies", "StockManagement")',
+            type: 'GET',
+            data: {
+                srId: resourceToBeMovedId,
+                spGuid: resourceToBeMovedSpGuid,
+                newPositionGuid: positions
+
+            }
+        }).done(function (data) {
+            debugger
+
+            if (data == "") {
+                anomalies = false;
+            }
+            else {
+                anomalies = true;
+                umsErrorDialog("Anomalies", data, 200, 200);
+            }
+
+        }).fail(function (response) {
+            console.log(response)
+            anomalies = true;
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+
+        //update resource position
+        if (!anomalies) {
+            $.ajax({
+                url: '@Url.Action("MoveResource", "StockManagement")',
+                type: 'POST',
+                data: {
+                    spGuid: resourceToBeMovedSpGuid,
+                    newPositionId: positions
+                }
+            }).done(function (data) {
+                debugger
+                if (data.success != undefined && data.success) {
+                    console.log('resource  Moved'); console.log(data);
+
+                } else {
+                    $('#errors').html('not moved. reason:' + data.errorMessage);
+                }
+            }).fail(function (response) {
+                console.log(response)
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            });
+        }
+    }
+    function onSelectStockRoom(x) {
+        debugger
+        console.log(x.dataItem)
+        stockRooms = x.dataItem.StockRoomId
+
+    }
+    function onSelectCabinetGroup(x) {
+        debugger
+        console.log(x.dataItem)
+        cabinetGroups = x.dataItem.CabinetGroupId
+
+    }
+    function onSelectCabinet(x) {
+        debugger
+        console.log(x.dataItem)
+        cabinets = x.dataItem.CabinetId
+
+    }
+    function onSelectLocation(x) {
+        debugger
+        console.log(x.dataItem)
+        locations = x.dataItem.LocationId
+    }
+    function onSelectPosition(x) {
+        debugger
+        console.log(x.dataItem)
+        positions = x.dataItem.PositionId
+    }
+</script>

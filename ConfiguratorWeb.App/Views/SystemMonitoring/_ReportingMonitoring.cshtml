@@ -1,0 +1,137 @@
+﻿@using ConfiguratorWeb.App.Extensions
+@{
+   ViewData["Title"] = "View";
+   var gridName = "reporting-grid";
+
+}
+
+
+<div id="ReportWindow"></div>
+
+<div class="h-100 text-center">
+
+   <div class="card h-100 m-1 p-2 text-left resizeOffsetGrids">
+
+      @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.ReportTemplateViewModel>
+   ()
+   .Name(gridName)
+
+   .UmsDefaultSettings(DicSvc)
+   .Navigatable(true)
+   .Columns(columns =>
+   {
+
+      columns.Bound(e => e.ID).Visible(false);
+      columns.Bound(e => e.Name).Title(DicSvc.XLate("Name")).Width(500);
+      columns.Bound(e => e.Description).Title(DicSvc.XLate("Description"));
+      columns.Bound(e => e.Stream).ClientTemplate("<a title='Generate Report' class=' btn btnKendo ml-1 mb-1 mt-1 mdi mdi-printer' style=' position:relative; left:22px;' role='button' onclick='openReportingDetail(\"#= ID #\")'></a>").Title(" ").Filterable(false).Width(100);
+
+
+
+   })
+   .Navigatable(true)
+   .UmsDefaultPager(DicSvc)
+   .UmsDefaultSettings(DicSvc)
+   .LoaderType(GridLoaderType.LoadingPanel)
+   .DataSource(dataSource => dataSource
+   .Ajax()
+   .PageSize(25)
+   .Model(model =>
+   {
+      model.Id(o => o.ID);
+      model.Field(o => o.Name).Editable(false);
+      model.Field(o => o.Description).Editable(false);
+
+   }).PageSize(50)
+   .Events(events => events.Error("onGridError"))
+   .Read(read => read.Action("ReadReportingItems", "SystemMonitoring"))
+   ).HtmlAttributes(new { style = "min-width: 700px;" })
+   )
+
+
+      <div id="dialogReport" style="display: none;">
+         <div style="text-align:center;">@DicSvc.XLate("Generating Supervision Report")</div>
+         <div href="#" title="Download Report Monitoring">
+            <div>
+               <div style=" width: 100%; top: 24px;" id="progressbarMonitor"></div>
+            </div>
+
+         </div>
+      </div>
+
+   </div>
+</div>
+<script>
+  resizeGrid("reporting-grid");
+
+   var controller = new AbortController();
+   var signal = controller.signal;
+  
+
+
+      $("#dialogReport").kendoWindow({
+         width: "371px",
+         height: "140px",
+         modal: true,
+         title: "Download",
+         resizable: false,
+         actions: ["Close"],
+         open: function () {
+
+          /*  $('#dialogReport').css("display", "none");*/
+         },
+         close: function () {
+   
+            controller.abort();
+            controller = new AbortController();
+            signal = controller.signal;
+           
+         },
+      animation: {
+         open: { effects: "fade:in" },
+         close: { effects: "fade:out" }
+      }
+
+   });
+
+      var passProgress = $("#progressbarMonitor").kendoProgressBar({
+         value: false,
+         width: 100,
+         height: 20,
+         type: "percent",
+         animation: {
+            duration: 2100
+         }
+      });
+
+  function openReportingDetail(id) {
+
+     var dialog = $('#dialogReport').data("kendoWindow");
+      dialog.center();
+      dialog.open();
+
+     fetch("@Url.Action("GetMonitoringReport", "SystemMonitoring")?Id=" + id, { signal })
+        .then(resp => resp.blob())
+        .then(blob => {
+           const url = window.URL.createObjectURL(blob);
+           const a = document.createElement('a');
+           a.style.display = 'none';
+           a.href = url;
+           // the filename you want
+           a.download = 'SupervisionReport.pdf';
+           document.body.appendChild(a);
+           a.click();
+           window.URL.revokeObjectURL(url);
+           dialog.close();
+         
+        }).catch(function (e) {
+
+           console.log('Download Report aborted');
+
+        })
+}
+
+
+
+
+</script>

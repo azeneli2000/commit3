@@ -1,0 +1,255 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@model TherapyItemModel
+@{
+   ViewData["Title"] = "_TabClassificationDetail";
+
+   var gridName1 = "PrescriptionFilter";
+   var gridName2 = "QuickActionFilter";
+}
+
+<style>
+   .clasificationGrid {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      margin-top: 50px;
+   }
+
+   .mainClassificationContainer {
+      margin-right: auto;
+   }
+
+   .classificationForm {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      margin: 1em;
+   }
+
+   .rowClassification {
+      margin: 10px;
+      display: flex;
+      width: 100%;
+      height: 30px;
+   }
+</style>
+
+<div class="mainClassificationContainer">
+   <div class="classificationForm">
+      <div style="display:flex; flex-direction:row;width:100%;">
+         <div style="display:flex; flex-direction:column;justify-content: space-between;height: 110px;width: 45%;">
+            <div class="rowClassification ">
+               <label for="Classification.ClassCat" style="font-weight:bold;margin-top: auto;">@DicSvc.XLate("Class")</label>
+               <input id="classTherapyClassification" asp-for="Classification.ClassCat" style="margin-left:28px;width:100%;" />
+            </div>
+
+            <div class="rowClassification">
+               <label for="Classification.LocationRef" style="font-weight:bold;margin-top: auto;">@DicSvc.XLate("Location") </label>
+               <input id="locationTherapyClassification" asp-for="Classification.LocationRef" style="margin-left:7px;width:100%;" />
+            </div>
+            @{
+               if (Model.ItemType == Digistat.FrameworkStd.Enums.TherapyItemType.Action)
+               {
+                  <div class="rowClassification">
+                     <label for="classIncomplete" style="padding-right: 11px;">@DicSvc.XLate("Can be part of a Mixture")</label>
+                     <input type="checkbox" asp-for="Classification.CanBeMixtureComponent" id="canBeMixtureComponent" class="k-checkbox">
+                     <label class="k-checkbox-label" for="canBeMixtureComponent"></label>
+                     
+                  </div>
+
+               }
+            }
+         </div>
+         <div style="display:flex; flex-direction:column; position: relative; left: 9%;">
+            <div class="rowClassification">
+               <label for="classIncomplete" style="padding-right: 11px;">@DicSvc.XLate("Incompletes")</label>
+               <input type="checkbox" asp-for="Classification.Incomplete" id="classIncomplete" class="k-checkbox" checked="checked">
+               <label class="k-checkbox-label" for="classIncomplete"></label>
+            </div>
+            <div class="rowClassification">
+               <label for="classNurse" style="padding-right: 20px;">@DicSvc.XLate("Nurse Only") </label>
+               <input type="checkbox" asp-for="Classification.Obsolete" id="classNurse" class="k-checkbox" checked="checked">
+               <label class="k-checkbox-label" for="classNurse"></label>
+            </div>
+            @{
+               if (Model.ItemType == Digistat.FrameworkStd.Enums.TherapyItemType.Action && Model.Classification.CanBeMixtureComponent)
+               {
+                  <div class="rowClassification">
+                        <button id="btnCheckContainingMixtures" class="k-button">View Containing Mixtures</button>
+                  </div>
+
+               }
+            }
+         </div>
+      </div>
+      <div class="clasificationGrid">
+
+         @(Html.Kendo().Grid(Model?.Classification?.Prescription)
+                                      .Name(gridName1)
+                                      .Navigatable(true)
+                                      .Columns(columns =>
+                                      {
+                                         columns.Bound(e => e.Enabled).ClientTemplate("<input type='checkbox' #= Enabled ? checked='checked': '' # />").Title(" ").Width("30px");
+                                         columns.Bound(e => e.Name).Title("Prescription Filter");
+
+                                      })
+                                         .Editable(e => e.Mode(GridEditMode.InCell))
+                                         .Selectable(s => s.Mode(GridSelectionMode.Single))
+                                         .Scrollable()
+                                         .DataSource(dataSource => dataSource
+                                                        .Ajax()
+                                                        .ServerOperation(true)
+                                         )
+                                         .HtmlAttributes(new { @class = "subGridsClassification" })
+                                         .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+         )
+
+
+
+         @(Html.Kendo().Grid(Model?.Classification?.QuickAction)
+                                .Name(gridName2)
+                                .Navigatable(true)
+                                .Columns(columns =>
+                                {
+                                   columns.Bound(e => e.Enabled).ClientTemplate("<input type='checkbox' #= Enabled ? checked='checked': '' # />").Title(" ").Width("30px");
+                                   columns.Bound(e => e.Name).Title("Quick Action Filter");
+
+                                })//.AutoBind(false)
+                          .Editable(e => e.Mode(GridEditMode.InCell))
+                          .Selectable(s => s.Mode(GridSelectionMode.Single))
+                          .Scrollable()
+                                   //.Events(ev => ev.Cancel("onCancel").DataBound("onDataBound"))
+                                   //.BindTo(Model?.QuantityDose?.Ways)
+                                   .DataSource(dataSource => dataSource
+                                                  .Ajax()
+                                                  .ServerOperation(true)
+                                   )
+                                   .HtmlAttributes(new { @class = "subGridsClassification", @style = "left:10px;" })
+                                   .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+         )
+      </div>
+   </div>
+</div>
+
+
+
+<div id="windowCheckContainingMixtures" style="width: 100%">
+   <div class="row" style="width: 97%">
+      @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.Therapy.TherapyItemModel>()
+                                           .Name("gridCheckContainingMixtures")
+                                           .Columns(columns =>
+                                           {
+                                              columns.Bound(e => e.Name);
+                                              columns.Bound(e => e.QuantityDose.Concentration);
+                                              columns.Bound(e => e.QuantityDose.Amount);
+                                              columns.Bound(e => e.QuantityDose.Volume);
+                                              columns.Bound(e => e.ItemTypeString).Hidden(true);
+
+                                           })
+                                           .Navigatable(true)
+                                           .Filterable()
+
+                                           .UmsDefaultPager(DicSvc)
+                                           //.UmsDefaultSettings(DicSvc)
+                                           .DataSource(dataSource => dataSource
+                                                          .Ajax()
+                                                          .PageSize(5)
+                                                          .Model(model =>
+                                                          {
+                                                             model.Field(o => o.Id);
+                                                             model.Field(o => o.Name);
+                                                             model.Field(o => o.QuantityDose.Concentration);
+                                                             model.Field(o => o.QuantityDose.Amount);
+                                                             model.Field(o => o.QuantityDose.Volume);
+                                                             model.Field(o => o.ItemType).DefaultValue(Digistat.FrameworkStd.Enums.TherapyItemType.Action);
+                                                          })
+                                                       .Read(read => read.Action("VerifyComponentOfMixture", "Therapy", new { ID = Model.Id}))
+                                                       )
+                                          .HtmlAttributes(new { style = "width:100%;" })
+                                          .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+      )
+   </div>
+   <div class="row" style="width: 97%">
+      <button id="btnUnlinkFromMixtures" class="k-button" >Remove this Standard Action from all associated Mixtures</button>
+   </div>
+</div>
+
+<script>
+
+   var componentskndWnd;
+   $(document).ready(function () {
+      //if (!componentskndWnd) {
+         componentskndWnd = $('#windowCheckContainingMixtures').usmKendoWindow({
+         
+            title: 'Mixtures actually containig this Action',
+            height: 400,
+            width: 700,
+            modal: true,
+            visible: false,
+            appendTo: "#StandardActionDetail",
+            position:
+            {
+               top:"20%",
+               left:"20%"
+            }
+         });
+      //}
+      var classc = $("#classTherapyClassification").kendoDropDownList({
+      optionLabel: "Select Class...",
+
+      }).data("kendoDropDownList");
+
+      var locationc = $("#locationTherapyClassification").kendoDropDownList({
+         optionLabel: "Select Location...",
+      }).data("kendoDropDownList");
+
+      $('#btnCheckContainingMixtures').off('click').on('click', function (e) {
+         e.preventDefault();
+         var ww = $("#windowCheckContainingMixtures").data("kendoWindow");
+         kendo.ui.progress(ww.element, true);
+         if (ww.element.is(":hidden")) {
+            //ww.center();
+            ww.open();
+            kendo.ui.progress(ww.element, false);
+         }
+         return false;
+      });
+
+
+      $('#btnUnlinkFromMixtures').off('click').on('click', function (e) {
+          e.preventDefault();
+            umsConfirm("Warning!", "Do you want to remove this Standard Action from any associated Mixture?", Unlink, CancelUnlink);
+      });
+           
+   });
+
+
+function Unlink()
+{
+   $.ajax({
+        url: '@Url.Action("UnlinkMixtureComponent", "Therapy")',
+            type: 'GET',
+            data: { ID: @Model.Id },
+            async: false,
+         })
+         .done(function (data) {
+            var grid = $("#gridCheckContainingMixtures").data("kendoGrid");
+            grid.dataSource.read();
+         })
+         .fail(function (response) {
+            umsErrorDialog("Error occured", response, 200, 200);
+        });
+<<<<<<< HEAD
+=======
+ 
+>>>>>>> ffb2ac6c009e053c52de7a708e303a4fed86265a
+}
+   
+function CancelUnlink() {
+   //do nothing
+}
+
+</script>

@@ -1,0 +1,165 @@
+﻿@model IEnumerable<ConfiguratorWeb.App.Models.BedViewModel>
+    @{
+       Layout = null;
+       string bedId = (string)ViewBag.BedId;
+    }
+    <script>
+        function onDataBoundLocationsBeds(arg) {
+           //$(".check-col-sel").off('click').on('click', function (e) {
+           //    //click on bed selection
+           //    //set selected
+           //    var grid = $('#locationsbeds-grid').data().kendoGrid;
+           //    var selItem = grid.dataItem($(this).closest("tr"));
+           //    if ($(this).is(":checked")) {
+           //        selItem.Selected = true;
+           //    }
+           //    else {
+           //        selItem.Selected = false;
+           //    }
+           //});
+           
+        }
+
+    </script>
+    <div class="card h-100 pt-1 pb-2 border-0" id="bedSelectionContainer">
+       <div class="card-body h-85 p-0 m-0 border-0">
+       @(Html.Kendo().Grid(Model)
+           .Name("locationsbeds-grid").HtmlAttributes(new { style = "height:413px;", @class = "no-hover" })
+          .ToolBar(toolbar =>
+          {
+             toolbar.Custom().Text(DicSvc.XLate("Collapse")).HtmlAttributes(new { @class="btnKendo ums-collapse",@id="btnExpandCollpase"});
+          })
+           .Columns(columns =>
+           {
+              columns.Bound(e => e.BedId).Visible(false);
+              columns.Bound(e => e.IdLocation).Visible(false);
+              columns.Bound(e => e.Location.LocationName);
+              columns.Bound(e => e.BedName);
+              columns.Bound(e => e.BedCode);
+              columns.Bound(e => e.BedIndex).Visible(false);
+              //columns.Bound(e => e.Selected)
+              //   .ClientTemplate("<input id='Selected_#=BedLocation#'  class='check-col-sel k-checkbox' ums-locId='#= Location.ID #' ums-locName='#= Location.LocationName #' ums-bedId='#= BedId #' type='checkbox' #= Selected ? checked='checked' :'' # /><label class='k-checkbox-label' for='Selected_#=BedLocation#'></label>")
+              //   .HtmlAttributes(new { style = "text-align:center;" });
+              columns.Select()
+                 .ClientHeaderTemplate(DicSvc.XLate("Selected"))
+                 .HtmlAttributes(new { style = "text-align:center;" });//.Width(50);
+           })
+           .Filterable()
+           .Events(ev => ev.DataBound("onDataBoundLocationsBeds"))
+           .Sortable(false)
+           .Scrollable()
+           .DataSource(dataSource => dataSource
+               .Ajax()
+              .ServerOperation(false)
+               .Group(groups => groups.Add(p => p.Location.LocationName))
+           )
+           .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+       )
+       </div>
+       <div class="card-footer h-10 p-0 mt-3 border-0">
+          @(Html.Kendo().ToolBar()
+             .Name("toolbarBedSelection")
+             .Items(
+                     items =>
+                     {
+                         items.Add().Type(CommandType.Button).Text(DicSvc.XLate("OK")).Id("btnBedSelectionOK").UmsHtmlButtonGeneric("view-mode");
+                         items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Close")).Id("btnBedSelectionCancel").UmsHtmlButtonGeneric("view-mode");
+                     }
+                  )
+          )
+       </div>
+    </div>
+
+    <script>
+
+       function onBedGridDataBound(e) {
+           var items = this.dataSource.view();
+           for (var i = 0; i < items.length; i++) {
+               if (items[i].Selected) {
+                   var row = this.tbody.find("tr[data-uid='" + items[i].uid + "']");
+                   this.select(row);
+                   //row.find('input:checkbox').attr('checked', true);
+               }
+           }
+       }
+
+       $(document).ready(function() {
+          $('#btnExpandCollpase').off('click').on('click',
+             function() {
+                //debugger;
+                if ($(this).hasClass("ums-collapse")) {
+                   $("#locationsbeds-grid .k-i-collapse").trigger("click");
+                   $(this).removeClass("ums-collapse");
+                   $(this).addClass("ums-expand");
+                   $(this)[0].innerText = '@DicSvc.XLate("Expand")';
+                } else {
+                   $("#locationsbeds-grid .k-i-expand").trigger("click");
+                   $(this).removeClass("ums-expand");
+                   $(this).addClass("ums-collapse");
+                   $(this)[0].innerText = '@DicSvc.XLate("Collapse")';
+                }
+
+             });
+          $('#btnBedSelectionOK').click(function() {
+             kendo.ui.progress($("#TLBedLocations"), true);
+             submitGridChanges();
+             kendo.ui.progress($("#TLBedLocations"), false);
+          });
+
+          $('#btnBedSelectionCancel').click(function() {
+             $('#bedSelectionDialog').data('kendoWindow').close();
+          });
+          var grid = $("#locationsbeds-grid").data("kendoGrid");
+
+          grid.tbody.on("click", ".k-checkbox", onClick);
+          
+          var data = grid.dataSource.data();
+          var res = $.grep(data, function (d) {
+             return d.Selected === true;
+          });
+          if (res!== undefined && res.length >0) {
+             debugger;
+             var row = grid.table.find("[data-uid=" + res[0].uid + "]");
+             grid.select(row);
+          }
+          
+       });
+       function onClick(e) {
+          //debugger;
+          var grid = $("#locationsbeds-grid").data("kendoGrid");
+          var row = $(e.target).closest("tr");
+
+          if(row.hasClass("k-state-selected")){
+             setTimeout(function(e) {
+                var grid = $("#locationsbeds-grid").data("kendoGrid");
+                grid.clearSelection();
+             })
+          } else {
+             grid.clearSelection();
+          };
+       };
+
+        function submitGridChanges() {
+           //Loop through locations
+           //debugger;
+           var grid = $('#locationsbeds-grid').data('kendoGrid');
+           var selectedItems = grid.dataItem(grid.select());
+           
+           if (selectedItems == undefined) {
+              window.umsAlert("@DicSvc.XLate("Alert")", "@DicSvc.XLate("Please select one bed")");
+              return;
+           }
+           if (selectedItems.length>1) {
+              window.umsAlert("@DicSvc.XLate("Alert")", "@DicSvc.XLate("Cannot select more than one bed")");
+              return;
+           }
+
+           $("#BedName").val(selectedItems.BedName);
+           $("#IDBED").val(selectedItems.BedId);
+           $('#bedSelectionDialog').data('kendoWindow').close();
+        
+        }
+
+
+    </script>
+

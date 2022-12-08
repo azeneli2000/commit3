@@ -1,0 +1,146 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@inject IDictionaryService DicSvc
+@model ConfiguratorWeb.App.Models.UserViewModel
+@{
+    Layout = null;
+}
+@{
+    bool bolNewUser = string.IsNullOrWhiteSpace(Model.Id);
+}
+
+
+
+
+<div style="height: 315px" class="m-0 p-0">
+
+
+    @Html.ValidationSummary()
+
+    <div class="row">
+        <div class="col-lg-1">
+            @Html.LabelFor(m => m.FirstName)
+        </div>
+        <div class="col-lg-3">
+            @Html.Kendo().TextBoxFor(m => m.FirstName).HtmlAttributes(new { @class = "k-input k-textbox", @tabindex="10" })
+        </div>
+        <div class="col-lg-1">
+            @Html.LabelFor(m => m.RegistrationNumber)
+        </div>
+        <div class="col-lg-3">
+            @Html.Kendo().TextBoxFor(m => m.RegistrationNumber).HtmlAttributes(new { @class = "k-input k-textbox", @tabindex = "20" })
+        </div>
+        <div class="col-lg-1">
+            @Html.LabelFor(m => m.Telephone)
+        </div>
+        <div class="col-lg-3">
+            @Html.Kendo().TextBoxFor(m => m.Telephone).HtmlAttributes(new { @class = "k-input k-textbox", @tabindex = "30" })
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-1">
+            @Html.LabelFor(m => m.LastName)
+        </div>
+        <div class="col-lg-3">
+            @Html.Kendo().TextBoxFor(m => m.LastName).HtmlAttributes(new { @class = "k-input k-textbox",@tabindex = "11" })
+        </div>
+        <div class="col-lg-1">
+            @Html.LabelFor(m => m.ECode)
+        </div>
+        <div class="col-lg-3">
+            @Html.Kendo().TextBoxFor(m => m.ECode).HtmlAttributes(new { @class = "k-input k-textbox", @tabindex = "21" })
+        </div>
+        <div class="col-lg-1">
+            @Html.LabelFor(m => m.EMail)
+        </div>
+        <div class="col-lg-3">
+            @Html.Kendo().TextBoxFor(m => m.EMail ).HtmlAttributes(new { @class = "k-input k-textbox", @tabindex = "31" })
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-1">
+            @Html.LabelFor(m => m.MiddleInitial)
+        </div>
+        <div class="col-lg-3">
+            @Html.Kendo().TextBoxFor(m => m.MiddleInitial).HtmlAttributes(new { @class = "k-input k-textbox", @tabindex = "12" })
+        </div>
+        <div class="col-lg-1">
+            @Html.LabelFor(m => m.Role)
+        </div>
+        <div class="col-lg-3">
+            @Html.Kendo().TextBoxFor(m => m.Role).HtmlAttributes(new { @class = "k-input k-textbox", @tabindex = "22" })
+        </div>
+        <div class="col-lg-1">
+            @Html.LabelFor(m => m.Language)
+        </div>
+        <div class="col-lg-3 ">
+            @*@Html.Kendo().TextBoxFor(m => m.Language).HtmlAttributes(new { @class = "k-input k-textbox" })*@
+
+            @(Html.Kendo().DropDownList()
+                  .Name("Language_" + Model.Id)
+                  .DataTextField("Text")
+                  .DataValueField("Value")
+                  .Value((string)Model.Language)
+                  .DataSource(source =>
+                  {
+                      source.Read(read =>
+                      {
+                          read.Action("GetUsersLanguageList", "Generic");
+                      });
+                  })
+                  .HtmlAttributes(new { style = "width: 96%", @tabindex = "32" })
+                  )
+
+        </div>
+    </div>
+    <div class="row mb-4">
+        <div class="col-lg-1">
+            @Html.LabelFor(m => m.ShortName)
+        </div>
+        <div class="col-lg-3">
+            @Html.Kendo().TextBoxFor(m => m.ShortName).HtmlAttributes(new { @class = "k-input k-textbox", @tabindex = "13" })
+        </div>
+        <div class="col-lg-1">
+            @Html.LabelFor(m => m.Formal)
+        </div>
+        <div class="col-lg-1" style="margin-right: -26px;" >
+            @Html.Kendo().CheckBoxFor(m => m.Formal).HtmlAttributes(new { @tabindex = "23" })
+        </div>
+        <div class="col-lg-1">
+            @Html.LabelFor(m => m.Abbrev, new { @class = "field-required" })
+        </div>
+        <div class="col-lg-1 w-50 p-0">
+            <div class="input-group">
+                @Html.Kendo().TextBoxFor(m => m.Abbrev).HtmlAttributes(new { @class = "form-control control-required w-50", @tabindex = "24" })
+                <span class="input-group-append">
+                    <button id="btnAbbrev_@Model.Id" onclick="getAbbreviation();" disabled="@(bolNewUser?false:true)" class="btn border" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Generate abbreviation")"><span class="mdi mdi-pencil"></span></button>
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-1 ">
+            @Html.LabelFor(m => m.ExternalKey)
+        </div>
+        <div class="col-lg-3 ">
+            <div class="input-group w-100">
+                @Html.Kendo().TextBoxFor(m => m.ExternalKey).HtmlAttributes(new { @class = " mw-100", @tabindex = "14" })
+                @*<span class="input-group-btn">
+                  <button class="btn btn-default" type="button" data-toggle="tooltip" data-placement="top" title="Copy External Key to Clipboard"><span class="glyphicon glyphicon-copy"></span></button>
+                </span>*@
+            </div>
+        </div>
+        <div class="col-lg-1">
+            @Html.LabelFor(m => m.Title)
+        </div>
+        <div class="col-lg-3">
+            @Html.Kendo().TextBoxFor(m => m.Title).HtmlAttributes(new { @class = "k-input k-textbox",@tabindex = "25" })
+        </div>
+        <div class="col-lg-1">
+            @Html.LabelFor(m => m.Address)
+        </div>
+        <div class="col-lg-3">
+            @Html.TextAreaFor(m => m.Address, new { @class = "k-input k-textbox", @style = "height:70px; max-height:70px;width:96%;", @tabindex = "34" })
+        </div>
+        
+    </div>
+</div>

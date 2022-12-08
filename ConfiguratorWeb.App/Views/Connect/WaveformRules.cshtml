@@ -1,0 +1,362 @@
+﻿@using ConfiguratorWeb.App.Controllers
+@using ConfiguratorWeb.App.Models.OnLine
+@using Digistat.FrameworkStd.Model.Ips
+@{
+   string gridName = "Rules";
+   string popUpWindowName = "RuleDetail";
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+</script>
+
+<!-- template for move up/down waveformrule changing priority -->
+<script id="waveformRuleMoveColTemplate" type="text/x-kendo-template">
+    <button type="button" class="btn w-100" onclick='showMoveWaveformRuleDialog(#=Id#);'>
+       <i class="mdi mdi-swap-vertical-bold"></i>
+       @Html.Raw(DicSvc.XLate("Move"))
+    </button>
+</script>
+<script>
+    var waveformRuleMoveColTemplate = kendo.template($('#waveformRuleMoveColTemplate').html());
+</script>
+<div id="moveWaveformRuleMoveDialog" style="display:none">
+    <input type="hidden" id="hidCurrWaveformRuleSelected" />
+    <input type="hidden" id="hidCurrPageWaveformRuleSelected" />
+    <div class="row">
+        <button id="btnUp" class="btn btnKendo w-100 k-buttonLarge k-button" type="button" onclick="moveWaveformRuleHandler(0)" style="place-content: space-between;">
+           <i class="mdi mdi-arrow-up mdi-24px float-left"></i>
+           <span class="float-right">@DicSvc.XLate("Move Up")</span>
+        </button>
+    </div>
+    <div class="row">
+        <button id="btnDown" class="btn btnKendo w-100 k-buttonLarge k-button" type="button" onclick="moveWaveformRuleHandler(1)" style="place-content: space-between;">
+           <i class="mdi mdi-arrow-down mdi-24px float-left"></i>
+           <span class="float-right">@DicSvc.XLate("Move Down")</span>
+        </button>
+    </div>
+</div>
+<!-- ------- -->
+
+
+<div class="card h-100 mt-1 mx-1 px-2 border-0" id="gridContainer">
+   <div id="@popUpWindowName"></div>
+   @(Html.Kendo().Grid<WaveformSnapshotToUniteRule>()
+      .Name(gridName)
+      .UmsDefaultSettings(DicSvc)
+      .Sortable(false)
+      .UmsDefaultToolbar("createNewItem", "Add new", "displayDetailDialog('');", DicSvc)
+      .Events(ev => ev.DataBound("onDataBound"))
+      .Columns(columns =>
+      {
+         columns.Bound(e => e.Id).Visible(false).Filterable(false);
+         columns.Bound(e => e.Priority).Title(DicSvc.XLate("Priority")).Filterable(false);
+         columns.Bound(e => e.Repository.DriverName).Title(DicSvc.XLate("Driver")).Filterable(false);
+         columns.Bound(e => e.Parameter.Print)
+            .Title(DicSvc.XLate("Parameter"))
+            .ClientTemplate("# if(data.Parameter){# #=data.Parameter.Print# #} else { if(data.IdParam === 0) {# "+DicSvc.XLate("Any dynamic parameter") +" #}}# ")
+            .Filterable(false);
+         columns.Bound(e => e.Location.LocationName)
+            .Title(DicSvc.XLate("Location"))
+            .ClientTemplate("# if(data.Location){# #=data.Location.LocationName# #} else {# "+DicSvc.XLate("All location") +"#}#")
+            .Filterable(false);
+         columns.Bound(e => e.Event.DescriptionShort)
+            .Title(DicSvc.XLate("Event"))
+            .ClientTemplate("# if(data.Event){# #=data.Event.DescriptionLong# #} else {# " + DicSvc.XLate("All Event") +"#}#")
+            .Filterable(false);
+         columns.Bound(e => e.Id).Sortable(false).Filterable(false).ClientTemplate("#=waveformRuleMoveColTemplate(data)#").Title("&nbsp;").Width(100);
+      })
+      .DataSource(dataSource => dataSource
+         .Ajax()
+         .Model(model =>
+            {
+               model.Id(e => e.Id);
+            }) 
+         .Events(events => events.Error("error_handler_users"))
+         .Read(read => read.Action("GetWaveformRules", "Connect"))
+      )
+   )
+</div>
+
+<script type="text/javascript">
+
+    @{
+       string editItemTitle = DicSvc.XLate("Edit Waveform");
+       string newItemTitle = DicSvc.XLate("New Waveform");
+    }
+
+   var kndWnd;
+   var kndWndAdjustPiority;
+   $(document).ready(function() {
+
+       if (!kndWnd) {
+           kndWnd = $(popUpWindowName).usmKendoWindow({
+               maxHeight: 380,
+               title: '@DicSvc.XLate(editItemTitle)',
+               close: function(e) {
+                   $('#' + gridIdName).data("kendoGrid").table.focus();
+               }
+           });
+       }
+
+       // windows for change priority
+       if (!kndWndAdjustPiority) {
+
+           kndWndAdjustPiority = $("#moveWaveformRuleMoveDialog").kendoWindow({
+               width: "300px",
+               height: "190px",
+               modal: false,
+               visible: false,
+               title: '@DicSvc.XLate("Change priority")',
+               close: function(e) {
+                   $('#hidCurrWaveformRuleSelected').val('');
+                   $('#hidCurrPageWaveformRuleSelected').val('');
+                   var grid = $('#' + gridIdName).data("kendoGrid");
+                   var option = grid.getOptions();
+                   option.selectable = true;
+                   grid.setOptions(option);
+                   grid.clearSelection();
+               }
+           });
+
+       }
+
+   });
+
+    $(window).resize(function () {
+        setTimeout(function () {
+            var kendoWindow = $("[data-role='window']");
+            if (kendoWindow.length) {
+                for (var i = 0; i < kendoWindow.length; i++) {
+                    var win = $(kendoWindow[i]).data("kendoWindow");
+                    if (!win.element.is(":hidden")) {
+                        win.center();
+                        if (win.resize != undefined) {
+                            win.trigger('resize');
+                        }
+                    }
+                }
+            }
+        }, 100);
+    });
+
+   function displayDetailDialog(item) {
+       
+      var windowWidget = $(popUpWindowName).data("kendoWindow");
+       kendo.ui.progress(windowWidget.element, true);
+
+       $.ajax({
+           url: '@Url.Action("GetWaveformRuleDetail", "Connect")',
+           type: 'GET',
+           data: { Id: item.Id }
+       }).done(function(dataHtml) {
+
+           kendo.ui.progress(windowWidget.element, true);
+           var dialog = $(popUpWindowName).data('kendoWindow');
+           if (item === '') {
+               dialog.title('@DicSvc.XLate(newItemTitle)');
+           } else {
+               dialog.title('@DicSvc.XLate(editItemTitle) : ' + item.Id);
+           }
+           dialog.content(dataHtml).center().open();
+
+       }).fail(function(jqxhr, textStatus, error) {
+          
+           var err = textStatus + ", " + error;
+           console.error("Request Failed: " + err);
+
+       });
+   }
+
+   function onDataBound(e) {
+       var grid = this;
+       if ($('#moveWaveformRuleMoveDialog').is(':visible')) {
+           setMoveButton();           
+           if (grid.dataSource.data().length > 0) {
+              selectOnGrid();
+           }           
+       } else {
+           grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+               function(e) {
+                   var item = grid.dataItem($(e.target).closest('tr'));
+                   onGridKeyEnter(item);
+               }
+           );
+       }
+       if ($("#@gridName").data("kendoTooltip") == undefined) {
+           setGridKendoTooltip('#@gridName');
+           $("#@gridName").data("kendoTooltip").refresh();
+       }
+   }
+
+    function setGridKendoTooltip(divName) {
+       $(divName).kendoTooltip({
+          filter: "td,th>a,td>span",
+          show: function(e) {
+             if (this.content.text() != "") {
+                $('[role="tooltip"]').css("visibility", "visible");
+             }
+          },
+          hide: function() {
+             $('[role="tooltip"]').css("visibility", "hidden");
+          },
+          content: function(e) {
+
+             function extractContent(e)
+             {
+                var element = e.target[0];                
+                if (element.localName=="span") {
+
+                   if (element.classList.contains('ums-grid-tooltip')) {                      
+                      if (element.dataset.title) {
+                         return element.dataset.title;
+                      }
+                   }
+                }
+                if (element.offsetWidth < element.scrollWidth) {
+                   return e.target.text();
+                } else {
+                   return "";
+                }
+             }
+             return extractContent(e).replaceAll("<","&#60;").replaceAll("<","&#62;")
+          }
+       });
+    }
+
+    function onGridKeyEnter(item) {
+        //replace Key
+        displayDetailDialog(item);
+    };
+
+    function error_handler_users(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+
+
+    // -- change priority management
+
+    function showMoveWaveformRuleDialog(waveformRuleId) {
+
+       var $hidTmp = $('#hidCurrWaveformRuleSelected');
+       if ($hidTmp.val() == '') {          
+           $('#hidCurrWaveformRuleSelected').val(waveformRuleId);
+           selectOnGrid(waveformRuleId);
+           kndWndAdjustPiority.data("kendoWindow").center().open();
+           setMoveButton();
+       } else {
+           clearBedSelection();
+       }
+    }
+
+    function selectOnGrid(waveformRuleId) {
+
+        var wfRuleId = waveformRuleId;
+        if (!wfRuleId || wfRuleId == '') {
+            wfRuleId = $('#hidCurrWaveformRuleSelected').val();
+        }
+
+        if (wfRuleId && wfRuleId != '') {
+            var grid = $("#" + gridIdName).data("kendoGrid");
+            var item = grid.dataSource.get(wfRuleId);
+            var tr = $("[data-uid='" + item.uid + "']");
+
+            grid.select(tr);
+            grid.content.scrollTop(grid.select().position().top);
+            toggleItemDblSelection(false);
+        } else {
+            toggleItemDblSelection(true);
+        }
+    }
+
+    function setMoveButton() {
+
+        var wfRuleId = $('#hidCurrWaveformRuleSelected').val();
+        var grid = $("#" + gridIdName).data("kendoGrid");
+        var _row = grid.dataSource.get(wfRuleId);
+        if (!_row) {
+            return;
+        }
+        var _priority = _row.Priority;
+        var _countElement = 10000;
+        var _minIndex = 100000;
+        var _maxIndex = 0;
+        var _view = grid.dataSource.view();
+        for (var i = 0; i < _view.length; i++) {
+            var _item = _view[i];
+            if (_item.Priority > _maxIndex) {
+               _maxIndex = _item.Priority;
+            }
+            if (_item.Priority < _minIndex) {
+               _minIndex = _item.Priority;
+            }
+        }
+
+       var isBtnUpDisabled = _priority == _minIndex;
+       $("#btnUp").attr('disabled', isBtnUpDisabled);
+
+       var isBntDownDisabled = _priority == _maxIndex;
+       $("#btnDown").attr('disabled', isBntDownDisabled);
+    }
+
+    function clearBedSelection() {
+        $('#hidCurrWaveformRuleSelected').val('');
+        var grid = $('#' + gridIdName).data("kendoGrid");
+        var option = grid.getOptions();
+        option.selectable = true;
+        grid.setOptions(option);
+        grid.clearSelection();
+        kndWndAdjustPiority.data('kendoWindow').close();
+    }
+
+    function toggleItemDblSelection(tgl) {
+
+       var grid = $("#" + gridIdName).data("kendoGrid");
+       if (tgl) {
+
+           // riabilita la funzione del doppio click sulla riga
+           grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+
+               // todo fattorizzare
+               function(e) {
+                   var item = grid.dataItem($(e.target).closest('tr'));
+                   onGridKeyEnter(item);
+               }
+           );
+       } else {
+           grid.element.off('dblclick', 'tbody tr[data-uid]');
+       }
+    }
+
+
+   function moveWaveformRuleHandler(direction) {
+       var wfRuleId = $('#hidCurrWaveformRuleSelected').val();
+       moveWaveformRule(wfRuleId, direction);
+   }
+
+   function moveWaveformRule(bedid, direction) {
+       $.ajax({
+           url: '@Url.Action("MoveWaveformRule", "Connect")?waveformRuleId=' + bedid + '&direction=' + direction,
+           contentType: 'application/json; charset=utf-8',
+           type: 'GET'
+       }).done(function(data) {
+           var grid = $("#" + gridIdName).data("kendoGrid");
+           var option = grid.getOptions();
+           option.selectable = false;
+           grid.setOptions(option);
+           grid.dataSource.read();
+           grid.refresh();
+       });
+   }
+
+</script>

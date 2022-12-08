@@ -1,0 +1,188 @@
+﻿@using Digistat.FrameworkStd.Interfaces
+@using Microsoft.AspNetCore.Html
+@model Digistat.FrameworkStd.Model.Export.ExportJobs
+@inject IDictionaryService DicSvc
+@functions {
+   private IHtmlContent rawXlateJs(string text)
+   {
+
+      return Html.Raw(DicSvc.XLateJs(text));
+   }
+}
+<div class="row  mb-0">
+   <div class="col-12 ">
+      <div class="row mb-0">
+         <div class="col px-1">
+            <label asp-for="exj_ParameterQuery" class="">
+               @DicSvc.XLate("Query")
+               <i style="vertical-align: middle;" class="mdi mdi-information-outline mdi-18px" title="“DROP”,”TRUNCATE”,”DELETE”,”UPDATE” @DicSvc.XLate("should not be used")"></i>
+            </label>
+
+            <textarea asp-for="exj_ParameterQuery" class="form-control" rows="15" style="resize: none"></textarea>
+            <div id="aceEditor" class="border"> </div>
+            <small class="form-text text-muted">@DicSvc.XLate("The number of rows forming the recordset corresponds to the number of PDFs that will be generated. Each row contains all the input parameters that are passed to the template. A column named “PdfID” must be present in order to provide the PDF id.")</small>
+         </div>
+      </div>
+      <div class="row my-0">
+         <button class="k-buttonLarge modify-mode k-button k-button-solid-base k-rounded-md" type="button" id="queryTest">@DicSvc.XLate("Test")</button>
+         <button class="k-buttonLarge modify-mode k-button k-button-solid-base k-rounded-md" type="button" id="requiredParam">@DicSvc.XLate("Get required parameter")</button>
+      </div>
+
+
+   </div>
+</div>
+<script>
+    $(document).ready(function() {
+        $('#queryTest').off('click').on('click', testQueryParameter);
+        $('#requiredParam').off('click').on('click', getReportParameter);
+    });
+
+   function testQueryParameter() {
+      $("#toolbarDetail #errors").html('');
+      var query = $('#exj_ParameterQuery').val();
+      if (!validateQueryParameter(query)) {
+         kendo.ui.progress($("#JobDetail"), true);
+         $.ajax({
+            method: "GET",
+            url: "@Url.Action("testQuery")",
+            data: { query: query },
+            method: 'GET'
+         }).done(function (response, textStatus, jqXHR) {
+            //debugger;
+            if (response.success) {
+               //debugger;
+               if (response.result) {
+                  var dsResult = JSON.parse(response.result);
+                  var columns = [];
+                  if (dsResult.length ) {
+                     for (const [key, value] of Object.entries(dsResult[0])) {
+                        if (key.toLowerCase() !== "pdfid") {
+                           columns.push({ field: `${key}`, width: 100 });
+                        } else {
+                           columns = [{ field: `${key}`, width: 70 }].concat(columns);
+                        }
+                        
+                     }
+
+                  }
+                  $("<div id='popupWindow'></div>")
+                     .appendTo("body")
+                     .kendoWindow({
+                        minWidth: 600,
+                        width:"80%",
+                        modal: true,
+                        title: "@DicSvc.XLate("Result of query")",
+                        visible: false,
+                        resizable:false,
+                        close: function (e) {
+                           this.destroy();
+                        },
+
+                        //initOpen: initOpenPFL,
+                        position: {
+                           top: 100, // or "100px"
+                           left: "20%"
+                        },
+                        activate: function (e) {
+                           //debugger;
+                           //if (!devId) {
+                           //   scrollGridToSelected($("#ParListGrid").getKendoGrid())
+                           //}
+                        }
+                     })
+                     .data('kendoWindow').content("<div id='resultGrid'></div>").open();
+                  $("#resultGrid").kendoGrid({
+
+                        "noRecords": {
+                           "template": '<div class="empty-grid">@rawXlateJs("No records found")</div>'
+                        },
+                        columns:columns,
+                        selectable: false,
+                        filterable: false,
+                        scrollable: true,
+                        height: 450,
+                        width: '100%',
+                        dataSource: dsResult
+                  });
+
+               }
+
+            } else {
+
+               $("#toolbarDetail #errors").html(buildValidationMessage(response.errorMessage.split("\r\n")));
+               //window.umsAlert("Error occured", response.errorMessage, 400, 300);
+            }
+
+         }).fail(function (jqXHR, textStatus, errorThrown) {
+            // the response is not guaranteed to be json
+            if (jqXHR.responseJSON) {
+               // jqXHR.reseponseJSON is an object
+               console.log('failed with json data');
+            }
+            else {
+               // jqXHR.responseText is not JSON data
+               console.log('failed with unknown data');
+            }
+         }).always(function (dataOrjqXHR, textStatus, jqXHRorErrorThrown) {
+            console.log('always');
+            kendo.ui.progress($("#JobDetail"), false);
+         });
+      } else {
+         umsAlert('@DicSvc.XLate("Query Parameters")','@DicSvc.XLate("the query contain an invalid instruction")');
+      }
+   }
+   function getReportParameter() {
+      $("#toolbarDetail #errors").html('');
+      var templateName = $('#exj_ReportMasterTemplate').val();
+      if (templateName.length) {
+         kendo.ui.progress($("#JobDetail"), true);
+         //debugger;
+         $.ajax({
+             method: "GET",
+             url: "@Url.Action("GetReportParameters")",
+             data: { templateName: templateName }
+         }).done(function(response) {
+             try {
+
+                 if (response.Success && response.Result && response.Result.length) {
+                     var dsResult = [];
+                     response.Result.forEach(r => {
+                         dsResult.push({ name: `${r}` });
+                     }); 
+                     var lista ="<div>"+ response.Result.join("</div><div>")+"</div>";
+
+                     umsAlert('@DicSvc.XLate("Report Template Parameters")', lista);
+                } else {
+                     umsAlert('@DicSvc.XLate("Report Template Parameters")', '@DicSvc.XLate("No parameter in input")');
+                }
+            } catch (e) { 
+                umsAlert('@DicSvc.XLate("Report Template Parameters")', '@DicSvc.XLate("No parameter in input")');
+            }
+         }).fail(function (jqXHR, textStatus, errorThrown) {
+             debugger;
+            // the response is not guaranteed to be json
+            if (jqXHR.responseJSON) {
+               // jqXHR.reseponseJSON is an object
+               console.log('failed with json data');
+            }
+            else {
+               // jqXHR.responseText is not JSON data
+               console.log('failed with unknown data');
+            }
+         }).always(function (dataOrjqXHR, textStatus, jqXHRorErrorThrown) {
+            kendo.ui.progress($("#JobDetail"), false);
+         });
+      } else {
+         umsAlert('@DicSvc.XLate("Report Template Parameters")','@DicSvc.XLate("Select a report to continue")');
+      }
+   }
+
+   function validateQueryParameter(query) {
+
+      var invalidKey = ['drop', 'truncate', 'delete', 'update'];
+
+      var regex = new RegExp('\\b' + invalidKey.join('\\b|\\b') + '\\b', 'i');
+      return regex.test(query);
+
+   }
+</script>

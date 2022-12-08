@@ -1,0 +1,1133 @@
+﻿@using ConfiguratorWeb.App.Models.Therapy
+@using Digistat.FrameworkStd.Enums;
+@model TherapyItemModel
+
+@{
+   ViewData["Title"] = "Data for item " + Model?.Id;
+   string strDialogID = "StandardActionDetail";
+   string strFormID = "formStandardAction";
+   int keyID = Model.Id;
+}
+<style>
+   .detailsItemContainer {
+      width: 100%;
+      font-size: 12px;
+      margin: 1em;
+   }
+
+   #tabstripTherapy {
+      border: 1px solid lightgray;
+      overflow-y: auto;
+      height: 630px;
+      min-height: 655px;
+   }
+
+   .topInputs {
+      position: relative;
+      top: 5px;
+   }
+</style>
+
+<form id="@strFormID" asp-controller="Therapy" asp-action="TherapyConfigEdit" method="post" data-ajax-failure="OnFailure" data-ajax-success="OnSuccess"
+      data-ajax="true" data-ajax-method="POST" data-ajax-loading="progress">
+   <input type="hidden" asp-for="Schedule.EveryTimesValue" />
+   <input type="hidden" asp-for="Schedule.EveryTimesUnit" />
+   <input type="hidden" asp-for="Schedule.InTimesValue" />
+   <input type="hidden" asp-for="Schedule.InTimesUnit" />
+   <input type="hidden" asp-for="QuantityDose.Mask" />
+   <input type="hidden" asp-for="QuantityDose.AllowedMasks" />
+   <div class="detailsItemContainer">
+      <input asp-for="Id" type="hidden" id="hidden_id" />
+      <div class="row">
+         <div>
+            <label class="topInputs">@DicSvc.XLate("Name")*</label>
+         </div>
+         <div class="col-4">
+            <input id="nameTherapy" class="k-textbox k-input k-textbox" asp-for="Name" required />
+         </div>
+         <div>
+            <label class="topInputs"> @DicSvc.XLate("Description")</label>
+         </div>
+         <div class="col-4">
+            <input id="descTherapy" class="k-textbox k-input k-textbox" asp-for="Description" />
+         </div>
+         <div>
+            <label class="topInputs">@DicSvc.XLate("Type")</label>
+         </div>
+         <div class="col-2">
+            @if (Model != null)
+            {
+
+               <input id="typeTherapy" class="k-textbox k-input k-textbox" asp-for="ItemType" style="width:260px;" readonly />
+
+
+            }
+
+         </div>
+      </div>
+
+   </div>
+
+   <div class="card">
+
+      <kendo-tabstrip name="tabstrip_Therapy" id="tabstripTherapy">
+         <scrollable enabled="true" />
+         <popup-animation>
+            <open effects="fade:in" />
+         </popup-animation>
+         <items>
+            @if (Model != null)
+            {
+
+
+               <tabstrip-item text=@DicSvc.XLate("Classification") selected="true">
+                  <content>
+
+
+                     @{await Html.RenderPartialAsync("_TabClassificationDetail", Model); }
+                  </content>
+               </tabstrip-item>
+               @if ((!Model.ItemType.Equals(TherapyItemType.Protocol)))
+               {
+                  <tabstrip-item text=@DicSvc.XLate("Quantity Dose")>
+                     <content>
+
+                        @{ await Html.RenderPartialAsync("_TabQuanityDoseAction", Model); }
+
+                     </content>
+                  </tabstrip-item>
+
+                  <tabstrip-item text=@DicSvc.XLate("Schedule")>
+                     <content>
+
+                        @{ await Html.RenderPartialAsync("_TabScheduleDetail", Model); }
+
+                     </content>
+
+                  </tabstrip-item>
+
+                  <tabstrip-item text=@DicSvc.XLate("Properties")>
+                     <content>
+                        @{ await Html.RenderPartialAsync("_Properties", Model); }
+                     </content>
+
+                  </tabstrip-item>
+               }
+
+               @if ((Model.ItemType.Equals(TherapyItemType.Protocol)))
+               {
+                  <tabstrip-item text=@DicSvc.XLate("Items") >
+                     <content>
+
+                        @{await Html.RenderPartialAsync("_TabItemsDetail", Model); }
+
+                     </content>
+
+                  </tabstrip-item>
+               }
+               <tabstrip-item text=@DicSvc.XLate("Link")>
+                  <content>
+
+                     @{await Html.RenderPartialAsync("_TabLinkDetail", Model); }
+
+
+                  </content>
+
+               </tabstrip-item>
+            }
+         </items>
+
+      </kendo-tabstrip>
+
+
+      <div class="card-footer h-10 p-0 m-0  bg-white">
+         @(Html.Kendo().ToolBar()
+                      .Name("toolbar")
+                      .UmsDefaultErrors(DicSvc)
+                      .Items(
+                         items =>
+                         {
+                            if (keyID != 0)
+                            {
+                               //items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Duplicate")).Id("btnDuplicateStandardAction").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+                               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Copy")).Id("btnCopy").UmsHtmlButtonGeneric("view-mode");
+
+                               items.Add().Type(CommandType.Button).Text(DicSvc.XLate("Delete")).Id("btnDelete").UmsHtmlButtonGeneric("modify-mode").Hidden(true);
+                            }
+                         }
+                      )
+                      .UmsDefaultSettings(DicSvc, "")
+         )
+
+      </div>
+   </div>
+</form>
+
+<script type="text/javascript">
+   enableGridCat = true;
+
+   var startingDateWidget;
+   var SANoDuplicateFields = '@ViewBag.SANoDuplicateFields'.split(";");
+   var SADisableExternalFields = '@ViewBag.SADisableExternalFields'.split(";");
+   var SADisableDuplicateFields = '@ViewBag.SADisableDuplicateFields'.split(";");
+
+   function initSADisableDuplicateFields() {
+
+       $("#btnCopy").kendoButton();
+    var button = $("#btnCopy").data("kendoButton");
+
+      if (SADisableDuplicateFields[0] != "" && SADisableDuplicateFields.length >= 1) {
+         for (var x = 0; x < SADisableDuplicateFields.length; x++) {
+            if ($("input[id*='" + SADisableDuplicateFields[x] + "']").val() != "") {
+              button.enable(false);
+            }
+            else {
+              button.enable(true);
+            }
+
+            if (SADisableDuplicateFields[x] == "AllowedWays") {
+               var x = $("#AllowedRouteGrid").data("kendoGrid").dataSource.data();
+               if (x.length > 0) {
+                 button.enable(false);
+               }
+            }
+            if (SADisableDuplicateFields[x] == "AllowedDiluents") {
+               var x = $("#AllowedDiluentsGrid").data("kendoGrid").dataSource.data();
+               if (x.length > 0) {
+                 button.enable(false);
+               }
+
+            }
+            if (SADisableDuplicateFields[x] == "Category") {
+               
+               var category = '@Model.Classification.Category';
+               if (category.length > 0) {
+                    button.enable(false);               
+               }
+
+
+
+            }
+
+         }
+
+      }
+   }
+
+
+   function initSADisableExternalFields() {
+      for (var j = 0; j < SADisableExternalFields.length; j++) {
+         if ($("#Link_ExternalKey").val() != "") {
+            if (SADisableExternalFields[0] != "" && SADisableExternalFields.length >= 1) {
+               if (SADisableExternalFields[j] == "Name") {
+                  $("#nameTherapy").attr("readonly", true);
+               }
+               else if (SADisableExternalFields[j] == "Description") {
+                  $("#descTherapy").attr("readonly", true);
+               }
+               else if (SADisableExternalFields[j] != "Description" && SADisableExternalFields[j] != "Name") {
+                  $('#@strDialogID :input').each(function () {
+                     if($(this)[0].id != "" && $(this)[0].id.includes("_")){
+                     var newValue = $(this)[0].id.split("_");
+                     if (newValue[1] == SADisableExternalFields[j]) {
+                        var cb = $(this).data("kendoDropDownList");
+                        if (cb) {
+                           cb.readonly(true);
+                        }
+
+                        cb = $(this).data("kendoNumericTextBox");
+                        if (cb) {
+                           cb.readonly(true);
+                        }
+                        cb = $(this).data("kendoMultiSelect");
+                        if (cb) {
+                           cb.readonly(true);
+                        }
+                        if ($(this)[0].className == "k-checkbox k-checkbox-md k-rounded-md") {
+
+                           $(this)[0].setAttribute('onclick', "return false");
+                        }
+
+                     }
+                     }
+                  });
+                  if (SADisableExternalFields[j] == "AllowedWays") {
+                     $("#coverRoutes").css("display", "block");
+                     $("#coverRoutes").css("cursor", "not-allowed");
+                     $("#coverRoutesOperation").css("display", "block");
+                     $("#coverRoutesOperation").css("cursor", "not-allowed");
+                  }
+                  if (SADisableExternalFields[j] == "AllowedDiluents") {
+                     $("#coverDiluents").css("display", "block");
+                     $("#coverDiluents").css("cursor", "not-allowed");
+                     $("#coverDiluentsOperation").css("display", "block");
+                     $("#coverDiluentsOperation").css("cursor", "not-allowed");
+
+                  }
+                  if (SADisableExternalFields[j] == "PreparationType") {
+                     $(".preparationTypeSel").attr("disabled", true);
+                  }
+                  if (SADisableExternalFields[j] == "FluidBalanceType") {
+                     $(".fbType").attr("disabled", true);
+
+                  }
+                  if (SADisableExternalFields[j] == "SecondSignatureType") {
+                     $(".sspSel").attr("disabled", true);
+                  }
+                  if (SADisableExternalFields[j] == "SecondSignatureExecType") {
+                     $(".sseSel").attr("disabled", true);
+
+                  }
+                  if (SADisableExternalFields[j] == "ValidationType") {
+                     $(".valTypeSel").attr("disabled", true);
+
+                  }
+                  if (SADisableExternalFields[j] == "Category") {
+                     $("#coverPrescription").css("display", "block");
+                     $("#coverPrescription").css("cursor", "not-allowed");
+                     $("#coverQuick").css("display", "block");
+                     $("#coverQuick").css("cursor", "not-allowed");
+
+                  }
+                  if (SADisableExternalFields[j] == "Tolerance") {
+                     var cb = $("#Schedule_strTolerance").data("kendoDropDownList");
+                     cb.readonly(true);
+
+                  }
+                if (SADisableExternalFields[j] == "LocationRef") {
+                    
+                     $("#btnLocation").attr("disabled", true);
+                     $("#btnClearLocation").attr("disabled", true);
+
+                  }
+                   if (SADisableExternalFields[j] == "SearchLevel") {
+                       
+                     var cb = $("#Classification_EnumSearchLevel").data("kendoDropDownList");
+                     cb.readonly(true);
+
+                  }
+                  if (SADisableExternalFields[j] == "TimeChangeType") {
+                     $(".timeChange").attr("disabled", true);
+
+                  }
+                  
+                  if (SADisableExternalFields[j] == "ClassCat") {
+                    $("#Classification_ClassCat").data("kendoDropDownList").readonly(true);
+                    $("#Classification_ClassCat").parent().addClass("k-state-disabled");
+                  }
+               }
+            }
+         }
+      }
+   }
+
+   function initSANoDuplicateFields() {
+       debugger;
+      if (SANoDuplicateFields[0] != "" && SANoDuplicateFields.length >= 1) {
+
+         for (var j = 0; j < SANoDuplicateFields.length; j++) {
+            if (SANoDuplicateFields[j] == "Name") {
+               $("#nameTherapy").val("");
+            }
+            else if (SANoDuplicateFields[j] == "Description") {
+               $("#descTherapy").val("");
+            }
+            else if (SANoDuplicateFields[j] != "Description" && SANoDuplicateFields[j] != "Name") {
+               $('#@strDialogID :input').each(function () {
+                if($(this)[0].id != "" && $(this)[0].id.includes("_")){
+                  var newValue = $(this)[0].id.split("_");
+
+                  if (newValue[1] == SANoDuplicateFields[j]) {
+                     var cb = $(this).data("kendoDropDownList");
+                     if (cb) {
+                        cb.value('');
+                     }
+
+                     cb = $(this).data("kendoNumericTextBox");
+                     if (cb) {
+                        cb.value('');
+                     }
+                     cb = $(this).data("kendoMultiSelect");
+                     if (cb) {
+                        cb.value('');
+                     }
+                     if ($(this)[0].className == "k-checkbox k-checkbox-md k-rounded-md") {
+
+                        $(this)[0].checked = false;
+                     }
+                  }
+                  }
+               });
+               if (SANoDuplicateFields[j] == "AllowedWays") {
+                  $("#AllowedRouteGrid").data("kendoGrid").dataSource.data([]);
+               }
+               if (SANoDuplicateFields[j] == "AllowedDiluents") {
+                  $("#AllowedDiluentsGrid").data("kendoGrid").dataSource.data([]);
+
+               }
+               if (SANoDuplicateFields[j] == "PreparationType") {
+                  document.getElementById("0preparationTypeSel").checked = false;
+                  document.getElementById("1preparationTypeSel").checked = false;
+                  document.getElementById("2preparationTypeSel").checked = false;
+               }
+               if (SANoDuplicateFields[j] == "FluidBalanceType") {
+                  document.getElementById("0fluidBlType").checked = false;
+                  document.getElementById("1fluidBlType").checked = false;
+                  document.getElementById("2fluidBlType").checked = false;
+                  document.getElementById("3fluidBlType").checked = false;
+
+               }
+               if (SANoDuplicateFields[j] == "SecondSignatureType") {
+                  document.getElementById("0SignatureSel").checked = false;
+                  document.getElementById("1SignatureSel").checked = false;
+                  document.getElementById("2SignatureSel").checked = false;
+               }
+               if (SANoDuplicateFields[j] == "SecondSignatureExecType") {
+                  document.getElementById("0SignatureSel1").checked = false;
+                  document.getElementById("1SignatureSel1").checked = false;
+                  document.getElementById("2SignatureSel1").checked = false;
+
+               }
+               if (SANoDuplicateFields[j] == "ValidationType") {
+                  document.getElementById("0ValTypeSel").checked = false;
+                  document.getElementById("1ValTypeSel").checked = false;
+                  document.getElementById("2ValTypeSel").checked = false;
+
+               }
+
+               if (SANoDuplicateFields[j] == "Category") {
+                  enableGridCat = false;
+                  $("#PrescriptionFilter").data("kendoGrid").dataSource.read();
+                  $("#QuickActionFilter").data("kendoGrid").dataSource.read();
+
+
+
+               }
+                if (SANoDuplicateFields[j] == "SearchLevel") {
+                    
+                    var cb = $("#Classification_EnumSearchLevel").data("kendoDropDownList");
+                    cb.value("0")
+
+                }
+                if (SANoDuplicateFields[j] == "LocationRef") {
+                    $("#Classification_LocationName").val("");
+                    $("#Classification_LocationRef").val("");
+
+                }
+               if (SANoDuplicateFields[j] == "Tolerance") {
+                  var cb = $("#Schedule_strTolerance").data("kendoDropDownList");
+                  cb.value("5")
+
+               }
+               if (SANoDuplicateFields[j] == "TimeChangeType") {
+                  document.getElementById("NotimeChange").checked = false;
+                  document.getElementById("YestimeChange").checked = false;
+                  document.getElementById("YesByDefaulttimeChange").checked = false;
+
+               }
+               if (SANoDuplicateFields[j] == "ExternalKey") {
+                    $("#Link_ExternalKey").val("");
+               }
+               
+               if (SANoDuplicateFields[j] == "ClassCat") {
+                    $("#Classification_ClassCat").data("kendoDropDownList").select(0);
+               }
+            }
+         }
+      }
+   }
+   var QuantityDoseSchemaFirstLoad ;
+   var mixtureIndex;
+
+   {
+      //not in document.ready due to a delay that makes the change of the window title visible
+      let dialog = $("#@strDialogID").data("kendoWindow");
+      dialog.title($("#typeTherapy").val() + " Detail");
+   }
+
+   $(document).ready(function () {
+
+      if ('@Model.ItemTypeString' != "@TherapyItemType.Protocol.ToString()") {  //arrayD = JSON.parse("[" + $("#Schedule_Days").val() + "]");
+
+         arrayD = $("#Schedule_Days").val().split(",").map(s => s.trim());
+      }
+
+
+      initSADisableDuplicateFields();
+      setWindowMode();
+      $('#btnCopy').off('click').on('click', function () {
+         $("#hidden_id").val(0);
+
+         initSANoDuplicateFields();
+
+         changeToEditMode();
+      });
+      $('.btnEdit').off('click').on('click', function () {
+
+               var itemType = $("#typeTherapy").val();
+               if (itemType == "@TherapyItemType.Action.ToString()" )
+               {
+               sad_flag_VerifyStandardAction = false;
+               VerifyStandardAction(@Model.Id);
+               if (sad_flag_VerifyStandardAction) {
+               return false;
+               }
+               }
+               changeToEditMode();
+            });
+
+            $('.btnCancel').off('click').on('click', function (e) {
+
+               var currentID = $('#hidden_id').val();
+               if (currentID && currentID != '' && currentID != '0') {
+               ShowStandardActionData(currentID);
+               }
+               else {
+               dialog.close();
+               }
+            });
+
+            $('.btnClose').off('click').on('click', function () {
+               dialog.close();
+               $(this).closest(".k-state-focused").focus();
+            });
+
+            $('#btnDuplicateStandardAction').off('click').on('click', function () {
+               $("#nameTherapy").val("");
+               $("#hidden_id").val("0");
+               changeToEditMode();
+            });
+
+            $('#btnDelete').off('click').on('click',function () {
+               umsConfirm('@DicSvc.XLate("Confirm Delete")', '@DicSvc.XLate("Do you really want to delete this Standard Action?")', deleteStandardAction, function () { });
+            });
+
+            $('#btnSave').off('click').on('click',function () {
+               if (OnValidation()) {
+                  if ($("#typeTherapy").val() == "@TherapyItemType.Mixture.ToString()") {
+                     $("#QuantityDose_Mask").val("-1");
+                     $("#QuantityDose_AllowedMasks").val("-1,-2");
+                  }
+                  var components = null;
+                  var profiles = null;
+                  profiles = $('#ProfilesLink').getKendoGrid().dataSource.data();
+                           if (profiles != null) {
+
+                      for (var i = 0; i < profiles.length; i++) {
+
+                         var itm = profiles[i];
+                         var idP = '<input type="hidden" name="Link.Profiles[' + i + '].IdProfile"  value="' + itm.IdProfile + '" class="_a_"/>'
+                         $("#@strFormID").append(idP);
+                     }
+                  }
+                  $("#@strFormID").remove("._a_");
+                  if ($("#typeTherapy").val() != "@TherapyItemType.Protocol.ToString()") {
+
+                     var result = [];
+
+                     multiSelectDayVal.sort(function (a, b) { return ((a) > (b)) ? 1 : (((b) > (a)) ? -1 : 0) });
+
+                     if (document.getElementById("relativeH").checked == true) {
+                        for (var i = 0; i < multiSelectDayVal.length; i++) {
+                           result.push("J+" + multiSelectDayVal[i]);
+                        }
+                        var resultPostDays = result.join(',');
+                        $("#Schedule_Days").val(resultPostDays);
+                     }
+                     else {
+                        for (var i = 0; i < multiSelectDayVal.length; i++) {
+                           result.push("J" + multiSelectDayVal[i]);
+                        }
+                     }
+                     var resultPostDays = result.join(',');
+
+                     $("#Schedule_Days").val(resultPostDays);
+
+                     $("#Schedule_Hours").val($("#MultiHours").val().toString());
+
+                     AddHiddenValuesForGrid('#AllowedRouteGrid', "QuantityDose.Ways");
+                     AddHiddenValuesForGrid('#AllowedDiluentsGrid', "QuantityDose.Diluents");
+
+                  }
+                  if ($("#typeTherapy").val() == "@TherapyItemType.Mixture.ToString()") {
+                     components = $('#MixtureComponents').getKendoGrid().dataSource.data();
+                  }
+                  else if ($("#typeTherapy").val() == "@TherapyItemType.Protocol.ToString()") {
+                     components = $('#itemsGrid').getKendoGrid().dataSource.data();
+                  }
+
+                  if ($("#Schedule_EveryTimesValue").val() != "") {
+                     $("#Schedule_EveryTimesValue").val().replace(',', '.');
+                  }
+                  if ($("#Schedule_InTimesValue").val() != "") {
+                     $("#Schedule_InTimesValue").val().replace(',', '.');
+                  }
+
+
+                  if (components != null) {
+                     for (var i = 0; i < components.length; i++) {
+
+                     var itm = components[i];
+                        var name = '<input type="hidden" name="ComponentsFormVal[' + i + '].IdFather"  value="' + @Model.Id + '" class="_a_"/>'
+                        var descr = '<input type="hidden" name="ComponentsFormVal[' + i + '].IdChild"  value="' + itm.IdChild + '" class="_a_"/>'
+                     var index = '<input type="hidden" name="ComponentsFormVal[' + i + '].Index"  value="' + i + '" class="_a_"/>'
+                     $("#@strFormID").append(name);
+                     $("#@strFormID").append(descr);
+                     $("#@strFormID").append(index);
+                     }
+                  }
+
+                  var resLinkGrid = $('#TabLinkResourcesGrid').getKendoGrid();
+                  if (resLinkGrid != null) {
+                     var resources = resLinkGrid.dataSource.data();
+                     if (resources != null) {
+                        for (var i = 0; i < resources.length; i++) {
+                           var itm = resources[i];
+                           $("#@strFormID").append('<input type="hidden" name="Link.Resources[' + i + '].IdStandardAction"  value="' + @Model.Id + '" class="_a_"/>');
+                           $("#@strFormID").append('<input type="hidden" name="Link.Resources[' + i + '].IdResource"  value="' + itm.IdResource + '" class="_a_"/>');
+                           $("#@strFormID").append('<input type="hidden" name="Link.Resources[' + i + '].IsDefault"  value="' + itm.IsDefault + '" class="_a_"/>');
+                           $("#@strFormID").append('<input type="hidden" name="Link.Resources[' + i + '].Index"  value="' + itm.Index + '" class="_a_"/>');
+                        }
+                     }
+                  }
+
+                  var categories = '';
+                  categories = categories.concat('B' , $("#Classification_ClassCat").val());
+
+                  var filtersGrid = $("#PrescriptionFilter").getKendoGrid();
+                  if (filtersGrid != undefined)
+                  {
+                     var rows = filtersGrid.tbody.children();
+                     for (let i = 0; i < rows.length; i++) {
+                        let row = $(rows[i]);
+                        let checkbox = $(row).find('.k-checkbox')[0];
+                        if (checkbox.checked) {
+                           let data = filtersGrid.dataItem(row);
+                           categories = categories.concat(',', data.Name);
+                        }
+                     }
+
+                     if (categories.length > 0 && categories[0] == ',') {
+                        categories = categories.slice(1);
+                     }
+                  }
+
+                  filtersGrid = $("#QuickActionFilter").getKendoGrid();
+                  if (filtersGrid != undefined) {
+                     var fastFilters = '';
+                     var rows = filtersGrid.tbody.children();
+                     for (let i = 0; i < rows.length; i++) {
+                        let row = $(rows[i]);
+                        let checkbox = $(row).find('.k-checkbox')[0];
+                        if (checkbox.checked) {
+                           let data = filtersGrid.dataItem(row);
+                           fastFilters = fastFilters.concat(',', data.Name);
+                        }
+                     }
+
+                     categories = categories.concat(fastFilters);
+                     if (categories.length > 0 && categories[0] == ',') {
+                        categories = categories.slice(1);
+                     }
+                  }
+
+                  $("#Classification_Category").val(categories);
+
+                  $("#@strFormID").submit();
+
+               }
+            });
+
+
+
+      resizeTherapyDetailWndw();
+
+   });
+
+   var dialog = $("#@strDialogID").data("kendoWindow");
+   var actualmode;
+
+
+   function setWindowMode() {
+      if ('@Model.Id' !== '' && @Model.Id!== 0) {
+         actualmode = 1;
+      } else {
+         actualmode = 2;
+      }
+      setMode();
+   };
+
+   function setMode() {
+      if (actualmode === 2) {
+         changeToEditMode();
+      }
+      else {
+         changeToViewMode();
+      }
+      dialog.center().resize();
+   };
+
+   function changeToEditMode() {
+
+         actualmode = 2;
+         toolBarAllEditSaveButton();
+         toolBarShowButtonByClass("modify-mode");
+      if ($("#hidden_id").val() == "0") {
+         $("#btnDelete").hide();
+      }
+      $('#@strDialogID :input').attr('disabled', false);
+         $('#@strDialogID :input').each(function () {
+
+         var cb = $(this).data("kendoDropDownList");
+            if (cb) {
+         cb.enable(true);
+         }
+
+         cb = $(this).data("kendoNumericTextBox");
+            if (cb) {
+         cb.enable(true);
+         }
+
+         cb = $(this).data("kendoTimePicker");
+         if (cb) {
+         cb.enable(true);
+         }
+         cb = $(this).data("kendoMultiSelect");
+            if (cb) {
+         cb.enable(true);
+         }
+         cb = $(this).data("k-checkbox");
+            if (cb) {
+         cb.enable(true);
+         }
+
+         });
+         if ($("#typeTherapy").val() != "@TherapyItemType.Protocol.ToString()") {  //arrayD = JSON.parse("[" + $("#Schedule_Days").val() + "]");
+            var dropdownlistQuantityDose2 = $("#QuantityDose_SchemaName").data("kendoDropDownList");
+
+         if ('@Model.Id' == '0') {
+            Schedule_ChangeDays('absoluteH', 2,false);
+
+            }
+
+         //$('#QuantityDose_ProductConcentration').attr('readonly', true);
+         $("#mainScheduleContainer :input").prop("disabled", true);
+         $("#addRoutes").css("display", "block");
+         $("#addDiluents").css("display", "block");
+         $("#btnAddResources").css("display", "block");
+         $("#addProfiles").css("display", "block");
+         //$("#btnMoveResourceUp").css("display", "block");
+         //$("#btnMoveResourceDown").css("display", "block");
+
+
+         if ($("#typeTherapy").val() == "@TherapyItemType.Action.ToString()") {
+            QuantityDoseSchemaFirstLoad = true;
+            dropdownlistQuantityDose2.trigger("select");
+            QuantityDoseSchemaFirstLoad = false;
+
+         }
+
+         var valuePlanning = parseInt($("#Schedule_PlanningType").val());
+         changePlanningType(valuePlanning, "start");
+         }
+         else {
+            var grid = $("#itemsGrid").data("kendoGrid");
+            grid.clearSelection();
+            $('#addProtocolItems').css("display", "block");
+         }
+      enableGrids = true;
+      if ($("#typeTherapy").val() == "@TherapyItemType.Mixture.ToString()") {
+
+         var grid = $("#MixtureComponents").data("kendoGrid");
+                  grid.clearSelection();
+                  $("#addMixtureGridRow").css("display", "block");
+      }
+      var gridProfileLink = $("#ProfilesLink").data("kendoGrid");
+      gridProfileLink.clearSelection();
+      if ($("#typeTherapy").val() != "@TherapyItemType.Protocol.ToString()") {
+         arrayD = $("#Schedule_Days").val().split(",").map(s => s.trim());
+         var selectedItemsFromMultiD;
+         var isA = false;
+         
+         if (arrayD.length > 0  && arrayD[0] != "") {
+
+            if (arrayD[0].includes('+')) {
+               selectedItemsFromMultiD = $("#MultiDaysR").data("kendoMultiSelect");
+               selectedItemsFromMultiD.enable(false);
+               $("#multiR .k-multiselect.k-disabled")[0].style.setProperty('background-color', 'white', 'important'); 
+
+
+            }
+            else {
+               selectedItemsFromMultiD = $("#MultiDays").data("kendoMultiSelect");
+               selectedItemsFromMultiD.enable(false);
+               isA = true;
+               $("#multiA .k-multiselect.k-disabled")[0].style.setProperty('background-color', 'white', 'important'); 
+
+            }
+            selectedItemsFromMultiD.value(tempDays);
+         }
+
+         Schedule_ResetMultiHoursHeight(tempHours.length);
+         if (arrayD.length == 0) {
+            $("#colD").css("margin-bottom", "0px");
+         }
+         if (arrayD.length >= 5 && isA) {
+            $("#colD").css("margin-bottom", "0px");
+         }
+
+      }
+
+      $('#QuantityDose_VolumeUnit').removeAttr("disabled");
+      $('#QuantityDose_AmountUnit').removeAttr("disabled");
+      $('#QuantityDose_SpeedUnit').removeAttr("disabled");
+      $('#QuantityDose_DrugSpeedUnit').removeAttr("disabled");
+      $('#QuantityDose_ConcentrationUnit').removeAttr("disabled");
+      $('#QuantityDose_DurationUnit').removeAttr("disabled");
+      initSADisableExternalFields();
+   };
+
+function changeToViewMode() {
+   actualmode = 1;
+   toolBarAllEditSaveButton();
+   toolBarShowButtonByClass("view-mode");
+   $('#@strDialogID :input').attr('disabled', true);
+   $('#@strDialogID :input').each(function () {
+      var cb = $(this).data("kendoDropDownList");
+      if (cb) {
+            cb.enable(false);
+      }
+
+      cb = $(this).data("kendoNumericTextBox");
+      if (cb) {
+         cb.enable(false);
+      }
+
+      cb = $(this).data("kendoTimePicker");
+      if (cb) {
+         cb.enable(false);
+      }
+      cb = $(this).data("kendoMultiSelect");
+      if (cb) {
+         cb.enable(false);
+      }
+      cb = $(this).data("k-checkbox");
+      if (cb) {
+         cb.enable(false);
+      }
+   });
+  
+   if ($("#typeTherapy").val() != "@TherapyItemType.Protocol.ToString()") {
+      $("#addRoutes").css("display", "none");
+      $("#addDiluents").css("display", "none");
+      $("#btnAddResources").css("display", "none");
+      $("#addProfiles").css("display", "none");
+      $("#btnMoveResourceUp").css("display", "none");
+      $("#btnMoveResourceDown").css("display", "none");
+
+      if ($("#typeTherapy").val() == "@TherapyItemType.Mixture.ToString()") {
+         $("#addMixtureGridRow").css("display", "none");
+         //$('#removeMixtureGridRow').css("display", "none");
+
+      }
+      Schedule_LoadMultiEditValues();
+      $("#SelectDaysBtn").prop("disabled", true);
+      $("#SelectHoursBtn").prop("disabled", true);
+      $("#startingFromBtn").prop("disabled", true);
+      if ($("#Schedule_PlanningType").val() == "2" || $("#Schedule_PlanningType").val() == "3") {
+         var arrayDview = [];
+
+         arrayDview = $("#Schedule_Days").val().split(",").map(s => s.trim());
+         if (arrayDview != null) {
+            var multiselect = $("#MultiDays").data("kendoMultiSelect");
+            var multiselectR = $("#MultiDaysR").data("kendoMultiSelect");
+
+            if (arrayDview.length == 0) {
+               Schedule_ChangeDays('absoluteH', 2, false);
+            }
+            else {
+               if (arrayDview[0].includes('+')) {
+                  document.getElementById("relativeH").checked = true;
+                  document.getElementById("absoluteH").checked = false;
+                  document.getElementById("btnsDayA").style.display = "none";
+                  document.getElementById("btnsDayR").style.display = "block";
+                  $("#multiA").css("display", "none");
+                  $("#multiR").css("display", "block");
+                  multiselectR.enable(false);
+                  $("#multiR .k-multiselect.k-disabled")[0].style.setProperty('background-color', '#e9ecef', 'important'); 
+                  selectedItemsFromMultiD = $("#MultiDaysR").data("kendoMultiSelect");
+                  selectedItemsFromMultiD.enable(false);
+                  multyDk = 1;
+                  temp_multyDk = 1;
+               }
+               else {
+                  document.getElementById("absoluteH").checked = true;
+                  document.getElementById("relativeH").checked = false;
+                  document.getElementById("btnsDayA").style.display = "block";
+                  document.getElementById("btnsDayR").style.display = "none";
+                  $("#multiA").css("display", "block");
+                  $("#multiR").css("display", "none");
+                  multiselect.enable(false);
+                  $("#multiA .k-multiselect.k-disabled")[0].style.setProperty('background-color', '#e9ecef', 'important'); 
+                  selectedItemsFromMultiD = $("#MultiDays").data("kendoMultiSelect");
+                  selectedItemsFromMultiD.enable(false);
+                  isA = true;
+                  multyDk = 0;
+                  temp_multyDk = 0;
+               }
+            }
+            var selectedItemsFromMultiD = $("#MultiDays").data("kendoMultiSelect");
+            selectedItemsFromMultiD.value(tempDays);
+         }
+
+      } else {
+         Schedule_ChangeDays('absoluteH', 2, true);
+         var selectedItemsFromMulti = $("#MultiHours").data("kendoMultiSelect");
+         selectedItemsFromMulti.value("");
+         var selectedItemsFromMultiD = $("#MultiDays").data("kendoMultiSelect");
+         selectedItemsFromMultiD.value("");
+      }
+
+      if ($("#Schedule_PlanningType").val() == "4") {
+
+         CheckPatterString();
+
+      }
+      document.getElementById('selStartingFromH').checked = false;
+      document.getElementById('selStartingFromD').checked = false;
+      document.getElementById('selStartingFromDA').checked = false;
+      document.getElementById('selStartingFromDA').checked = false;
+      document.getElementById('selDay').checked = false;
+      $("#StartingFromD").attr("disabled", true);
+      $("#StartingFromH").attr("disabled", true);
+      $("#StartingFromDA").attr("disabled", true);
+      $("#StartingFromDA1").attr("disabled", true);
+      $("#DayNumberCustom").attr("disabled", true);
+
+      $("#StartingFromD").val("");
+      $("#StartingFromH").val("");
+      $("#StartingFromDA").val("");
+      $("#StartingFromDA1").val("");
+      $("#DayNumberCustom").val("");
+      var dropCustomStart = $("#dropCustomDay").data("kendoDropDownList");
+      dropCustomStart.enable(false);
+      setStartingFrom();
+   
+     $("#colH .k-multiselect.k-disabled")[0].style.setProperty('background-color', '#e9ecef', 'important'); 
+     $("#colD .k-multiselect.k-disabled")[0].style.setProperty('background-color', '#e9ecef', 'important'); 
+  }
+   else {
+
+      var grid = $("#itemsGrid").data("kendoGrid");
+      grid.clearSelection();
+      $('#addProtocolItems').css("display", "none");
+      //$('#removeProtocolItems').css("display", "none");
+
+   }
+
+   enableGrids = false;
+
+
+   if ($("#typeTherapy").val() == "@TherapyItemType.Mixture.ToString()") {
+
+      var grid = $("#MixtureComponents").data("kendoGrid");
+            grid.clearSelection();
+            $("#addMixtureGridRow").css("display", "block");
+            //$('#removeMixtureGridRow').css("display", "block");
+
+   }
+
+   var gridProfileLink = $("#ProfilesLink").data("kendoGrid");
+   gridProfileLink.clearSelection();
+
+   };
+
+   function toolBarShowButtonByClass(clas) {
+      var tb = $("#toolbar").data("kendoToolBar");
+      tb.umsShowButtonByClass(clas);
+   }
+   function toolBarAllEditSaveButton() {
+      var tb = $("#toolbar").data("kendoToolBar");
+      tb.umsHideAllEditSaveButton();
+   }
+
+
+
+
+   function AddHiddenValuesForGrid(gridId, outValName) {
+      var listOfElements = $(gridId).getKendoGrid().dataSource.data();
+      if (listOfElements != null && listOfElements.length > 0)
+      {
+         for (var i = 0; i < listOfElements.length; i++)
+         {
+            var itm = listOfElements[i];
+            var name = '<input type="hidden" name="' + outValName +'[' + i + '].Name"  value="' + itm.Name + '" class="_a_"/>'
+            var enabled = '<input type="hidden" name="' + outValName +'[' + i + '].Enabled"  value="' + itm.Enabled + '" class="_a_"/>'
+            $("#@strFormID").append(name);
+            $("#@strFormID").append(enabled);
+         }
+      }
+   }
+
+
+   function deleteStandardAction() {
+
+
+        $.ajax({
+            url: '@Url.Action("DeleteAction", "Therapy")',
+            type: 'POST',
+            data: { ID: '@Model.Id' },
+
+        }).done(function (data) {
+            if (data.success) {
+                $('#@strDialogID').data('kendoWindow').close();
+               var grid = $("#standard-operations-grid").data("kendoGrid");
+                grid.dataSource.read();
+            }
+            else {
+                umsErrorDialog("Error occured", data.errorMessage, 200, 200);
+            }
+            }).fail(function (response) {
+                umsErrorDialog("Error occured", response, 200, 200);
+        });
+
+    }
+   var sad_flag_VerifyStandardAction = false;
+
+   function OnValidation() {
+
+      var retValue = false;
+      var validator = $("#@strFormID").kendoValidator().data("kendoValidator");
+      var errors = [];
+      $("#errors").html("");
+
+      if (!validator.validate() ) {
+         try {
+
+            errors = validator.errors();
+
+            if (!OnValidationClass()) {
+               errors.push('@DicSvc.XLate("Class is required")');
+            }
+            
+            if (!OnValidationSchema()) {
+               errors.push('@DicSvc.XLate("Schema is required")');
+            }
+
+            $("#errors").html(buildValidationMessage(errors));
+         }
+         catch (e) {
+
+               $("#errors").html(e);
+         }
+      }
+      else {
+         $("#errors").html("");
+         if (!OnValidationSchema()) {
+            errors.push('@DicSvc.XLate("Schema is required")');
+            $("#errors").html(buildValidationMessage(errors));
+            return false;
+         }
+        
+         if (!OnValidationClass()) {
+            errors.push('@DicSvc.XLate("Class is required")');
+            $("#errors").html(buildValidationMessage(errors));
+            return false;
+         }
+         
+         retValue = true;
+      }
+
+         return retValue;
+   }
+
+   function OnValidationSchema() {
+         if ($("#typeTherapy").val() == "@TherapyItemType.Action.ToString()" || $("#typeTherapy").val() == "@TherapyItemType.Mixture.ToString()") {
+                     var dropdownlistQuantityDose = $("#QuantityDose_SchemaName").data("kendoDropDownList");
+                     var selectionSchema = dropdownlistQuantityDose.select();
+                  if (selectionSchema == 0)
+                  {
+                    $("#errors").append("<p style='position:relative;top:19px;'>@DicSvc.XLate("Schema is required")</p>");
+
+                     return false;
+                  }
+      }
+      return true;
+   }
+
+
+   function OnValidationClass() {
+      var dropdownlistQuantityDose = $("#Classification_ClassCat").data("kendoDropDownList");
+      var selectionSchema = dropdownlistQuantityDose.select();
+      if (selectionSchema == 0) {
+         $("#errors").append("<p style='position:relative;top:19px;'>@DicSvc.XLate("Class is required")</p>");
+
+         return false;
+      }
+      else {
+         var valueSelected = dropdownlistQuantityDose.text();
+         if (valueSelected == '') {
+             $("#errors").append("<p style='position:relative;top:19px;'>@DicSvc.XLate("Class is required")</p>");
+
+            return false;
+         }
+
+      }
+
+      return true;
+   }
+
+   function OnSuccess(result, status) {
+      if (status == "success") {
+         var grid = $("#standard-operations-grid").data("kendoGrid");
+         grid.dataSource.read();
+         dialog.close();
+      }
+      else {
+         window.umsAlert("Error occured", response.errorMessage, 400, 300);
+      }
+   }
+   function OnFailure(jqXHR, textStatus, errorThrown) {
+      window.umsAlert("Error occured", errorThrown, 400, 300);
+   }
+
+   function VerifyStandardAction(ID)
+   {
+
+      $.ajax({
+         url: '@Url.Action("VerifyComponentOfMixtureAndProtocol", "Therapy")',
+         type: 'POST',
+         data: { ID: ID, type: null },
+         async: false,
+      }).done(function (data) {
+
+         var checkMixture = 0;
+         for (var i = 0; i < data.Data.length; i++) {
+            if (data.Data[i].Type == 1) {
+               checkMixture++;
+            }
+         }
+         if (data != null && data.Total > 0 && checkMixture>0) {
+
+              sad_flag_VerifyStandardAction = true;
+              $("#errors").html("");
+              $("#errors").append("<p style='position:relative;top:19px;'>@(DicSvc.XLate("This Action can't be modified because it is part of Mixtures. Check Mixture Link Table"))</p>");
+
+            }
+            }).fail(function (response) {
+                umsErrorDialog("Error occured", response, 200, 200);
+        });
+   }
+
+
+   resizeTherapyDetailWndw();
+
+
+   @*$("#@strFormID :input").on("change", function () {
+
+         $("#btnSave").attr('disabled', false);
+
+
+
+   });*@
+</script>

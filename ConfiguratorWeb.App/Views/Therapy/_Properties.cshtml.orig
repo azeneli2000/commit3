@@ -1,0 +1,158 @@
+<<<<<<< HEAD
+﻿@using ConfiguratorWeb.App.Models.Therapy
+=======
+﻿@using Digistat.FrameworkStd.Model.Therapy
+@using Digistat.FrameworkStd.Model.Therapy
+>>>>>>> 9681caee264573c3fc3b83fee1ee6e7e2692c032
+@model TherapyItemModel
+@{
+   ViewData["Title"] = "_TabProperties";
+
+   var propertyList = new List<SelectListItem>() {
+      new SelectListItem("No Preparation", "0"),
+      new SelectListItem("Preparation", "1"),
+      new SelectListItem("Preparation with double signature","2")
+                                                               };
+}
+<style>
+   #propertiesGrid {
+      width: 380px;
+      height: 150px;
+   }
+
+</style>
+
+<div class="propertiesContainer">
+      <div>
+         <div id="propertiesGrid"></div>
+         @Html.LabelFor(m => m.Properties.PreparationType)
+         <br />
+         @*@(Html.Kendo().DropDownListFor(m => m.Properties.PreparationType)
+                                                                                                      .HtmlAttributes(new { @style = "width:50%;" })
+                                                                                                      .DataTextField("Text")
+                                                                                                      .DataValueField("Value")
+                                                                                                      .BindTo(new List<SelectListItem>
+                                                                                                         () {
+                                                               new SelectListItem("No Preparation", "0"),
+                                                               new SelectListItem("Preparation", "1"),
+                                                               new SelectListItem("Preparation with double signature","2")
+                                                                                                         })
+         )*@
+
+            @(Html.Kendo().Grid(Model.Properties.PreparationType2)
+            .Name("propertiesGrid")
+            .Navigatable(true)
+            //.BindTo(Model.Properties.PreparationType2)
+            .Columns(columns =>
+            {
+               columns.Bound(e => e.Enabled).ClientTemplate("<input type='radio' #= Enabled ? checked='checked': '' # />").Title(" ").Width("30px").Editable("noEditCheckbox");
+               columns.Bound(e => e.Name).Title("Prescription Filter");
+
+            })
+            .Editable(e => e.Mode(GridEditMode.InCell))
+            .Selectable(s => s.Mode(GridSelectionMode.Single))
+            .Scrollable()
+            .DataSource(dataSource => dataSource
+            .Ajax()
+            .ServerOperation(true)
+            )
+            .HtmlAttributes(new { @class = "subGridsTherapy" })
+            .NoRecords(x => x.Template("<div class='empty-grid'>" + DicSvc.XLate("No records found") + "</div>"))
+
+         )
+      </div>
+
+      <div class="col-sm">
+         @Html.LabelFor(m => m.Properties.ValidationType)
+         <br />
+         @(Html.Kendo().DropDownListFor(m => m.Properties.ValidationType)
+                                                                                               .HtmlAttributes(new { @style = "width:50%;" })
+                                                                                               .DataTextField("Text")
+                                                                                               .DataValueField("Value")
+                                                                                               .BindTo(new List<SelectListItem>
+                                                                                                  () {
+                                                            new SelectListItem("No", "0"),
+                                                            new SelectListItem("Yes", "1"),
+                                                            new SelectListItem("Always","2")
+                                                                                                  })
+         )
+      </div>
+
+   <div class="form-group row">
+
+      <div class="col-sm">
+         @Html.LabelFor(m => m.Properties.SecondSignatureType)
+         <br />
+         @(Html.Kendo().DropDownListFor(m => m.Properties.SecondSignatureType)
+                                                                                               .HtmlAttributes(new { @style = "width:50%;" })
+                                                                                               .DataTextField("Text")
+                                                                                               .DataValueField("Value")
+                                                                                               .BindTo(new List<SelectListItem>
+                                                                                                  () {
+                                                            new SelectListItem("No", "0"),
+                                                            new SelectListItem("Yes", "1"),
+                                                            new SelectListItem("Always","2")
+                                                                                                  })
+         )
+      </div>
+
+      <div class="col-sm">
+         @Html.LabelFor(m => m.Properties.SecondSignatureExecType)
+         <br />
+         @(Html.Kendo().DropDownListFor(m => m.Properties.SecondSignatureExecType)
+                                                                                               .HtmlAttributes(new { @style = "width:50%;" })
+                                                                                               .DataTextField("Text")
+                                                                                               .DataValueField("Value")
+                                                                                               .BindTo(new List<SelectListItem>
+                                                                                                  () {
+                                                            new SelectListItem("No", "0"),
+                                                            new SelectListItem("Yes", "1"),
+                                                            new SelectListItem("Always","2")
+                                                                                                  })
+         )
+      </div>
+   </div>
+   <div class="form-group row">
+      <div class="col-sm">
+         @Html.LabelFor(m => m.Properties.FluidBalanceType)
+         <br />
+         @(Html.Kendo().DropDownListFor(m => m.Properties.FluidBalanceType)
+                                                                                                      .HtmlAttributes(new { @style = "width:50%;" })
+                                                                                                      .DataTextField("Text")
+                                                                                                      .DataValueField("Value")
+                                                                                                      .BindTo(new List<SelectListItem>
+                                                                                                         () {
+                                                               new SelectListItem("No", "0"),
+                                                               new SelectListItem("Yes", "1"),
+                                                               new SelectListItem("In Pump","2"),
+                                                               new SelectListItem("In Pump Connected","2")
+                                                                                                         })
+         )
+      </div>
+
+      <div class="col-sm">
+         @Html.LabelFor(m => m.Properties.PrescNotes)
+         <br />
+         @(Html.TextAreaFor(m => m.Properties.PrescNotes, new { @style = "width:100%;max-width:250%;height:177px;max-height:177px;border-color: #e4e4e4;" }))
+      </div>
+   </div>
+   <div class="form-group row">
+      <div class="col-sm">
+         @Html.LabelFor(m => m.Properties.HelpKeyPresc)
+         <br />
+         @(Html.Kendo().TextBoxFor(m => m.Properties.HelpKeyPresc).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "50" }))
+         <br />
+         @Html.LabelFor(m => m.Properties.HelpKeyExec)
+         <br />
+         @(Html.Kendo().TextBoxFor(m => m.Properties.HelpKeyExec).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "50" }))
+
+      </div>
+
+      <div class="col-sm">
+         @Html.LabelFor(m => m.Properties.Barcodes)
+         <br />
+         @*@(Html.Kendo().TextBoxFor(m => m.Properties.Barcodes).HtmlAttributes(new { @class = "k-input k-textbox", @maxlength = "50" }))*@
+         @(Html.TextAreaFor(m => m.Properties.Barcodes, new { @style = "width:100%;max-width:250%;height:177px;max-height:177px;border-color: #e4e4e4;" }))
+      </div>
+   </div>
+</div>

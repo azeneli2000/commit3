@@ -1,0 +1,116 @@
+﻿@inject ConfiguratorWeb.App.Services.IMenuService MenuSvc;
+@{
+   ViewBag.Title = DicSvc.XLate("Home Page");
+}
+<style>
+   .sitemap-menu > #main-sitemap {
+      margin-left: -15px !important;
+      margin-right: 25px !important;
+      border-left: transparent !important;
+      background: white;
+      height: 100%;
+   }
+   .sitemap-menu > #main-sitemap >li {
+      /*border: 1px solid ;*/
+      /*width: 33%;*/
+      /*list-style: none;*/
+   }
+   .sitemap-menu > #main-sitemap >li>a {
+      /*width: 200px;*/
+      /*font-weight: bold;*/
+   }
+   
+   
+   
+   /********************/
+   .ums-sitemap-header {
+      /*border: 1px #f08080 solid;*/
+      /*margin-left: 4%;*/
+      /*margin-right: 4%;*/
+      margin-top: 0.25rem;
+      /*padding: 0.6rem 1rem;*/
+      text-align: center;
+      list-style: none;
+      /*background-color: #4a90e2;*/
+      background-color: #BDBDBD;
+      border-radius: 0.25rem;
+      color: #616161;
+      /*font-weight: bold;*/
+      font-size: 1.25rem;
+   }
+   .ums-sitemap-header-subgroup {
+      /*border: 1px #00ff7f solid;*/
+      list-style: none;
+
+   }
+   .ums-sitemap-header >a {
+      list-style: none;
+   }
+   
+   .ums-sitemap-header-subsubgroup {
+      border: 1px #428bca solid;
+      list-style: none;
+      /*margin-left: 4%;
+      margin-right: 4%;
+      margin-top: -1.25rem;
+      padding: 1.6rem 1rem;
+      text-align: center;*/
+   }
+   #main-sitemap {
+       font-size: 14px !important;
+   }
+   #main-sitemap  >li  >ul > ul > li ,
+   #main-sitemap  >li  >ul > ul > li >ul>li 
+   {
+      padding: 0px 0px;
+      /*border: 1px #428bca solid;*/
+      list-style: none;
+      /*letter-spacing: 2px;*/
+   }
+   #main-sitemap > li > ul > ul {
+      padding-top: 10px;
+      padding-inline-start: 10px;
+   }
+   
+   #main-sitemap > li > ul > ul > li > ul > li {
+      margin-left: 10px;
+   }
+   
+   #main-sitemap > li > ul > ul > li > ul{
+      padding-left:5px
+   }
+   #main-sitemap .card {
+      border-left-width: 0px;
+      border-top-width: 0px;
+      margin-bottom: 10px;
+      padding-left: 3px;
+      border-radius: 0.5rem;
+      padding-right: 0px;
+      margin-right: 0;
+   }
+   #main-sitemap span.description {
+       display: block;
+       /*font-size: 80%;*/
+       font-weight: normal;
+       color: #BDBDBD;
+       margin-top: 0;
+       margin-bottom: 1rem;
+       overflow: hidden;
+       /*text-overflow: ellipsis;*/
+       /*font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;*/
+       white-space: inherit;
+   }
+</style>
+<div id="sitemap-container" class="sitemap-menu mt-3 bg-white">
+
+   @Html.CreateSiteMap(MenuSvc,Context)
+
+</div>
+<script >
+   $(document).ready(function() {
+      //$("#sitemap-container").find("#main-menu-kendo").attr('style', "");
+      //$("#sitemap-container").find("#main-menu-kendo").child.each(function(li) {
+      //   li.addClass("row");
+      //})
+   })
+</script>

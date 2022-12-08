@@ -1,0 +1,31 @@
+﻿@model PermissionViewModel
+
+<script>
+    function onPermDropDownDataBound(e) {        
+        $(this.items()).each(function (index, item) {
+            var model = e.sender.dataItem(index);
+            $(item).attr("title",model.Description);
+        });
+    }
+</script>
+
+@(
+   Html.Kendo().DropDownListFor(m => m)
+      .HtmlAttributes(new { @style = "width:100%;" })
+      .DataValueField("FunctionName")
+      .DataTextField("FunctionName")
+      .DataSource(source =>
+      {
+         source
+         .Custom().Group(g => g.Add("ModuleName", typeof(string)))
+         .Transport(transport => transport.Read(read =>
+            {
+               read.Action("GetPermissionList", "SystemAdministration");
+            })
+         );
+      })
+      .Events(ev => ev.Change("onChangePermission").DataBound("onPermDropDownDataBound"))
+      .Filter("contains")
+)
+
+@Html.ValidationMessageFor(m => m)

@@ -1,0 +1,37 @@
+﻿@model List<Configurator.Std.Models.StockManagement.ResourceDto>
+<div class="card-body">
+    @(Html.Kendo().Grid<Configurator.Std.Models.StockManagement.ResourceDto>()
+        .Name("gridResources")
+        .Events(ev => ev.Change("onListSelect"))
+        .Columns(columns =>
+        {
+            columns.Bound(e => e.SrCode).Filterable(ftb => ftb.Search(true));
+            columns.Bound(e => e.SrName).Filterable(ftb => ftb.Search(true));
+
+        })
+        .UmsDefaultSettings(DicSvc)
+        .HtmlAttributes(new { style = "height:100%;" })
+        .DataSource(dataSource => dataSource
+        .Ajax()
+        .ServerOperation(false)
+
+        .Read(read => read.Action("GetAllResources", "StockManagement"))
+        )
+        )
+
+        <br />
+
+    @*Add resource*@
+    <a role="button"
+       href="#"
+       class="k-buttonLarge btnClose view-mode k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base k-toolbar-last-visible"
+       id="moveResourceButton" type="button" data-overflow="auto" onclick="showStockDropDowns();return false;"
+       aria-disabled="false"><span class="k-button-text">Add Resource</span></a>
+    @*close*@
+    <a role="button"
+       href=""
+       class="k-buttonLarge btnClose view-mode k-button k-button-md k-button-rectangle k-rounded-md k-button-solid k-button-solid-base k-toolbar-last-visible"
+       id="closeButton" type="button" data-overflow="auto"
+       aria-disabled="false" style="display: inline;"><span class="k-button-text">Close</span></a>
+
+</div>

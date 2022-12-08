@@ -1,0 +1,301 @@
+﻿@model ConfiguratorWeb.App.Models.DriverViewModel
+@{
+    Layout = null;
+}
+<script>
+
+   function uploadDriver() {
+
+      var capabilityGrid = $("#capabilities-grid").data("kendoGrid");
+
+      var data = capabilityGrid.dataSource.data();
+      var dirty = $.grep(data, function(item) {
+         return item.dirty;
+      });
+
+
+      $("#CapabilitiesSerialize")[0].value=JSON.stringify(data, null, 2);
+      $("#CapabilitiesChanged")[0].value=JSON.stringify(dirty, null, 2);
+
+      var windowWidget = $("#driverEditWindow").data("kendoWindow");
+      kendo.ui.progress(windowWidget.element, true);
+      var container = $(this).closest("div#driver-detail");
+      var formdata = new FormData($("#formDriverDetail").get(0));
+      var targetUrl = '@Url.Action("UploadDriverFiles", "Connect")';
+      $.ajax({
+         cache: false,
+         url: targetUrl,
+         type: 'POST',
+         dataType: "json",
+         processData: false, //For posting uploaded files we add this
+         contentType: false, //For posting uploaded files we add this
+         data: formdata
+      }).done(function(data) {
+         kendo.ui.progress(windowWidget.element, false);
+         if (data.errorMessage !== '' && data.errorMessage !== undefined) {
+            $("#errors").html(data.errorMessage);
+         }
+         if (!data.success) {
+            $("#errors").html(data.errorMessage);
+         } else {
+            $("#errors").html('');
+            windowWidget.content('');
+            windowWidget.content(data.content.Result);
+            windowWidget.refresh();
+
+            if (IsCdssServerLoaded) {
+               $('#tabstrip-@Model.Id-eventcatalog').addClass('d-none');
+            }
+         }
+         if (!IsCdssServerLoaded) {
+            $('#btnDelete').css('display', 'inline');
+         }
+         $('#btnSave').css('display', 'inline');
+      }).fail(function(jqXhr, textStatus, thrownError) {
+         $("#errors").html("An error occurred while sending data to " +
+            targetUrl +
+            ": " +
+            jqXhr.status +
+            ' ' +
+            thrownError);
+         kendo.ui.progress(windowWidget.element, false);
+         if (!IsCdssServerLoaded) {
+            $('#btnDelete').css('display', 'inline');
+         }
+         $('#btnSave').css('display', 'inline');
+      });
+   }
+
+   function onRemoveFiles(e) {
+      //debugger;
+      $('#driverFilesContainer .k-upload-sync').removeClass('border border-danger');
+      $("#errors").html('');
+      var numOfExe = 0;
+      var filesList = $('#DriverFiles').getKendoUpload().getFiles();
+      var filesRemoved = e.files;
+      var files = [];
+      for (var i = 0; i < filesList.length; i++) {
+         var file = filesList[i];
+         var idx = filesRemoved.indexOf(file);
+         if (idx>-1) {
+            filesRemoved[idx] = null;
+         } else {
+            files.push(file);
+         }
+      }
+      if (files.length > 0) {
+         for (var i = 0; i < files.length; i++) {
+            var fileInfo = files[i];
+            if (fileInfo.extension.toLowerCase() === ".exe") {
+               numOfExe++;
+            }
+         }
+         if (numOfExe > 1) {
+            $('#driverFilesContainer .k-upload-sync').addClass('border border-danger');
+            var errors = ["more then 1 exe file is present"];
+            $("#errors").html(buildValidationMessage(errors));
+
+         }
+         if (numOfExe > 1) {
+            $('#driverFilesContainer .k-upload-sync').addClass('border border-danger');
+            var errors = ["more then 1 exe file is present"];
+            $("#errors").html(buildValidationMessage(errors));
+            $('#btnUpload').css('display', 'none');
+            $('#btnSave').css('display', 'inline');
+         } else {
+            enableUploadBtn();
+         }
+
+      }
+   }
+
+   function onSelectFiles(e) {
+      $('#driverFilesContainer .k-upload-sync').removeClass('border border-danger');
+      $("#errors").html('');
+      //debugger;
+      var numOfExe = 0;
+      for (var i = 0; i < e.files.length; i++) {
+         var fileInfo = e.files[i];
+         if (fileInfo.extension.toLowerCase() === ".exe") {
+            numOfExe++;
+         }
+      }
+      var filesList = $('#DriverFiles').getKendoUpload().getFiles();
+      for (var i = 0; i < filesList.length; i++) {
+         var fileInfo = filesList[i];
+         if (fileInfo.extension.toLowerCase() === ".exe") {
+            numOfExe++;
+         }
+      }
+      if (numOfExe > 1) {
+         $('#driverFilesContainer .k-upload-sync').addClass('border border-danger');
+         var errors = ["more then 1 exe file is present"];
+         $("#errors").html(buildValidationMessage(errors));
+         $('#btnUpload').css('display', 'none');
+         $('#btnSave').css('display', 'inline');
+
+      } else {
+         enableUploadBtn();
+      }
+   }
+
+   function enableUploadBtn() {
+
+
+         $('#btnUpload').css('display', 'inline');
+         $('#btnDelete').css('display', 'none');
+         $('#btnSave').css('display', 'none');
+         $('#btnUpload').off("click").on("click",
+            function() {
+               //debugger;
+               if ('@Model.Id' != '' && !IsCdssServerLoaded ) {
+                  $('#divDialogKeepSettings').data('kendoWindow').center().open();
+                  $('#btnConfirmUpload').off('click').on('click',
+                     function(e) {
+                        $('#KeepCapabilities').val($('#chkKeepCapabilities').is(":checked"));
+                        $('#KeepSmartCentralFormatString').val($('#chkKeepFormatString').is(":checked"));
+                        $('#divDialogKeepSettings').data('kendoWindow').close();
+                        uploadDriver();
+                     });
+                  $('#btnCancelUpload').off('click').on('click',
+                     function() {
+                        $('#divDialogKeepSettings').data('kendoWindow').close();
+                     });
+               } else {
+                  if ('@Model.Id' != '' && IsCdssServerLoaded ) {
+                     $('#KeepCapabilities').val(true);
+                     $('#KeepSmartCentralFormatString').val(true);
+                  }
+                   uploadDriver();
+               }
+        });
+    }
+
+
+    function setRunAssDLL() {
+        $('#RunAsDLLHidden').val($('#RunAsDLL').prop("checked"));
+        $('#RunAsDLL').val($('#RunAsDLL').prop("checked"));
+       }
+
+
+
+
+
+   </script>
+
+
+<div style="height:370px" id="spec-div_@Model.Id">
+
+    <div class="row mt-3">
+        <div class="col-md-3 u-col-h-fixed">
+            <label asp-for="DriverName" class="label-name field-required">@DicSvc.XLate("Driver Name")</label>
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            <div class="input-group ">
+                <input asp-for="DriverName" class="k-input k-textbox control-required " readonly="readonly" />
+                <div class="input-group-append ">
+                    <button id="btnInfoDriverName" class="btn lh-1-0 border ig-24px" type="button" data-toggle="tooltip" data-placement="top" title="@DicSvc.XLate("Help")">
+                        <span class="mdi  mdi-information-outline mdi-24px"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 u-col-h-fixed ">
+            &nbsp;&nbsp;@(string.Format(DicSvc.XLate("{0} file/s loaded"), Model.FileCount))
+        </div>
+        <div class="col-md-4 u-col-h-fixed modify-mode" id="driverFilesContainer">
+            <style>
+                #driverFilesContainer .k-widget.k-upload.k-header ,
+                #driverFilesContainer .k-widget.k-upload.k-upload-sync
+                {
+                    display: inline-block;
+                    border-color: transparent;
+                    background-color: transparent !important;
+                    width: 100%;
+                }
+                
+                #driverFilesContainer .k-widget > .k-dropzone {
+                   background-color: #fff !important;
+                }
+                #driverFilesContainer .k-upload-sync .k-upload-button {
+                    margin: 0px;
+                }
+
+                #driverFilesContainer div.k-button.k-upload-button.k-invalid {
+                    border-color: red;
+                    background-color: #fff8f8;
+                }
+                input#DriverFiles {
+                   opacity: 0;
+                }
+                .k-upload .k-multiple-files-wrapper .k-file-name-size-wrapper {
+                   margin-bottom: 1px;
+                }
+                ul.k-upload-files {
+                   max-height: 250px;
+                   overflow: auto;
+                   height: 250px;
+                }
+                .k-upload .k-multiple-files-wrapper .k-file-information {
+                   font-weight: bold;
+                }
+            </style>
+            <script>
+
+
+            </script>
+            @(Html.Kendo().Upload()
+                            .Name("DriverFiles")
+                            .HtmlAttributes(new { aria_label = "control-required" })
+                            .ShowFileList(true)
+                            .Events(ev => ev.Select("onSelectFiles").Remove("onRemoveFiles"))
+            )
+
+        </div>
+
+    </div>
+    <div class="row">
+        <div class="col-md-3 u-col-h-fixed">
+            <label asp-for="DriverVersion" class="label-name field-required" style="line-height: 18px;">@DicSvc.XLate("Driver Version (specific to this version)")</label>
+        </div>
+        <div class="col-md-3 u-col-h-fixed">
+            <input asp-for="DriverVersion" class="k-input k-textbox control-required" readonly="readonly" />
+        </div>
+    </div>
+    <div class="row">
+       <div class="col-md-3 u-col-h-fixed">
+          <label asp-for="RunAsDLL"  style="line-height: 18px;">@DicSvc.XLate("Run as DLL")</label>
+       </div>
+       @{
+          string RunAsDLLStyle = (Model.RunAsDLL.HasValue)?"":"pt-2";
+       }
+        <div class="col-md-3 u-col-h-fixed @RunAsDLLStyle">
+            @if (!Model.RunAsDLL.HasValue)
+                  {
+                  @DicSvc.XLate("NO")
+                  }
+            else
+            {
+               <input type="checkbox" id="RunAsDLL" name="RunAsDLL" class="k-checkbox k-checkbox-md" @(Model.RunAsDLL.Value?"checked":"") value="@(Model.RunAsDLL.Value?"true":"false")" onclick="setRunAssDLL();" />
+               <label class="k-checkbox-label"></label><input type="hidden" id="RunAsDLLHidden" name="RunAsDLL" value="@Model.RunAsDLL.Value.ToString().ToLower()" />
+            }
+        </div>
+    </div>
+   <div class="row">
+       <div class="col-md-3 u-col-h-fixed">
+           <label asp-for="Note" >@DicSvc.XLate("Note")</label>
+       </div>
+       <div class="col-md-3 u-col-h-fixed">
+           <textarea asp-for="Note" class="k-input k-textbox " style="width:96%;height: 205px;border-color: #e4e4e4;" rows="10" readonly="readonly" maxlength="200"></textarea>
+       </div>
+       <div class="col-md-2 u-col-h-fixed">
+
+       </div>
+
+           <div class="col-md-4 u-col-h-fixed ">
+               @*<button id="btnUpload" disabled class="btnUpload k-button k-buttonLarge modify-mode " type="button">@DicSvc.XLate("UPLOAD")</button>*@
+           </div>
+       </div>
+
+
+   </div>

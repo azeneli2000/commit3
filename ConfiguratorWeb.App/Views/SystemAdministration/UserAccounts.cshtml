@@ -1,0 +1,220 @@
+﻿@using Kendo.Mvc.Infrastructure
+@using Digistat.FrameworkStd.Interfaces;
+@using Digistat.FrameworkStd.UMSLegacy;
+@{
+    string gridName = "users-grid";
+    string popUpWindowName = "IdOfEditWindow";
+
+    ViewBag.Title = DicSvc.XLate("User account");
+}
+<style>
+    .floatRight {
+        /*float: right;*/
+       position: absolute;
+       right: 6px;
+    }
+</style>
+@inject ISystemOptionsService sysOptSvc
+@{
+    bool bolNewPermissionMgr = UMSFrameworkParser.ConvertToBoolean(sysOptSvc.GetSystemOption(string.Empty, null, null, null, "UseRolesForPermissions", true).Value);
+}
+<script>
+    var gridIdName = "@gridName";
+    var popUpWindowName = "#@popUpWindowName";
+    var _showDisabledUsers = 0;
+
+    var kndWndRoleDetails;
+    $(document).ready(function () {
+        if (!kndWndRoleDetails) {
+            kndWndRoleDetails = $('#roleSelectionDialog').usmKendoWindow({
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                },
+                title: '@DicSvc.XLate("ROLES SELECTION")',
+                height: '580px',
+                width:'700px'
+            });
+        }
+    });
+
+    function toggleDisabledUsers() {
+        if (_showDisabledUsers==0) {
+            $('#btnShowDisabled').text('@DicSvc.XLate("Show Active Users")');
+            _showDisabledUsers = 1;
+        }
+        else {
+            $('#btnShowDisabled').text('@DicSvc.XLate("Show Disabled Users")');
+            _showDisabledUsers = 0;
+        }
+        var grid = $('#@gridName').data('kendoGrid');
+        grid.dataSource.read();
+    }
+
+    function getAdditionalData() {
+        return {
+            showDisabled: _showDisabledUsers
+        };
+    }
+
+
+</script>
+
+<div class="card h-100 m-1 p-2 border-0" id="gridContainer">
+    <div id="@popUpWindowName"></div>
+
+    @(Html.Kendo().Grid<ConfiguratorWeb.App.Models.UserViewModel>
+       ()
+       .Name(gridName)
+       .UmsDefaultSettings(DicSvc)
+       .Columns(columns =>
+       {
+           //columns.Bound("").ClientTemplate("#=GetCountIt()#").Title("#").Width(50);
+           columns.Bound(e => e.Id).Visible(false);
+           columns.Bound(e => e.LastName);
+           columns.Bound(e => e.FirstName);
+           columns.Bound(e => e.Title);
+           columns.Bound(e => e.ShortName);
+           columns.Bound(e => e.UserName);
+           columns.Bound(e => e.Abbrev);
+           columns.Bound(e => e.PermissionLevel).Visible(!bolNewPermissionMgr);
+           columns.Bound(e => e.PermissionModifier).Visible(!bolNewPermissionMgr);
+           columns.Bound(e => e.RolesString).Visible(bolNewPermissionMgr);
+
+           //columns.Command(command =>
+           //{
+           //    command.Edit().Text(" ").UpdateText(" ").CancelText(" ");
+           //    //command.Custom("editcustom").Click("onEditItem").Text(" ");
+           //    command.Custom("deletecustom").Click("onDeleteItem").Text(" ");
+           //}).Width(120);
+       })
+
+       //.ToolBar(tools => tools.Create().Text(DicSvc.XLate("ADD NEW USER")))
+       .UmsDefaultToolbar("createNewUser", "ADD NEW USER", "displayItemDetail('');", DicSvc)
+       .ToolBar(t => t.Custom().Name("btnShowDisabled").Text(DicSvc.XLate("Show Disabled Users"))
+          .HtmlAttributes(new { @onClick="toggleDisabledUsers()", @id = "btnShowDisabled", @class = "floatRight" }))
+       
+       //.ToolBar(t => t.ClientTemplate("<a class='k-button' href='" + Url.Action("ReadDisabeldUsers", "SystemAdministration") + "" + ">Add product</a>"))
+       .UmsDefaultPager(DicSvc)
+       .Events(ev => ev.DataBound("onDataBound"))
+       .DataSource(dataSource => dataSource
+       .Ajax()
+       .Model(model =>
+       {
+           model.Id(o => o.Id);
+           model.Field(o => o.LastName).Editable(false);
+           model.Field(o => o.FirstName).Editable(false);
+           model.Field(o => o.Title).Editable(false);
+           model.Field(o => o.ShortName).Editable(false);
+           model.Field(o => o.UserName).Editable(false);
+           model.Field(o => o.Abbrev).Editable(false);
+           model.Field(o => o.PermissionLevel).Editable(false);
+           model.Field(o => o.PermissionModifier).Editable(false);
+       })
+       .PageSize(50)
+       .Read(read => read.Action("ReadUsers", "SystemAdministration").Data("getAdditionalData"))
+       .Events(e => e.Error("error_handler_users").RequestEnd("onRequestEnd"))
+    //.Create(create => create.Action("CreateUsers", "SystemAdministration"))
+    )
+
+
+
+    )
+</div>
+
+<script>
+
+   function onRequestEnd(e) {
+      //debugger;
+      if (e.response && e.response.success != undefined && e.response.success == false ) {
+          var message = "An error occurred retrieving data.<br/>Check logs for detailss";
+         window.umsAlert("Error",message);
+      } else {
+         if (!e.response ) {
+             var message = "An error occurred retrieving data.<br/>Check logs for details";
+            window.umsAlert("Error",message);
+         }
+      }
+   }
+
+    function error_handler_users(e) {
+       if (e.status && e.status == "error" ) {
+          //if (e.xhr && e.xhr.responseText) {
+          //   window.umsAlert("Error",e.xhr.responseText,600,400);
+          //} else {
+           var message = "An error occurred retrieving data.<br/>Check logs for details";
+          window.umsAlert("Error",message);
+          //}
+       }
+    }
+
+    @{
+       string editItemTitle = "Edit User";
+       string newItemTitle = "Add User";
+    }
+    var kndWnd;
+    $(document).ready(function() {
+        if (!kndWnd) {
+            kndWnd = $(popUpWindowName).usmKendoWindow({
+                maxHeight:'625px',
+                minWidth:'90%',
+                title: '@DicSvc.XLate(editItemTitle)',
+                close: function (e) {
+                    $('#' + gridIdName).data("kendoGrid").table.focus();
+                }
+            });
+
+        }
+    });
+
+    function displayItemDetail(itemID) {
+        var windowWidget = $(popUpWindowName).data("kendoWindow");
+        kendo.ui.progress(windowWidget.element, true);
+        $.ajax({
+            url: '@Url.Action("GetUser", "SystemAdministration")',
+            type: 'GET',
+            data: { id: itemID }
+        }).done(function (dataHtml) {
+            kendo.ui.progress(windowWidget.element, true);
+			var dialog = $(popUpWindowName ).data('kendoWindow');
+            if (itemID ==='') {
+                dialog.title('@DicSvc.XLate(newItemTitle)');
+            } else {
+                dialog.title('@DicSvc.XLate(editItemTitle)');
+            }
+            dialog.content(dataHtml).center().open();
+        });
+    }
+
+    var CountIt = 0;
+    function GetCountIt() {
+        var $grid = $("#"+gridIdName).data("kendoGrid");
+        var page = $grid.dataSource.page();
+        if (isNaN(page)) {
+            page = 1;
+        }
+        var pageSize = $grid.dataSource.pageSize();
+        if (isNaN(pageSize)) {
+            pageSize = 1;
+        }
+        if (isNaN(CountIt)) {
+            CountIt = 0;
+        }
+        CountIt++;
+        return (page * pageSize) - pageSize + CountIt;
+    }
+    function onDataBound(e) {
+        CountIt = 0;
+        var grid = this;
+        grid.element.off('dblclick').on('dblclick', 'tbody tr[data-uid]',
+            function (e) {
+                var item = grid.dataItem( $(e.target).closest('tr'));
+                onGridKeyEnter(item);
+            });
+    }
+    function onGridKeyEnter(item) {
+        //replace Key
+        displayItemDetail(item.Id);
+    };
+
+</script>
+<div id="roleSelectionDialog"></div>

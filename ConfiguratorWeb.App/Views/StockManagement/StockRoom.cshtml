@@ -1,0 +1,160 @@
+﻿
+<div class="card h-90 pt-1 pb-2">
+    <div class="card-header">
+        <div id= "hierarchy">
+
+        </div>
+    </div>
+    <form id="StockRoomForm" class="card-body h-90 p-0 border-0" style="display:none">
+
+        <div class="container-fluid">
+            <div class="row mt-3">
+                @*stockroomShortName*@
+                <div class="col-sm-1 u-col-h-fixed">
+                    <label class="label-name field-required" for="StockRoomShortNameTxt">Shortname</label>
+                </div>
+                <div class="col-sm-3 u-col-h-fixed">
+                    <div class="input-group">
+                        <input class="k-input k-textbox" type="text" data-val="true" data-val-required="The StockRoom Short Name field is required." id="StockRoomShortNameTxt" disabled>
+                    </div>
+                </div>
+                @*stockroomName*@
+                <div class="col-sm-1 u-col-h-fixed ml-5">
+                    <label class="label-name field-required" for="StockRoomNameTxt">Name</label>
+                </div>
+                <div class="col-sm-5 u-col-h-fixed">
+                    <div class="input-group">
+                        <input class="k-input k-textbox" type="text" id="StockRoomNameTxt" name="StockRoomNameTxt" data-val-required="The StockRoom Name field is required." disabled>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                @*index*@
+                <div class="col-sm-1 u-col-h-fixed ml-1">
+                    <label class="label-name" for="StockRoomIndexTxt">Index</label>
+                </div>
+                <div class="col-sm-1 u-col-h-fixed">
+                    <div class="input-group">
+                        <input class="k-input k-textbox" type="text" id="StockRoomIndexTxt" disabled>
+                    </div>
+                </div>
+                @*isFromUnknown*@
+                <div class="col-sm-1 u-col-h-fixed ml-5">
+                    <label class="label-name" for="StockRoomIsFromUnknownTxt">Unknown resources</label>
+                </div>
+                <div class="col-sm-1 u-col-h-fixed">
+                    <div class="input-group">
+                        <input id="StockRoomIsFromUnknownTxt" type="checkbox"  data-role="checkbox" class="k-checkbox k-checkbox-md k-rounded-md" disabled>
+                        <label for="InheritsSlots" class="k-checkbox-label"> </label>
+                    </div>
+                </div>
+
+                @*description*@
+                <div class="col-sm-1 u-col-h-fixed">
+                    <label class="label-name" for="StockRoomDescriptionTxt">Description</label>
+                </div>
+                <div class="col-sm-5 u-col-h-fixed">
+                    <div class="input-group">
+                        <textarea class="k-input k-textbox" type="text" id="StockRoomDescriptionTxt" disabled></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<script>
+    function populateStockRoomForm() {
+        $('#StockRoomShortNameTxt').val(dataItem.StockRoomShortName);
+        $('#StockRoomNameTxt').val(dataItem.StockRoomName);
+        $('#StockRoomDescriptionTxt').val(dataItem.StockRoomDescription);
+        $('#StockRoomIndexTxt').val(dataItem.StockRoomIndex);
+        $('#StockRoomIsFromUnknownTxt').prop('checked', (dataItem.StockRoomIsForUnknown));
+
+        dataItem.Mode = 'Update';
+        console.log(dataItem)
+    }
+    function clearStockRoomForm() {
+        $('#StockRoomShortNameTxt').val('')
+        $('#StockRoomNameTxt').val('');
+        $('#StockRoomIndexTxt').val('');
+        $('#StockRoomDescriptionTxt').val('');
+
+    }
+    function UpdateStockroom() {
+        debugger
+
+       
+            var stockRoomUpdateModel =
+            {
+                StockRoomId: dataItem.StockRoomId,
+                StockRoomName: $('#StockRoomNameTxt').val(),
+                StockRoomShortName: $('#StockRoomShortNameTxt').val(),
+                StockRoomDescription: $('#StockRoomDescriptionTxt').val(),
+                StockRoomIndex: $('#StockRoomIndexTxt').val(),
+                StockRoomIsForUnknown: $('#StockRoomIsFromUnknownTxt').prop("checked")
+            }
+            $.ajax({
+                url: '@Url.Action("UpdateStockRoom", "StockManagement")',
+                type: 'POST',
+                data: {
+                    model: stockRoomUpdateModel
+                }
+            }).done(function (data) {
+                if (data.success != undefined && data.success) {
+                    console.log('stockRoom Inserted');
+                } else {
+                    $('#errors').html('not saved. reason:' + data.errorMessage);
+                }
+            }).fail(function (response) {
+                console.log(response)
+                umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+            });
+    }
+    function InsertStockRoom(){
+        var stockRoomModel =
+        {
+            StockRoomId: dataItem.StockRoomId,
+            StockRoomName: $('#StockRoomNameTxt').val(),
+            StockRoomShortName: $('#StockRoomShortNameTxt').val(),
+            StockRoomDescription: $('#StockRoomDescriptionTxt').val(),
+            StockRoomIndex: $('#StockRoomIndexTxt').val(),
+            StockRoomIsForUnknown: $('#StockRoomIsFromUnknownTxt').prop("checked")
+        }
+        $.ajax({
+            url: '@Url.Action("InsertNewStockRoom", "StockManagement")',
+            type: 'POST',
+            data: {
+                model: stockRoomModel
+            }
+        }).done(function (data) {
+            if (data.success != undefined && data.success) {
+                console.log('stockRoom Inserted');
+            } else {
+                $('#errors').html('not saved. reason:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            console.log(response)
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+        return;
+    }
+    function DeleteStockRoom(){
+        debugger
+        $.ajax({
+            url: '@Url.Action("RemoveStockRoom", "StockManagement")',
+            type: 'POST',
+            data: {
+                stockRoomId: dataItem.StockRoomId,
+            }
+        }).done(function (data) {
+            if (data.success != undefined && data.success) {
+                console.log('stockRoom deleted');
+            } else {
+                $('#errors').html('not deleted. reason:' + data.errorMessage);
+            }
+        }).fail(function (response) {
+            console.log(response)
+            umsErrorDialog("Error occured", response.errorMessage, 200, 200);
+        });
+    }
+</script>

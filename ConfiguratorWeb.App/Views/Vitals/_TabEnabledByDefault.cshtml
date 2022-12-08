@@ -1,0 +1,100 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+
+@inject IDictionaryService DicSvc
+
+@model ConfiguratorWeb.App.Models.StandardDatasetViewModel
+
+@{
+    Layout = null;
+}
+
+<style>
+    .k-multiselect.k-state-disabled input[aria-autocomplete='list']:disabled {
+        display: none;
+    }
+</style>
+<script type="text/javascript">
+    function onEnabledByDefaultChange() {
+        var isChecked = $("#sd_EnabledByDefault").is(":checked");
+        $('#sd_Global').prop("disabled", !isChecked);
+        $('#LocationIds').data('kendoMultiSelect').enable(isChecked);
+    }
+
+    function onLocationDataBound() {
+        var selectedValue = [];
+        @if (Model.LocationIds != null)
+        {
+           foreach (var d in Model.LocationIds)
+           {
+               @:selectedValue.push(@d);
+           }
+        }
+        this.value(selectedValue);
+    }
+
+    function displayVisibilityMsg(checked) {
+        if (checked) {
+            $('#lblExceptionDetail').text('(Dataset will be Visible to all location except those selected)');
+        } else {
+            $('#lblExceptionDetail').text('(Dataset will be Visible only to selected locations)');
+        }
+    }
+
+    $(document).ready(function () {
+        $('#sd_Global').change(function () {
+            displayVisibilityMsg(this.checked);
+        }).trigger("change");
+    });
+
+</script>
+
+<div class="panel-enabled-by-default">
+    <div class="row">
+        <div class="col-md-2">
+            @Html.LabelFor(m => m.sd_EnabledByDefault)
+        </div>
+        <div class="col-md-3">
+            @Html.Kendo().CheckBoxFor(m => m.sd_EnabledByDefault).Label(" ").HtmlAttributes(new { onchange = "onEnabledByDefaultChange();" })
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-md-2">
+            @DicSvc.XLate("Visible to all locations")
+        </div>
+        <div class="col-md-3">
+            @Html.Kendo().CheckBoxFor(m => m.sd_Global)
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-md-2" id="lblExceptionsMessage">
+            @DicSvc.XLate("Exceptions:")
+            <span class="label-note small d-block" id="lblExceptionDetail"></span>
+        </div>
+        <div class="col-md-7">
+            @(Html.Kendo().MultiSelectFor(m=>m.LocationIds)
+            .HtmlAttributes(new { @style = "width:100%;" })
+            .DataTextField("LocationName")
+            .DataValueField("ID")
+            .AutoClose(false)
+            .Placeholder(DicSvc.XLateHtml("Select location/s"))
+            .DataSource(source =>
+            {
+                source.Custom().Type("aspnetmvc-ajax")
+                .Transport(transport =>
+                    transport.Read(read => read.Action("ReadLocations", "SystemConfiguration"))
+                )
+                .Schema(schema => schema
+                    .Data("Data")
+                    .Total("Total")
+                    )
+                .ServerFiltering(false);
+
+            })
+            .Events(p => p.DataBound("onLocationDataBound"))
+            .Height(350)
+            .AutoBind(true))
+        </div>
+    </div>
+</div>

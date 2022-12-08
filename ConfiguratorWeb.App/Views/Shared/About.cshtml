@@ -1,0 +1,255 @@
+﻿@using Digistat.FrameworkStd.Interfaces
+
+@inject IDigistatEnvironmentService EnvSvc
+
+@{
+   string[] actions = new string[] { "Close" };
+}
+@if (!EnvSvc.IsUS)
+{
+   <style>
+
+
+
+      .inner-win > .k-window-titlebar {
+         display: none;
+      }
+
+       #aboutwindow {
+           width: 565px;
+           height: 705px !important;
+           /*overflow: hidden;*/
+           background-color: black;
+           font-family: 'Source-Sans-Pro';
+       }
+
+      .inner-win > .k-prompt-container, #aboutwindow {
+         padding: 0 !important;
+      }
+
+      .inner-win {
+         padding-top: 0px !important;
+      }
+
+      #lblInternalUserOnly {
+         margin-top: 15px;
+         padding-left: 10px;
+      }
+      /*#aboutAscomLogo {
+          top: 180px!important;
+      }*/
+      .inner-win.k-window {
+         border: none !important;
+      }
+
+      .about-win .k-window-title {
+         color: #fff;
+         font-weight: 500;
+         display: inline-block;
+         font-size: 20px;
+      }
+
+      .about-win .k-window-titlebar {
+         background-color: #990000 !important;
+      }
+
+      .about-win .k-window-actions span.k-i-close {
+         color: #fff !important;
+      }
+
+      .inner-win > .k-prompt-container, .inner-win > .k-window-content {
+         height: auto !important;
+      }
+   </style>
+}
+else
+{
+   <style>
+
+
+
+      .inner-win > .k-window-titlebar {
+         display: none;
+      }
+
+      #aboutwindow {
+         width: 700px;
+         /*height: 705px !important;*/
+         overflow: auto;
+         background-color: black;
+         font-family: 'Source-Sans-Pro';
+      }
+
+      .inner-win > .k-prompt-container, #aboutwindow {
+         padding: 0 !important;
+      }
+
+      .inner-win {
+         padding-top: 0px !important;
+      }
+
+      #lblInternalUserOnly {
+         margin-top: 15px;
+         padding-left: 10px;
+      }
+      /*#aboutAscomLogo {
+          top: 180px!important;
+      }*/
+      .inner-win.k-window {
+         border: none !important;
+      }
+
+      .about-win .k-window-title {
+         color: #fff;
+         font-weight: 500;
+         display: inline-block;
+         font-size: 20px;
+      }
+
+      .about-win .k-window-titlebar {
+         background-color: #990000 !important;
+      }
+
+      .about-win .k-window-actions span.k-i-close {
+         color: #fff !important;
+      }
+
+      .inner-win > .k-prompt-container, .inner-win > .k-window-content {
+         height: auto !important;
+      }
+
+      @@media screen and (max-width: 596px) {
+         .scaled {
+            /*position: relative;*/
+            /*top: 0px;*/
+            /*left: 0px;*/
+            /*transform: scale(0.8);*/ /* Equal to scaleX(0.7) scaleY(0.7) */
+         }
+      }
+   </style>
+}
+   <div id="aboutwindow" style="display:none;">
+      @await Component.InvokeAsync("About").ConfigureAwait(false)
+   </div>
+   @if (!EnvSvc.IsUS)
+   {
+      <script>
+
+
+         $(function () {
+            $('#aboutwindow').kendoWindow({
+               draggable: false,
+               visible: false,
+               modal: true,
+                height: '760px',
+               width: '545px',
+               resizable: false,
+                title: false,
+               scrollable:true
+            });
+
+            $('#btnAboutDialog').click(function () {
+               $("#aboutwindow").data("kendoWindow").center();
+               $("#aboutwindow").data("kendoWindow").open();
+            });
+
+            $(document).on("click",
+               ".k-overlay",
+               function () {
+                  $("#aboutwindow").data("kendoWindow").close();
+               });
+         });
+
+
+         //function closeAboutWin() {
+         //    $("#aboutwindow").data("kendoWindow").close();
+         //}
+      </script>
+   }
+   @if (EnvSvc.IsUS)
+   {
+      <script>
+         var widthAboutFist = 0;
+         $(function () {
+            var widthAbout = 660;
+            //var widthAboutFist = 0;
+            //if (window.matchMedia) {
+            //   //debugger;
+            //   if (window.matchMedia("(max-width: 660px)").matches) {
+            //      /* The viewport is less than, or equal to, 424 pixels wide */
+            //      widthAbout = Math.floor(window.outerWidth * 0.70)
+            //      //window.outerHeight
+            //   } else {
+            //      /* The viewport is greater than 700 pixels wide */
+            //      //widthAbout = 600;
+            //   }
+            //}
+
+            $('#aboutwindow').kendoWindow({
+               draggable: true,
+               visible: false,
+               modal: true,
+
+               height: '780px',
+               //width: widthAbout + 'px',
+               //maxWidth: '90%',
+               resizable: false,
+               title: false,
+               visible: false,
+               open: adjustSize
+            });
+
+            $('#btnAboutDialog').off('click  touchstart').on('click  touchstart', function () {
+               var win = $("#aboutwindow").getKendoWindow();
+               //debugger;
+               if (widthAboutFist === 0) {
+                  widthAboutFist = win.wrapper.width();
+               }
+               win.open();
+
+               if ($(window).width() < (widthAboutFist + 30) /*|| $(window).height() < 600*/) {
+
+                  var scaleIt = window.outerWidth > widthAboutFist ? 1 : ((window.outerWidth / widthAboutFist) - 0.08);
+
+                  if (win.wrapper.width() != widthAboutFist) {
+                     //win.resize();
+                  }
+
+                  if (scaleIt < 1) {
+                     //$('#dwebAboutPopup')[0].style.transform = "scale(" + scaleIt + ")";
+                     //win.wrapper.width(window.outerWidth - 50);
+                     win.wrapper[0].style.transform = "scale(" + scaleIt + ")";
+                  } else {
+                     win.wrapper[0].style.transform = "";
+                     //$('#dwebAboutPopup')[0].style.transform = "";
+                     //win.wrapper.width(widthAboutFist);
+                  }
+
+               }
+
+               win.center();
+            });
+
+            $(document).on("click", ".k-overlay", function () {
+               $("#aboutwindow").data("kendoWindow").close();
+            });
+
+            $("#aboutwindow").on('dblclick', function () {
+               $("#aboutwindow").data("kendoWindow").close();
+            });
+
+         });
+
+         function adjustSize(e) {
+            // For small screens, maximize the window when it is shown.
+            // You can also make the check again in $(window).resize if you want to
+            // but you will have to change the way to reference the widget and then
+            // to use $("#theWindow").data("kendoWindow").
+            // Alternatively, you may want to .center() the window.
+
+            if ($(window).width() < 800 || $(window).height() < 600) {
+               //this.maximize();
+            }
+         }
+      </script>
+   }

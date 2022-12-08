@@ -1,0 +1,107 @@
+﻿@using Digistat.FrameworkStd.Interfaces;
+@model ConfiguratorWeb.App.Models.TelligenceDeviceViewModel
+@inject IDictionaryService DicSvc
+@{
+    Layout = null;
+}
+<script>
+    function ontelliHostsXMLRpcError(e, status) {
+        $('#xmlRpcHostErrors').text('@DicSvc.XLate("An error occurred while connecting to Telligence Config Handler")');
+        $("#TLXMLRPCSystems").data("kendoGrid").dataSource.data([]);
+    }
+</script>
+@(Html.Kendo().Window()
+        .Name("tlXmlRpcSettings")
+        .Title("Telligence XML RPC Settings")
+        .Width(700)
+        .Height(400)
+        .Modal(true)
+        .Visible(false)
+)
+<div class="card" style="height:208px; padding: 15px 10px 0 10px;">
+
+
+    <div style="height:125px">
+        <div class="row mb10">
+            <div class="col-md-11 u-col-h-fixed">
+                <h4>@DicSvc.XLate("Available Telligence Systems")</h4>
+            </div>
+            <div class="col-md-1 u-col-h-fixed">
+                <button type="button" class="k-icon k-i-gears" id="btnXmlRpcSettings" title="@DicSvc.XLate("Edit Telligence XML Rpc Settings")"></button>
+            </div>
+        </div>
+        <div class="row">
+
+        </div>
+        <div class="row">
+            <div class="col-md-10 u-col-h-fixed">
+                @(Html.Kendo().DropDownList().Name("TLXMLRPCSystems")
+                                    .HtmlAttributes(new { @style = "width:300px;", @id = "TLXMLRPCSystems" })
+                                    .DataTextField("Text")
+                                    .DataValueField("Value")
+                                    .DataSource(source =>
+                                    {
+                                        source.Read(read =>
+                                        {
+
+                                            read.Action("GetTelligenceSystems", "Telligence");
+                                        })
+                                        .Events(e => e.Error("ontelliHostsXMLRpcError"));
+                                    })
+                )
+
+            </div>
+            <div class="col-md-2 u-col-h-fixed">
+                <button type="button" id="btnRefresh" class="k-icon k-i-refresh" title="@DicSvc.XLate("Refresh")"></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="button-container">
+        <div class="col-md-3 u-col-h-fixed">
+            <div id="xmlRpcHostErrors" class="errorSpan"></div>
+        </div>
+        <div class="col-md-9 u-col-h-fixed">
+            <div class="modify-mode">
+                <button id="btnTLSystemOK" class="btnSave" type="button">@DicSvc.XLate("OK")</button>
+                <button id="btnTLSystemCancel" class="btnCancel" type="button">@DicSvc.XLate("CANCEL")</button>
+            </div>
+
+        </div>
+
+    </div>
+
+
+</div>
+<script>
+
+
+    $('#btnRefresh').click(function () {
+        $('#TLXMLRPCSystems').data('kendoDropDownList').dataSource.read();
+    })
+
+    $('#btnTLSystemOK').click(function () {
+        $('#TLSystemGUID').val($('#TLXMLRPCSystems').data('kendoDropDownList').text());
+        $('#HostID').val($('#TLXMLRPCSystems').data('kendoDropDownList').value());
+        $('#tlRemoteSystems').data('kendoWindow').close();
+    })
+
+
+    $('#btnTLSystemCancel').click(function () {
+        $('#tlRemoteSystems').data('kendoWindow').close();
+    })
+
+    $('#btnXmlRpcSettings').click(function () {
+        $.ajax({
+                url: '@Url.Action("GetTellXMLRpcSettings", "Telligence")',
+                type: 'GET',
+                async: false
+        }).done(function (dataHtml) {
+                $('#xmlRpcDeviceErrors').text('');
+                var itemDialog = $('#tlXmlRpcSettings').data('kendoWindow');
+                itemDialog.content(dataHtml);
+                itemDialog.open();
+                itemDialog.center();
+            });
+    })
+</script>
